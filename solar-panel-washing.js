@@ -36,8 +36,8 @@ class SolarPanelWashingCard extends HTMLElement {
       <style>
         :host{--spw-blue:#1684d8;--spw-green:#18a957;--spw-red:#ef3e3e;--spw-bg:var(--card-background-color,#fff);display:block}
         *{box-sizing:border-box}.wrap{padding:18px}.hero{display:flex;align-items:center;gap:14px;margin-bottom:16px}.hero ha-icon{--mdc-icon-size:38px;color:#18a7e0}.hero h1{font-size:26px;margin:0}.hero p{margin:3px 0 0;opacity:.65}
-        .grid{display:grid;grid-template-columns:repeat(3,minmax(260px,1fr));gap:14px}.box{border:1px solid rgba(127,127,127,.18);border-radius:16px;padding:14px;background:var(--spw-bg);box-shadow:0 3px 12px rgba(0,0,0,.04)}.box h3{margin:0 0 12px;font-size:17px}.wide{grid-column:span 2}
-        .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:14px}.stat{padding:10px;border-radius:12px;background:rgba(22,132,216,.08);text-align:center}.stat b{display:block;font-size:18px}.stat small{opacity:.65}
+        .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,280px),1fr));gap:14px;align-items:start}.grid>*{min-width:0}.box{border:1px solid rgba(127,127,127,.18);border-radius:16px;padding:14px;background:var(--spw-bg);box-shadow:0 3px 12px rgba(0,0,0,.04)}.box h3{margin:0 0 12px;font-size:17px}.wide{grid-column:1/-1}
+        .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(100px,1fr));gap:8px;margin-bottom:14px}.stat{padding:10px;border-radius:12px;background:rgba(22,132,216,.08);text-align:center}.stat b{display:block;font-size:18px}.stat small{opacity:.65}
         select{width:100%;padding:10px;border-radius:10px;border:1px solid rgba(127,127,127,.3);background:var(--card-background-color);color:var(--primary-text-color);margin-bottom:10px}
         button{font:inherit}.actions{display:grid;grid-template-columns:1fr 1fr;gap:8px}.action{border:0;border-radius:12px;padding:14px;color:white;font-weight:700;cursor:pointer}.start{background:var(--spw-green)}.stop{background:var(--spw-red)}.reset{background:#e8eef3;color:#345;width:100%;margin-top:8px}
         .chips{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}.zones{grid-template-columns:repeat(5,1fr)}.chip{min-width:0;border:1px solid rgba(127,127,127,.22);border-radius:11px;padding:9px 4px;background:rgba(127,127,127,.08);color:var(--primary-text-color);cursor:pointer}.chip.on{background:var(--spw-blue);color:white}.chip small{display:none}
@@ -45,8 +45,8 @@ class SolarPanelWashingCard extends HTMLElement {
         .numrow{display:grid;grid-template-columns:1fr 34px 65px 34px;gap:5px;align-items:center;padding:5px 0}.numrow button{border:0;border-radius:8px;padding:6px;cursor:pointer}.numrow b{text-align:center}
         .manual{display:grid;grid-template-columns:repeat(4,1fr);gap:7px}.manual .chip small{display:block;font-size:10px;margin-top:3px;opacity:.75}
         .alarm{color:var(--spw-red);font-weight:700}.ok{color:var(--spw-green);font-weight:700}
-        @media(max-width:900px){.grid{grid-template-columns:1fr 1fr}.wide{grid-column:span 2}.stats{grid-template-columns:1fr 1fr}}
-        @media(max-width:600px){.wrap{padding:12px}.grid{grid-template-columns:1fr}.wide{grid-column:span 1}.hero h1{font-size:22px}.actions{grid-template-columns:1fr}.manual{grid-template-columns:repeat(4,1fr)}}
+        @media(max-width:900px){.stats{grid-template-columns:repeat(auto-fit,minmax(100px,1fr))}}
+        @media(max-width:600px){.wrap{padding:12px}.hero h1{font-size:22px}.actions{grid-template-columns:1fr}.manual{grid-template-columns:repeat(2,minmax(0,1fr))}}
       </style>
       <div class="wrap">
         <div class="hero"><ha-icon icon="mdi:solar-panel"></ha-icon><div><h1>Solar Panel Washing</h1><p>Automatic multi-zone washing controller</p></div></div>
@@ -94,4 +94,4 @@ class SolarPanelWashingCard extends HTMLElement {
 customElements.define("solar-panel-washing-card", SolarPanelWashingCard);
 window.customCards = window.customCards || [];
 window.customCards.push({type:"solar-panel-washing-card",name:"Solar Panel Washing",description:"Complete dashboard card for the Solar Panel Washing ESPHome controller",preview:true});
-console.info("%c SOLAR-PANEL-WASHING-CARD %c v1.1.1 ","color:white;background:#1684d8;font-weight:700","color:#1684d8;background:white");
+console.info("%c SOLAR-PANEL-WASHING-CARD %c v1.1.2 ","color:white;background:#1684d8;font-weight:700","color:#1684d8;background:white");
