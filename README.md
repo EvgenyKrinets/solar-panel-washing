@@ -63,11 +63,13 @@ The project now includes an installable Home Assistant frontend card. Add this r
 
 `https://github.com/EvgenyKrinets/solar-panel-washing`
 
-Install **Solar Panel Washing Dashboard**, reload the Home Assistant frontend, then add one card:
+Install **Solar Panel Washing Dashboard** (category **Dashboard**) and reload the Home Assistant frontend. HACS should register the JavaScript resource automatically. Then use **Edit dashboard → Add card → Solar Panel Washing**, or add one card manually:
 
 ```yaml
 type: custom:solar-panel-washing-card
 ```
+
+If the card is not listed after an update, use **Redownload** in HACS, then refresh Home Assistant. The expected resource path is `/hacsfiles/solar-panel-washing/solar-panel-washing.js` (do not register a duplicate resource if HACS has already created one).
 
 The card automatically uses the standard `solar_panel_washing_...` entity IDs created by this project and provides the complete responsive interface in one card. Updates can then be delivered through HACS instead of copying the dashboard YAML again.
 
@@ -122,7 +124,8 @@ solar-panel-washing/
 ├── README.md
 ├── LICENSE
 ├── hacs.json
-├── solar-panel-washing-card.js
+├── solar-panel-washing.js (HACS entrypoint)
+├── solar-panel-washing-card.js (legacy)
 ├── assets/
 │   ├── icon.svg
 │   └── dashboard-preview.svg
