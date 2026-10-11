@@ -43,6 +43,15 @@ class SolarPanelWashingCard extends HTMLElement {
   }
   num(id,v){ if(this.e(id)) this.call("number","set_value",id,{value:Number(v)}); }
   select(id,v){ if(this.e(id)) this.call("select","select_option",id,{option:v}); }
+  uptime(id){
+    const seconds=Number(this.state(id));
+    if(!Number.isFinite(seconds)||seconds<0)return "—";
+    let t=Math.floor(seconds);
+    const d=Math.floor(t/86400);t%=86400;
+    const h=Math.floor(t/3600);t%=3600;
+    const m=Math.floor(t/60),s=t%60;
+    return d ? `${d}d ${h}h ${m}m` : h ? `${h}h ${m}m ${s}s` : m ? `${m}m ${s}s` : `${s}s`;
+  }
   rowNum(id,label){
     const s=this.e(id), rawValue=s?Number(s.state):NaN;
     const v=Number.isFinite(rawValue) ? (Number.isInteger(rawValue) || Number(s?.attributes?.step) >= 1 ? String(Math.round(rawValue)) : String(rawValue)) : "";
@@ -114,7 +123,7 @@ class SolarPanelWashingCard extends HTMLElement {
             <div class="toggleline"><span>Protection</span><button class="toggle ${this.state(E.protect)==="on"?"on":""}" data-toggle="${E.protect}">${this.state(E.protect)==="on"?"ON":"OFF"}</button></div>
             ${this.rowNum(`number.${p}minimum_flow_setpoint`,"Minimum")}${this.rowNum(`number.${p}maximum_flow_setpoint`,"Maximum")}${this.rowNum(`number.${p}leak_flow_setpoint`,"Leak")}${this.rowNum(`number.${p}flow_check_delay`,"Check Delay")}
           </div>
-          <div class="box"><h3>ℹ️ System</h3><div>Wi-Fi: <b>${this.state(E.wifi)} dBm</b></div><div style="margin-top:8px">Uptime: <b>${this.state(E.uptime)}</b></div><div style="margin-top:8px">Alarm: <b class="${this.state(E.alarm)==="on"?"alarm":"ok"}">${this.state(E.alarm)==="on"?"ACTIVE":"OK"}</b></div></div>
+          <div class="box"><h3>ℹ️ System</h3><div>Wi-Fi: <b>${this.state(E.wifi)} dBm</b></div><div style="margin-top:8px">Uptime: <b>${this.uptime(E.uptime)}</b></div><div style="margin-top:8px">Alarm: <b class="${this.state(E.alarm)==="on"?"alarm":"ok"}">${this.state(E.alarm)==="on"?"ACTIVE":"OK"}</b></div></div>
           <div class="box wide"><h3>🔧 Manual Valve Control</h3><div class="manual">
             ${this.sw(`switch.${p}ch8_valve_power`,"CH8 Valve Power","POWER")}${this.sw(`switch.${p}ch1_filtered_water`,"CH1 Filtered Water","WATER")}${this.sw(`switch.${p}ch2_detergent`,"CH2 Detergent","SOAP")}
             ${zones.map((z,i)=>this.sw(`switch.${p}ch${z+2}_zone_${z}`,`CH${z+2} Zone ${z}`,`Z${z}`)).join("")}
@@ -131,4 +140,4 @@ class SolarPanelWashingCard extends HTMLElement {
 customElements.define("solar-panel-washing-card", SolarPanelWashingCard);
 window.customCards = window.customCards || [];
 window.customCards.push({type:"solar-panel-washing-card",name:"Solar Panel Washing",description:"Complete dashboard card for the Solar Panel Washing ESPHome controller",preview:true});
-console.info("%c SOLAR-PANEL-WASHING-CARD %c v1.1.13 ","color:white;background:#1684d8;font-weight:700","color:#1684d8;background:white");
+console.info("%c SOLAR-PANEL-WASHING-CARD %c v1.1.14 ","color:white;background:#1684d8;font-weight:700","color:#1684d8;background:white");
