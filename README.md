@@ -39,7 +39,7 @@ Real screenshots of the Home Assistant dashboard, showing the controls and confi
 
 ### Washing control
 
-![Washing control and live status](assets/screenshots/01-washing-control.png)
+![Solar Panel Washing controls and live status (without unrelated Sungrow PID card)](assets/screenshots/01-washing-control.png)
 
 ### Automatic schedule and zones
 
