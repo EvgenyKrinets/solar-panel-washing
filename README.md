@@ -33,6 +33,14 @@ The reference hardware is the **Waveshare ESP32-S3-ETH-8DI-8RO**. Eight relay ch
 - 📱 **Responsive Home Assistant dashboard** for desktop and mobile.
 - 🏠 The washing sequence continues locally on the ESP32 if Home Assistant disconnects.
 
+## Dashboard screenshots
+
+The dashboard provides washing controls, an automatic weekly schedule, five selectable zones, timing settings, flow protection, system status, and manual relay controls.
+
+![Solar Panel Washing dashboard preview](assets/dashboard-preview.svg)
+
+> This is a dashboard illustration, not a live screenshot. Actual screenshots of the installed dashboard will be added here when full dashboard captures are available.
+
 ## Relay map
 
 | Relay | Function |
