@@ -93,7 +93,7 @@ class SolarPanelWashingCard extends HTMLElement {
         </div>
       </div>
     </ha-card>`;
-    this.querySelectorAll("[data-toggle]").forEach(b=>b.onclick=()=>{b.classList.add("tap");this.toggle(b.dataset.toggle);setTimeout(()=>b.classList.remove("tap"),220);});
+    this.querySelectorAll("[data-toggle]").forEach(b=>b.onclick=()=>{const wasOn=b.classList.contains("on");b.classList.toggle("on",!wasOn);if(b.classList.contains("toggle"))b.textContent=wasOn?"OFF":"ON";b.classList.add("tap");this.toggle(b.dataset.toggle);setTimeout(()=>b.classList.remove("tap"),220);});
     this.querySelectorAll("[data-press]").forEach(b=>b.onclick=()=>this.button(b.dataset.press,b));
     this.querySelectorAll("[data-select]").forEach(s=>s.onchange=()=>this.select(s.dataset.select,s.value));
     this.querySelectorAll("[data-num]").forEach(b=>b.onclick=()=>{const id=b.dataset.num, st=this.e(id); if(!st)return; const step=Number(st.attributes.step||1), min=Number(st.attributes.min??-1e9), max=Number(st.attributes.max??1e9); this.num(id,Math.max(min,Math.min(max,Number(st.state)+Number(b.dataset.d)*step)));});
@@ -102,4 +102,4 @@ class SolarPanelWashingCard extends HTMLElement {
 customElements.define("solar-panel-washing-card", SolarPanelWashingCard);
 window.customCards = window.customCards || [];
 window.customCards.push({type:"solar-panel-washing-card",name:"Solar Panel Washing",description:"Complete dashboard card for the Solar Panel Washing ESPHome controller",preview:true});
-console.info("%c SOLAR-PANEL-WASHING-CARD %c v1.1.5 ","color:white;background:#1684d8;font-weight:700","color:#1684d8;background:white");
+console.info("%c SOLAR-PANEL-WASHING-CARD %c v1.1.6 ","color:white;background:#1684d8;font-weight:700","color:#1684d8;background:white");
