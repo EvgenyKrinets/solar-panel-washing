@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900">
+<defs><linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#071d34"/><stop offset="1" stop-color="#0b4d74"/></linearGradient><filter id="s"><feDropShadow dx="0" dy="8" stdDeviation="12" flood-opacity=".25"/></filter></defs>
+<rect width="1600" height="900" fill="url(#bg)"/>
+<text x="70" y="95" fill="white" font-family="Arial" font-size="54" font-weight="700">Solar Panel Washing</text>
+<text x="72" y="137" fill="#8fd8ff" font-family="Arial" font-size="25">ESP32 + ESPHome + Home Assistant • 5 zones • water + detergent</text>
+<g filter="url(#s)"><rect x="65" y="185" width="1470" height="640" rx="28" fill="#f5f8fb"/></g>
+<g font-family="Arial" fill="#123">
+<text x="105" y="240" font-size="26" font-weight="700">Washing Control</text>
+<rect x="100" y="270" width="390" height="210" rx="18" fill="white"/>
+<text x="125" y="315" font-size="20">Status</text><text x="410" y="315" text-anchor="end" fill="#19a55a" font-weight="700">● Ready</text>
+<text x="125" y="355" font-size="20">Mode</text><text x="410" y="355" text-anchor="end" fill="#1684d8">Water</text>
+<rect x="125" y="385" width="340" height="54" rx="12" fill="#19b95b"/><text x="295" y="420" text-anchor="middle" fill="white" font-size="20" font-weight="700">▶ START WASHING</text>
+<text x="555" y="240" font-size="26" font-weight="700">Automatic Schedule</text>
+<rect x="550" y="270" width="450" height="210" rx="18" fill="white"/>
+<text x="580" y="315" font-size="20">Start time</text><text x="930" y="315" text-anchor="end" font-size="24" font-weight="700">05 : 00</text>
+<g fill="#1684d8"><rect x="580" y="350" width="44" height="44" rx="12"/><rect x="634" y="350" width="44" height="44" rx="12"/><rect x="688" y="350" width="44" height="44" rx="12"/><rect x="742" y="350" width="44" height="44" rx="12"/><rect x="796" y="350" width="44" height="44" rx="12"/></g>
+<g font-size="16" fill="white" text-anchor="middle"><text x="602" y="378">M</text><text x="656" y="378">T</text><text x="710" y="378">W</text><text x="764" y="378">T</text><text x="818" y="378">F</text></g>
+<text x="1060" y="240" font-size="26" font-weight="700">Active Zones</text>
+<rect x="1055" y="270" width="430" height="210" rx="18" fill="white"/>
+<g fill="#19b95b"><circle cx="1110" cy="355" r="31"/><circle cx="1190" cy="355" r="31"/><circle cx="1270" cy="355" r="31"/><circle cx="1350" cy="355" r="31"/><circle cx="1430" cy="355" r="31"/></g>
+<g fill="white" font-size="20" font-weight="700" text-anchor="middle"><text x="1110" y="362">1</text><text x="1190" y="362">2</text><text x="1270" y="362">3</text><text x="1350" y="362">4</text><text x="1430" y="362">5</text></g>
+<text x="105" y="535" font-size="26" font-weight="700">Water / Detergent / Rinse Times</text>
+<rect x="100" y="565" width="900" height="205" rx="18" fill="white"/>
+<g font-size="18"><text x="130" y="610">Zone 1</text><text x="130" y="650">Zone 2</text><text x="130" y="690">Zone 3</text><text x="130" y="730">Zone 4</text><text x="310" y="610" fill="#1684d8">180 s water</text><text x="500" y="610" fill="#e67e22">60 s detergent</text><text x="720" y="610" fill="#1684d8">180 s rinse</text></g>
+<text x="1060" y="535" font-size="26" font-weight="700">Flow Protection</text>
+<rect x="1055" y="565" width="430" height="205" rx="18" fill="white"/>
+<circle cx="1160" cy="670" r="70" fill="none" stroke="#dce7ef" stroke-width="18"/><path d="M1100 705a70 70 0 0 1 110-80" fill="none" stroke="#1684d8" stroke-width="18" stroke-linecap="round"/>
+<text x="1160" y="675" text-anchor="middle" font-size="30" font-weight="700">0.0</text><text x="1160" y="700" text-anchor="middle" font-size="14">L/min</text>
+<text x="1280" y="625" font-size="17">Low / high flow</text><text x="1280" y="660" font-size="17">Leak detection</text><text x="1280" y="695" font-size="17">Total water</text>
+</g>
+<text x="800" y="865" text-anchor="middle" fill="#9bdcff" font-family="Arial" font-size="22">Local control • Safety interlocks • Mobile friendly • Open source</text>
+</svg>
