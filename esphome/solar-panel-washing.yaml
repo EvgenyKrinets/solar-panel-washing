@@ -1,0 +1,497 @@
+substitutions:
+  project_version: "1.0.0"
+
+esphome:
+  name: solar-panel-washing
+  friendly_name: "Solar Panel Washing"
+  project:
+    name: "EvgenyKrinets.SolarPanelWashing"
+    version: "${project_version}"
+  on_boot:
+    priority: -100
+    then:
+      - script.execute: all_off
+      - lambda: |-
+          id(wash_running)=false; id(emergency_active)=false;
+          id(current_zone_num)=0; id(flow_check_allowed)=false;
+          id(wash_state).publish_state("Ready");
+
+esp32:
+  board: esp32-s3-devkitc-1
+  flash_size: 16MB
+  framework:
+    type: esp-idf
+
+logger:
+api:
+  encryption:
+    key: !secret solar_panel_washing__encryption_key
+ota:
+  - platform: esphome
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+  ap:
+    ssid: "Solar Washing Fallback"
+    password: "12345678"
+captive_portal:
+
+i2c:
+  sda: GPIO42
+  scl: GPIO41
+  scan: true
+  frequency: 100kHz
+pca9554:
+  - id: relay_hub
+    address: 0x20
+
+globals:
+  - {id: wash_running, type: bool, restore_value: no, initial_value: 'false'}
+  - {id: emergency_active, type: bool, restore_value: no, initial_value: 'false'}
+  - {id: current_zone_num, type: int, restore_value: no, initial_value: '0'}
+  - {id: flow_check_allowed, type: bool, restore_value: no, initial_value: 'false'}
+  - {id: last_auto_start_day, type: int, restore_value: no, initial_value: '0'}
+
+switch:
+  - platform: gpio
+    name: "CH1 Filtered Water"
+    id: valve_water
+    icon: mdi:water
+    pin: {pca9554: relay_hub, number: 0, mode: {output: true}}
+    restore_mode: ALWAYS_OFF
+    interlock: [valve_detergent]
+    interlock_wait_time: 500ms
+  - platform: gpio
+    name: "CH2 Detergent"
+    id: valve_detergent
+    icon: mdi:spray-bottle
+    pin: {pca9554: relay_hub, number: 1, mode: {output: true}}
+    restore_mode: ALWAYS_OFF
+    interlock: [valve_water]
+    interlock_wait_time: 500ms
+  - platform: gpio
+    name: "CH3 Zone 1"
+    id: zone1_relay
+    icon: mdi:sprinkler
+    pin: {pca9554: relay_hub, number: 2, mode: {output: true}}
+    restore_mode: ALWAYS_OFF
+  - platform: gpio
+    name: "CH4 Zone 2"
+    id: zone2_relay
+    icon: mdi:sprinkler
+    pin: {pca9554: relay_hub, number: 3, mode: {output: true}}
+    restore_mode: ALWAYS_OFF
+  - platform: gpio
+    name: "CH5 Zone 3"
+    id: zone3_relay
+    icon: mdi:sprinkler
+    pin: {pca9554: relay_hub, number: 4, mode: {output: true}}
+    restore_mode: ALWAYS_OFF
+  - platform: gpio
+    name: "CH6 Zone 4"
+    id: zone4_relay
+    icon: mdi:sprinkler
+    pin: {pca9554: relay_hub, number: 5, mode: {output: true}}
+    restore_mode: ALWAYS_OFF
+  - platform: gpio
+    name: "CH7 Zone 5"
+    id: zone5_relay
+    icon: mdi:sprinkler
+    pin: {pca9554: relay_hub, number: 6, mode: {output: true}}
+    restore_mode: ALWAYS_OFF
+  - platform: gpio
+    name: "CH8 Valve Power"
+    id: valve_power
+    icon: mdi:power
+    pin: {pca9554: relay_hub, number: 7, mode: {output: true}}
+    restore_mode: ALWAYS_OFF
+  - {platform: template, name: "Zone 1 Enabled", id: zone1_enabled, optimistic: true, restore_mode: RESTORE_DEFAULT_ON}
+  - {platform: template, name: "Zone 2 Enabled", id: zone2_enabled, optimistic: true, restore_mode: RESTORE_DEFAULT_ON}
+  - {platform: template, name: "Zone 3 Enabled", id: zone3_enabled, optimistic: true, restore_mode: RESTORE_DEFAULT_ON}
+  - {platform: template, name: "Zone 4 Enabled", id: zone4_enabled, optimistic: true, restore_mode: RESTORE_DEFAULT_ON}
+  - {platform: template, name: "Zone 5 Enabled", id: zone5_enabled, optimistic: true, restore_mode: RESTORE_DEFAULT_ON}
+  - {platform: template, name: "Flow Protection", id: flow_protection, optimistic: true, restore_mode: RESTORE_DEFAULT_OFF}
+  - {platform: template, name: "Automatic Wash Start", id: auto_start_enabled, optimistic: true, restore_mode: RESTORE_DEFAULT_OFF}
+  - {platform: template, name: "Auto Start Monday", id: auto_monday, optimistic: true, restore_mode: RESTORE_DEFAULT_OFF}
+  - {platform: template, name: "Auto Start Tuesday", id: auto_tuesday, optimistic: true, restore_mode: RESTORE_DEFAULT_OFF}
+  - {platform: template, name: "Auto Start Wednesday", id: auto_wednesday, optimistic: true, restore_mode: RESTORE_DEFAULT_OFF}
+  - {platform: template, name: "Auto Start Thursday", id: auto_thursday, optimistic: true, restore_mode: RESTORE_DEFAULT_OFF}
+  - {platform: template, name: "Auto Start Friday", id: auto_friday, optimistic: true, restore_mode: RESTORE_DEFAULT_OFF}
+  - {platform: template, name: "Auto Start Saturday", id: auto_saturday, optimistic: true, restore_mode: RESTORE_DEFAULT_OFF}
+  - {platform: template, name: "Auto Start Sunday", id: auto_sunday, optimistic: true, restore_mode: RESTORE_DEFAULT_OFF}
+
+select:
+  - platform: template
+    name: "Wash Mode"
+    id: wash_mode
+    optimistic: true
+    restore_value: true
+    initial_option: "Water"
+    options: ["Water", "Detergent + Water"]
+
+number:
+  - {platform: template, name: "Water Time Zone 1", id: water_time_z1, unit_of_measurement: s, min_value: 5, max_value: 3600, step: 5, initial_value: 180, restore_value: true, optimistic: true}
+  - {platform: template, name: "Water Time Zone 2", id: water_time_z2, unit_of_measurement: s, min_value: 5, max_value: 3600, step: 5, initial_value: 180, restore_value: true, optimistic: true}
+  - {platform: template, name: "Water Time Zone 3", id: water_time_z3, unit_of_measurement: s, min_value: 5, max_value: 3600, step: 5, initial_value: 180, restore_value: true, optimistic: true}
+  - {platform: template, name: "Water Time Zone 4", id: water_time_z4, unit_of_measurement: s, min_value: 5, max_value: 3600, step: 5, initial_value: 180, restore_value: true, optimistic: true}
+  - {platform: template, name: "Water Time Zone 5", id: water_time_z5, unit_of_measurement: s, min_value: 5, max_value: 3600, step: 5, initial_value: 180, restore_value: true, optimistic: true}
+  - {platform: template, name: "Detergent Time Zone 1", id: detergent_time_z1, unit_of_measurement: s, min_value: 5, max_value: 1800, step: 5, initial_value: 60, restore_value: true, optimistic: true}
+  - {platform: template, name: "Detergent Time Zone 2", id: detergent_time_z2, unit_of_measurement: s, min_value: 5, max_value: 1800, step: 5, initial_value: 60, restore_value: true, optimistic: true}
+  - {platform: template, name: "Detergent Time Zone 3", id: detergent_time_z3, unit_of_measurement: s, min_value: 5, max_value: 1800, step: 5, initial_value: 60, restore_value: true, optimistic: true}
+  - {platform: template, name: "Detergent Time Zone 4", id: detergent_time_z4, unit_of_measurement: s, min_value: 5, max_value: 1800, step: 5, initial_value: 60, restore_value: true, optimistic: true}
+  - {platform: template, name: "Detergent Time Zone 5", id: detergent_time_z5, unit_of_measurement: s, min_value: 5, max_value: 1800, step: 5, initial_value: 60, restore_value: true, optimistic: true}
+  - {platform: template, name: "Rinse Time Zone 1", id: rinse_time_z1, unit_of_measurement: s, min_value: 5, max_value: 3600, step: 5, initial_value: 180, restore_value: true, optimistic: true}
+  - {platform: template, name: "Rinse Time Zone 2", id: rinse_time_z2, unit_of_measurement: s, min_value: 5, max_value: 3600, step: 5, initial_value: 180, restore_value: true, optimistic: true}
+  - {platform: template, name: "Rinse Time Zone 3", id: rinse_time_z3, unit_of_measurement: s, min_value: 5, max_value: 3600, step: 5, initial_value: 180, restore_value: true, optimistic: true}
+  - {platform: template, name: "Rinse Time Zone 4", id: rinse_time_z4, unit_of_measurement: s, min_value: 5, max_value: 3600, step: 5, initial_value: 180, restore_value: true, optimistic: true}
+  - {platform: template, name: "Rinse Time Zone 5", id: rinse_time_z5, unit_of_measurement: s, min_value: 5, max_value: 3600, step: 5, initial_value: 180, restore_value: true, optimistic: true}
+  - {platform: template, name: "Zone Overlap", id: zone_overlap, unit_of_measurement: s, min_value: 0, max_value: 15, step: 1, initial_value: 2, restore_value: true, optimistic: true}
+  - {platform: template, name: "Source Change Delay", id: source_delay, unit_of_measurement: s, min_value: 0, max_value: 30, step: 1, initial_value: 3, restore_value: true, optimistic: true}
+  - {platform: template, name: "Minimum Flow Setpoint", id: min_flow, unit_of_measurement: "L/min", min_value: 0, max_value: 30, step: 0.1, initial_value: 1, restore_value: true, optimistic: true}
+  - {platform: template, name: "Maximum Flow Setpoint", id: max_flow, unit_of_measurement: "L/min", min_value: 1, max_value: 40, step: 0.1, initial_value: 30, restore_value: true, optimistic: true}
+  - {platform: template, name: "Leak Flow Setpoint", id: leak_flow, unit_of_measurement: "L/min", min_value: 0.1, max_value: 10, step: 0.1, initial_value: 0.5, restore_value: true, optimistic: true}
+  - {platform: template, name: "Flow Check Delay", id: flow_start_delay, unit_of_measurement: s, min_value: 1, max_value: 60, step: 1, initial_value: 5, restore_value: true, optimistic: true}
+  - {platform: template, name: "Auto Start Hour", id: auto_start_hour, min_value: 0, max_value: 23, step: 1, initial_value: 5, restore_value: true, optimistic: true}
+  - {platform: template, name: "Auto Start Minute", id: auto_start_minute, min_value: 0, max_value: 59, step: 1, initial_value: 0, restore_value: true, optimistic: true}
+
+sensor:
+  - platform: pulse_counter
+    pin: {number: GPIO4, mode: {input: true}}
+    id: water_flow
+    name: "Water Flow"
+    unit_of_measurement: "L/min"
+    accuracy_decimals: 2
+    update_interval: 1s
+    filters: [{multiply: 0.0025252525}]
+    total:
+      id: water_total
+      name: "Total Water"
+      unit_of_measurement: "L"
+      accuracy_decimals: 2
+      filters: [{multiply: 0.0025252525}]
+  - {platform: wifi_signal, name: "WiFi Signal", update_interval: 30s}
+  - {platform: uptime, name: "Controller Uptime"}
+
+binary_sensor:
+  - {platform: status, name: "Washing Controller Online"}
+  - platform: template
+    name: "Washing Active"
+    id: washing_status
+    lambda: return id(wash_running);
+  - platform: template
+    name: "Washing Alarm"
+    id: alarm_status
+    device_class: problem
+    lambda: return id(emergency_active);
+
+text_sensor:
+  - {platform: template, name: "Washing Status", id: wash_state, update_interval: never}
+  - platform: template
+    name: "Current Zone"
+    id: current_zone_text
+    update_interval: 1s
+    lambda: |-
+      switch(id(current_zone_num)){case 1:return{"Zone 1"};case 2:return{"Zone 2"};case 3:return{"Zone 3"};case 4:return{"Zone 4"};case 5:return{"Zone 5"};default:return{"None"};}
+  - platform: template
+    name: "Next Automatic Start"
+    id: next_auto_start_text
+    update_interval: 30s
+    lambda: |-
+      if(!id(auto_start_enabled).state)return{"Disabled"}; auto now=id(system_time).now(); if(!now.is_valid())return{"Waiting for time"};
+      char b[16]; snprintf(b,sizeof(b),"%02d:%02d",(int)id(auto_start_hour).state,(int)id(auto_start_minute).state); return{b};
+  - platform: wifi_info
+    ip_address: {name: "IP Address"}
+    ssid: {name: "WiFi Network"}
+    mac_address: {name: "WiFi MAC Address"}
+
+button:
+  - platform: template
+    name: "Start Washing"
+    on_press: [{script.execute: start_wash}]
+  - platform: template
+    name: "Emergency Stop"
+    on_press: [{script.execute: emergency_stop}]
+  - platform: template
+    name: "Reset Alarm"
+    on_press:
+      - if:
+          condition:
+            lambda: return !id(wash_running);
+          then:
+            - lambda: id(emergency_active)=false; id(wash_state).publish_state("Ready");
+
+time:
+  - platform: sntp
+    id: system_time
+    timezone: "Asia/Jerusalem"
+    servers: [0.pool.ntp.org, 1.pool.ntp.org, 2.pool.ntp.org]
+    on_time:
+      - seconds: 0
+        minutes: '*'
+        hours: '*'
+        then:
+          - if:
+              condition:
+                lambda: |-
+                  if(!id(auto_start_enabled).state)return false; auto now=id(system_time).now(); if(!now.is_valid())return false;
+                  if(now.hour!=(int)id(auto_start_hour).state||now.minute!=(int)id(auto_start_minute).state)return false;
+                  bool a=false; switch(now.day_of_week){case 1:a=id(auto_sunday).state;break;case 2:a=id(auto_monday).state;break;case 3:a=id(auto_tuesday).state;break;case 4:a=id(auto_wednesday).state;break;case 5:a=id(auto_thursday).state;break;case 6:a=id(auto_friday).state;break;case 7:a=id(auto_saturday).state;break;}
+                  if(!a||id(wash_running)||id(emergency_active))return false;
+                  if(!id(zone1_enabled).state&&!id(zone2_enabled).state&&!id(zone3_enabled).state&&!id(zone4_enabled).state&&!id(zone5_enabled).state)return false;
+                  int today=now.year*10000+now.month*100+now.day_of_month; if(id(last_auto_start_day)==today)return false; id(last_auto_start_day)=today; return true;
+              then:
+                - lambda: id(wash_state).publish_state("Automatic Start");
+                - script.execute: start_wash
+
+script:
+  - id: all_off
+    mode: restart
+    then:
+      - lambda: id(flow_check_allowed)=false;
+      - switch.turn_off: valve_water
+      - switch.turn_off: valve_detergent
+      - switch.turn_off: zone1_relay
+      - switch.turn_off: zone2_relay
+      - switch.turn_off: zone3_relay
+      - switch.turn_off: zone4_relay
+      - switch.turn_off: zone5_relay
+      - delay: 500ms
+      - switch.turn_off: valve_power
+
+  - id: emergency_stop
+    mode: restart
+    then:
+      - lambda: |-
+          id(emergency_active)=true; id(wash_running)=false; id(flow_check_allowed)=false; id(current_zone_num)=0; id(wash_state).publish_state("EMERGENCY STOP");
+      - script.stop: water_program
+      - script.stop: detergent_program
+      - script.stop: flow_enable_delay
+      - script.execute: all_off
+
+  - id: flow_enable_delay
+    mode: restart
+    then:
+      - lambda: id(flow_check_allowed)=false;
+      - delay: !lambda return (uint32_t)(id(flow_start_delay).state*1000.0f);
+      - if:
+          condition:
+            lambda: return id(wash_running)&&(id(valve_water).state||id(valve_detergent).state);
+          then:
+            - lambda: id(flow_check_allowed)=true;
+
+  - id: start_wash
+    mode: single
+    then:
+      - if:
+          condition:
+            lambda: return id(wash_running)||id(emergency_active);
+          then:
+            - lambda: ESP_LOGW("wash","START blocked");
+          else:
+            - if:
+                condition:
+                  lambda: return !id(zone1_enabled).state&&!id(zone2_enabled).state&&!id(zone3_enabled).state&&!id(zone4_enabled).state&&!id(zone5_enabled).state;
+                then:
+                  - lambda: id(wash_state).publish_state("Error: All zones disabled");
+                else:
+                  - lambda: id(wash_running)=true; id(flow_check_allowed)=false; id(current_zone_num)=0; id(wash_state).publish_state("Starting");
+                  - switch.turn_on: valve_power
+                  - delay: 2s
+                  - if:
+                      condition:
+                        lambda: auto i=id(wash_mode).active_index(); return i.has_value()&&i.value()==0;
+                      then: [{script.execute: water_program}]
+                      else: [{script.execute: detergent_program}]
+
+  - id: water_program
+    mode: single
+    then:
+      - switch.turn_off: valve_detergent
+      - delay: !lambda return (uint32_t)(id(source_delay).state*1000.0f);
+      - switch.turn_on: valve_water
+      - script.execute: flow_enable_delay
+      - if:
+          condition: {switch.is_on: zone1_enabled}
+          then:
+            - switch.turn_on: zone1_relay
+            - lambda: id(current_zone_num)=1; id(wash_state).publish_state("Water - Zone 1");
+            - delay: !lambda return (uint32_t)(id(water_time_z1).state*1000.0f);
+      - if:
+          condition: {switch.is_on: zone2_enabled}
+          then:
+            - switch.turn_on: zone2_relay
+            - delay: !lambda return (uint32_t)(id(zone_overlap).state*1000.0f);
+            - switch.turn_off: zone1_relay
+            - lambda: id(current_zone_num)=2; id(wash_state).publish_state("Water - Zone 2");
+            - delay: !lambda return (uint32_t)(id(water_time_z2).state*1000.0f);
+      - if:
+          condition: {switch.is_on: zone3_enabled}
+          then:
+            - switch.turn_on: zone3_relay
+            - delay: !lambda return (uint32_t)(id(zone_overlap).state*1000.0f);
+            - switch.turn_off: zone1_relay
+            - switch.turn_off: zone2_relay
+            - lambda: id(current_zone_num)=3; id(wash_state).publish_state("Water - Zone 3");
+            - delay: !lambda return (uint32_t)(id(water_time_z3).state*1000.0f);
+      - if:
+          condition: {switch.is_on: zone4_enabled}
+          then:
+            - switch.turn_on: zone4_relay
+            - delay: !lambda return (uint32_t)(id(zone_overlap).state*1000.0f);
+            - switch.turn_off: zone1_relay
+            - switch.turn_off: zone2_relay
+            - switch.turn_off: zone3_relay
+            - lambda: id(current_zone_num)=4; id(wash_state).publish_state("Water - Zone 4");
+            - delay: !lambda return (uint32_t)(id(water_time_z4).state*1000.0f);
+      - if:
+          condition: {switch.is_on: zone5_enabled}
+          then:
+            - switch.turn_on: zone5_relay
+            - delay: !lambda return (uint32_t)(id(zone_overlap).state*1000.0f);
+            - switch.turn_off: zone1_relay
+            - switch.turn_off: zone2_relay
+            - switch.turn_off: zone3_relay
+            - switch.turn_off: zone4_relay
+            - lambda: id(current_zone_num)=5; id(wash_state).publish_state("Water - Zone 5");
+            - delay: !lambda return (uint32_t)(id(water_time_z5).state*1000.0f);
+      - script.execute: finish_wash
+
+  - id: detergent_program
+    mode: single
+    then:
+      - switch.turn_off: valve_water
+      - switch.turn_off: valve_detergent
+      - lambda: id(flow_check_allowed)=false;
+      - if:
+          condition: {switch.is_on: zone1_enabled}
+          then:
+            - switch.turn_on: zone1_relay
+            - lambda: id(current_zone_num)=1; id(wash_state).publish_state("Preparing - Zone 1");
+            - delay: !lambda return (uint32_t)(id(source_delay).state*1000.0f);
+            - switch.turn_on: valve_detergent
+            - script.execute: flow_enable_delay
+            - lambda: id(wash_state).publish_state("Detergent - Zone 1");
+            - delay: !lambda return (uint32_t)(id(detergent_time_z1).state*1000.0f);
+            - switch.turn_off: valve_detergent
+            - lambda: id(flow_check_allowed)=false; id(wash_state).publish_state("Source Delay - Zone 1");
+            - delay: !lambda return (uint32_t)(id(source_delay).state*1000.0f);
+            - switch.turn_on: valve_water
+            - script.execute: flow_enable_delay
+            - lambda: id(wash_state).publish_state("Rinse - Zone 1");
+            - delay: !lambda return (uint32_t)(id(rinse_time_z1).state*1000.0f);
+      - if:
+          condition: {switch.is_on: zone2_enabled}
+          then:
+            - switch.turn_on: zone2_relay
+            - delay: !lambda return (uint32_t)(id(zone_overlap).state*1000.0f);
+            - switch.turn_off: zone1_relay
+            - switch.turn_off: valve_water
+            - lambda: id(flow_check_allowed)=false; id(current_zone_num)=2; id(wash_state).publish_state("Source Delay - Zone 2");
+            - delay: !lambda return (uint32_t)(id(source_delay).state*1000.0f);
+            - switch.turn_on: valve_detergent
+            - script.execute: flow_enable_delay
+            - lambda: id(wash_state).publish_state("Detergent - Zone 2");
+            - delay: !lambda return (uint32_t)(id(detergent_time_z2).state*1000.0f);
+            - switch.turn_off: valve_detergent
+            - lambda: id(flow_check_allowed)=false; id(wash_state).publish_state("Source Delay - Zone 2");
+            - delay: !lambda return (uint32_t)(id(source_delay).state*1000.0f);
+            - switch.turn_on: valve_water
+            - script.execute: flow_enable_delay
+            - lambda: id(wash_state).publish_state("Rinse - Zone 2");
+            - delay: !lambda return (uint32_t)(id(rinse_time_z2).state*1000.0f);
+      - if:
+          condition: {switch.is_on: zone3_enabled}
+          then:
+            - switch.turn_on: zone3_relay
+            - delay: !lambda return (uint32_t)(id(zone_overlap).state*1000.0f);
+            - switch.turn_off: zone1_relay
+            - switch.turn_off: zone2_relay
+            - switch.turn_off: valve_water
+            - lambda: id(flow_check_allowed)=false; id(current_zone_num)=3; id(wash_state).publish_state("Source Delay - Zone 3");
+            - delay: !lambda return (uint32_t)(id(source_delay).state*1000.0f);
+            - switch.turn_on: valve_detergent
+            - script.execute: flow_enable_delay
+            - lambda: id(wash_state).publish_state("Detergent - Zone 3");
+            - delay: !lambda return (uint32_t)(id(detergent_time_z3).state*1000.0f);
+            - switch.turn_off: valve_detergent
+            - lambda: id(flow_check_allowed)=false; id(wash_state).publish_state("Source Delay - Zone 3");
+            - delay: !lambda return (uint32_t)(id(source_delay).state*1000.0f);
+            - switch.turn_on: valve_water
+            - script.execute: flow_enable_delay
+            - lambda: id(wash_state).publish_state("Rinse - Zone 3");
+            - delay: !lambda return (uint32_t)(id(rinse_time_z3).state*1000.0f);
+      - if:
+          condition: {switch.is_on: zone4_enabled}
+          then:
+            - switch.turn_on: zone4_relay
+            - delay: !lambda return (uint32_t)(id(zone_overlap).state*1000.0f);
+            - switch.turn_off: zone1_relay
+            - switch.turn_off: zone2_relay
+            - switch.turn_off: zone3_relay
+            - switch.turn_off: valve_water
+            - lambda: id(flow_check_allowed)=false; id(current_zone_num)=4; id(wash_state).publish_state("Source Delay - Zone 4");
+            - delay: !lambda return (uint32_t)(id(source_delay).state*1000.0f);
+            - switch.turn_on: valve_detergent
+            - script.execute: flow_enable_delay
+            - lambda: id(wash_state).publish_state("Detergent - Zone 4");
+            - delay: !lambda return (uint32_t)(id(detergent_time_z4).state*1000.0f);
+            - switch.turn_off: valve_detergent
+            - lambda: id(flow_check_allowed)=false; id(wash_state).publish_state("Source Delay - Zone 4");
+            - delay: !lambda return (uint32_t)(id(source_delay).state*1000.0f);
+            - switch.turn_on: valve_water
+            - script.execute: flow_enable_delay
+            - lambda: id(wash_state).publish_state("Rinse - Zone 4");
+            - delay: !lambda return (uint32_t)(id(rinse_time_z4).state*1000.0f);
+      - if:
+          condition: {switch.is_on: zone5_enabled}
+          then:
+            - switch.turn_on: zone5_relay
+            - delay: !lambda return (uint32_t)(id(zone_overlap).state*1000.0f);
+            - switch.turn_off: zone1_relay
+            - switch.turn_off: zone2_relay
+            - switch.turn_off: zone3_relay
+            - switch.turn_off: zone4_relay
+            - switch.turn_off: valve_water
+            - lambda: id(flow_check_allowed)=false; id(current_zone_num)=5; id(wash_state).publish_state("Source Delay - Zone 5");
+            - delay: !lambda return (uint32_t)(id(source_delay).state*1000.0f);
+            - switch.turn_on: valve_detergent
+            - script.execute: flow_enable_delay
+            - lambda: id(wash_state).publish_state("Detergent - Zone 5");
+            - delay: !lambda return (uint32_t)(id(detergent_time_z5).state*1000.0f);
+            - switch.turn_off: valve_detergent
+            - lambda: id(flow_check_allowed)=false; id(wash_state).publish_state("Source Delay - Zone 5");
+            - delay: !lambda return (uint32_t)(id(source_delay).state*1000.0f);
+            - switch.turn_on: valve_water
+            - script.execute: flow_enable_delay
+            - lambda: id(wash_state).publish_state("Rinse - Zone 5");
+            - delay: !lambda return (uint32_t)(id(rinse_time_z5).state*1000.0f);
+      - script.execute: finish_wash
+
+  - id: finish_wash
+    mode: restart
+    then:
+      - lambda: id(flow_check_allowed)=false; id(wash_state).publish_state("Finishing");
+      - script.stop: flow_enable_delay
+      - script.execute: all_off
+      - delay: 1s
+      - lambda: id(wash_running)=false; id(current_zone_num)=0; id(wash_state).publish_state("Ready");
+
+interval:
+  - interval: 1s
+    then:
+      - if:
+          condition:
+            lambda: |-
+              if(!id(flow_protection).state||!id(wash_running)||!id(flow_check_allowed))return false;
+              if(!id(valve_water).state&&!id(valve_detergent).state)return false; float f=id(water_flow).state; if(isnan(f))return false;
+              return f<id(min_flow).state||f>id(max_flow).state;
+          then:
+            - lambda: id(wash_state).publish_state("Flow Alarm");
+            - script.execute: emergency_stop
+      - if:
+          condition:
+            lambda: |-
+              if(!id(flow_protection).state||id(wash_running)||id(emergency_active))return false; float f=id(water_flow).state; if(isnan(f))return false; return f>id(leak_flow).state;
+          then:
+            - lambda: id(wash_state).publish_state("Leak Detected");
+            - script.execute: emergency_stop
