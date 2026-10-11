@@ -1,6 +1,32 @@
 class SolarPanelWashingCard extends HTMLElement {
   setConfig(config) { this.config = config || {}; }
-  set hass(hass) { this._hass = hass; this.render(); }
+  connectedCallback() {
+    if (this._interactionHandlersInstalled) return;
+    this._interactionHandlersInstalled = true;
+    this.addEventListener("pointerdown", () => {
+      this._interacting = true;
+      if (this._renderTimer) { clearTimeout(this._renderTimer); this._renderTimer = null; }
+    }, true);
+    const release = () => {
+      clearTimeout(this._releaseTimer);
+      this._releaseTimer = setTimeout(() => {
+        this._interacting = false;
+        if (this._pendingRender) {
+          this._pendingRender = false;
+          this.render();
+        }
+      }, 300);
+    };
+    this.addEventListener("pointerup", release, true);
+    this.addEventListener("pointercancel", release, true);
+    this.addEventListener("pointerleave", release, true);
+  }
+  set hass(hass) {
+    this._hass = hass;
+    if (this._interacting) { this._pendingRender = true; return; }
+    clearTimeout(this._renderTimer);
+    this._renderTimer = setTimeout(() => this.render(), 40);
+  }
   getCardSize() { return 12; }
   e(id){ return this._hass && this._hass.states[id]; }
   state(id, fallback="—"){ const x=this.e(id); return x ? x.state : fallback; }
@@ -102,4 +128,4 @@ class SolarPanelWashingCard extends HTMLElement {
 customElements.define("solar-panel-washing-card", SolarPanelWashingCard);
 window.customCards = window.customCards || [];
 window.customCards.push({type:"solar-panel-washing-card",name:"Solar Panel Washing",description:"Complete dashboard card for the Solar Panel Washing ESPHome controller",preview:true});
-console.info("%c SOLAR-PANEL-WASHING-CARD %c v1.1.6 ","color:white;background:#1684d8;font-weight:700","color:#1684d8;background:white");
+console.info("%c SOLAR-PANEL-WASHING-CARD %c v1.1.9 ","color:white;background:#1684d8;font-weight:700","color:#1684d8;background:white");
