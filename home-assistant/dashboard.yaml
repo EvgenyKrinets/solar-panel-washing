@@ -1,0 +1,188 @@
+title: Solar Panel Washing
+views:
+  - title: Solar Washing
+    path: solar-washing
+    icon: mdi:solar-panel
+    type: sections
+    max_columns: 3
+    sections:
+      - type: grid
+        cards:
+          - type: heading
+            heading: Washing Control
+            icon: mdi:sprinkler
+          - type: tile
+            entity: sensor.solar_panel_washing_washing_status
+            name: Status
+          - type: tile
+            entity: sensor.solar_panel_washing_current_zone
+            name: Current Zone
+          - type: tile
+            entity: select.solar_panel_washing_wash_mode
+            name: Wash Mode
+          - type: grid
+            columns: 2
+            square: false
+            cards:
+              - type: button
+                entity: button.solar_panel_washing_start_washing
+                name: START
+                icon: mdi:play
+                show_state: false
+                tap_action: {action: toggle}
+              - type: button
+                entity: button.solar_panel_washing_emergency_stop
+                name: EMERGENCY STOP
+                icon: mdi:alert-octagon
+                show_state: false
+                tap_action: {action: toggle}
+          - type: tile
+            entity: button.solar_panel_washing_reset_alarm
+            name: Reset Alarm
+
+      - type: grid
+        cards:
+          - type: heading
+            heading: Automatic Schedule
+            icon: mdi:calendar-clock
+          - type: tile
+            entity: switch.solar_panel_washing_automatic_wash_start
+            name: Automatic Start
+          - type: entities
+            show_header_toggle: false
+            entities:
+              - entity: number.solar_panel_washing_auto_start_hour
+                name: Hour
+              - entity: number.solar_panel_washing_auto_start_minute
+                name: Minute
+              - entity: sensor.solar_panel_washing_next_automatic_start
+                name: Next Start
+          - type: grid
+            columns: 7
+            square: true
+            cards:
+              - {type: button, entity: switch.solar_panel_washing_auto_start_monday, name: M, icon: mdi:calendar}
+              - {type: button, entity: switch.solar_panel_washing_auto_start_tuesday, name: T, icon: mdi:calendar}
+              - {type: button, entity: switch.solar_panel_washing_auto_start_wednesday, name: W, icon: mdi:calendar}
+              - {type: button, entity: switch.solar_panel_washing_auto_start_thursday, name: T, icon: mdi:calendar}
+              - {type: button, entity: switch.solar_panel_washing_auto_start_friday, name: F, icon: mdi:calendar}
+              - {type: button, entity: switch.solar_panel_washing_auto_start_saturday, name: S, icon: mdi:calendar}
+              - {type: button, entity: switch.solar_panel_washing_auto_start_sunday, name: S, icon: mdi:calendar}
+
+      - type: grid
+        cards:
+          - type: heading
+            heading: Active Zones
+            icon: mdi:sprinkler-variant
+          - type: grid
+            columns: 5
+            square: true
+            cards:
+              - {type: button, entity: switch.solar_panel_washing_zone_1_enabled, name: Z1, icon: mdi:numeric-1-circle}
+              - {type: button, entity: switch.solar_panel_washing_zone_2_enabled, name: Z2, icon: mdi:numeric-2-circle}
+              - {type: button, entity: switch.solar_panel_washing_zone_3_enabled, name: Z3, icon: mdi:numeric-3-circle}
+              - {type: button, entity: switch.solar_panel_washing_zone_4_enabled, name: Z4, icon: mdi:numeric-4-circle}
+              - {type: button, entity: switch.solar_panel_washing_zone_5_enabled, name: Z5, icon: mdi:numeric-5-circle}
+
+      - type: grid
+        cards:
+          - type: heading
+            heading: Water Times
+            icon: mdi:water
+          - type: entities
+            entities:
+              - {entity: number.solar_panel_washing_water_time_zone_1, name: Zone 1}
+              - {entity: number.solar_panel_washing_water_time_zone_2, name: Zone 2}
+              - {entity: number.solar_panel_washing_water_time_zone_3, name: Zone 3}
+              - {entity: number.solar_panel_washing_water_time_zone_4, name: Zone 4}
+              - {entity: number.solar_panel_washing_water_time_zone_5, name: Zone 5}
+
+      - type: grid
+        cards:
+          - type: heading
+            heading: Detergent Times
+            icon: mdi:spray-bottle
+          - type: entities
+            entities:
+              - {entity: number.solar_panel_washing_detergent_time_zone_1, name: Zone 1}
+              - {entity: number.solar_panel_washing_detergent_time_zone_2, name: Zone 2}
+              - {entity: number.solar_panel_washing_detergent_time_zone_3, name: Zone 3}
+              - {entity: number.solar_panel_washing_detergent_time_zone_4, name: Zone 4}
+              - {entity: number.solar_panel_washing_detergent_time_zone_5, name: Zone 5}
+
+      - type: grid
+        cards:
+          - type: heading
+            heading: Rinse Times
+            icon: mdi:shower
+          - type: entities
+            entities:
+              - {entity: number.solar_panel_washing_rinse_time_zone_1, name: Zone 1}
+              - {entity: number.solar_panel_washing_rinse_time_zone_2, name: Zone 2}
+              - {entity: number.solar_panel_washing_rinse_time_zone_3, name: Zone 3}
+              - {entity: number.solar_panel_washing_rinse_time_zone_4, name: Zone 4}
+              - {entity: number.solar_panel_washing_rinse_time_zone_5, name: Zone 5}
+
+      - type: grid
+        cards:
+          - type: heading
+            heading: Switching Settings
+            icon: mdi:swap-horizontal
+          - type: entities
+            entities:
+              - {entity: number.solar_panel_washing_zone_overlap, name: Zone Overlap}
+              - {entity: number.solar_panel_washing_source_change_delay, name: Source Change Delay}
+
+      - type: grid
+        cards:
+          - type: heading
+            heading: Flow Protection
+            icon: mdi:shield-water
+          - type: tile
+            entity: switch.solar_panel_washing_flow_protection
+            name: Flow Protection
+          - type: gauge
+            entity: sensor.solar_panel_washing_water_flow
+            name: Water Flow
+            min: 0
+            max: 30
+            needle: true
+          - type: entities
+            entities:
+              - {entity: number.solar_panel_washing_minimum_flow_setpoint, name: Minimum Flow}
+              - {entity: number.solar_panel_washing_maximum_flow_setpoint, name: Maximum Flow}
+              - {entity: number.solar_panel_washing_leak_flow_setpoint, name: Leak Flow}
+              - {entity: number.solar_panel_washing_flow_check_delay, name: Flow Check Delay}
+              - {entity: sensor.solar_panel_washing_total_water, name: Total Water}
+
+      - type: grid
+        cards:
+          - type: heading
+            heading: Manual Valve Control
+            icon: mdi:valve
+          - type: grid
+            columns: 4
+            square: false
+            cards:
+              - {type: button, entity: switch.solar_panel_washing_ch8_valve_power, name: Power, icon: mdi:power}
+              - {type: button, entity: switch.solar_panel_washing_ch1_filtered_water, name: Water, icon: mdi:water}
+              - {type: button, entity: switch.solar_panel_washing_ch2_detergent, name: Detergent, icon: mdi:spray-bottle}
+              - {type: button, entity: switch.solar_panel_washing_ch3_zone_1, name: Zone 1, icon: mdi:sprinkler}
+              - {type: button, entity: switch.solar_panel_washing_ch4_zone_2, name: Zone 2, icon: mdi:sprinkler}
+              - {type: button, entity: switch.solar_panel_washing_ch5_zone_3, name: Zone 3, icon: mdi:sprinkler}
+              - {type: button, entity: switch.solar_panel_washing_ch6_zone_4, name: Zone 4, icon: mdi:sprinkler}
+              - {type: button, entity: switch.solar_panel_washing_ch7_zone_5, name: Zone 5, icon: mdi:sprinkler}
+
+      - type: grid
+        cards:
+          - type: heading
+            heading: System Status
+            icon: mdi:information-outline
+          - type: entities
+            entities:
+              - {entity: binary_sensor.solar_panel_washing_washing_controller_online, name: Controller}
+              - {entity: binary_sensor.solar_panel_washing_washing_alarm, name: Alarm}
+              - {entity: sensor.solar_panel_washing_wifi_signal, name: WiFi Signal}
+              - {entity: sensor.solar_panel_washing_controller_uptime, name: Uptime}
+              - {entity: sensor.solar_panel_washing_ip_address, name: IP Address}
+              - {entity: sensor.solar_panel_washing_wifi_network, name: WiFi Network}
