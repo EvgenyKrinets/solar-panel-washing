@@ -11,7 +11,7 @@
 [![Home Assistant](https://img.shields.io/badge/Home%20Assistant-Dashboard-18BCF2?logo=homeassistant&logoColor=white)](https://www.home-assistant.io/)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-<img src="assets/dashboard-preview.svg" width="100%" alt="Solar Panel Washing dashboard preview">
+<img src="assets/ChatGPT%20Image%20Oct%2011%2C%202026%2C%2009_53_43%20PM.png" width="100%" alt="Solar Panel Washing — Automated Cleaning System">
 
 </div>
 
