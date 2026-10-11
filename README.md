@@ -5,7 +5,7 @@
 
 ### Automatic multi-zone solar-panel washing with ESP32, ESPHome and Home Assistant
 
-**Version 1.0.0**
+**Version 1.1.0**
 
 [![ESPHome](https://img.shields.io/badge/ESPHome-2026.x-000000?logo=esphome)](https://esphome.io/)
 [![Home Assistant](https://img.shields.io/badge/Home%20Assistant-Dashboard-18BCF2?logo=homeassistant&logoColor=white)](https://www.home-assistant.io/)
@@ -57,6 +57,22 @@ The current configuration is prepared for a **YF-B5 G3/4** flow meter using **39
 
 ## Installation
 
+### Recommended: HACS Dashboard Card
+
+The project now includes an installable Home Assistant frontend card. Add this repository to HACS as a **Dashboard** custom repository:
+
+`https://github.com/EvgenyKrinets/solar-panel-washing`
+
+Install **Solar Panel Washing Dashboard**, reload the Home Assistant frontend, then add one card:
+
+```yaml
+type: custom:solar-panel-washing-card
+```
+
+The card automatically uses the standard `solar_panel_washing_...` entity IDs created by this project and provides the complete responsive interface in one card. Updates can then be delivered through HACS instead of copying the dashboard YAML again.
+
+The classic all-standard-cards dashboard remains available in `home-assistant/dashboard.yaml`.
+
 ### 1. ESPHome
 
 Copy `esphome/solar-panel-washing.yaml` to your ESPHome configuration directory.
@@ -105,6 +121,8 @@ solar-panel-washing/
 ├── VERSION
 ├── README.md
 ├── LICENSE
+├── hacs.json
+├── solar-panel-washing-card.js
 ├── assets/
 │   ├── icon.svg
 │   └── dashboard-preview.svg
@@ -114,6 +132,16 @@ solar-panel-washing/
 └── home-assistant/
     └── dashboard.yaml
 ```
+
+## Version 1.1.0
+
+- Added installable HACS Dashboard card
+- Complete responsive UI is now available as one custom card
+- Compact weekday and zone controls
+- START, Emergency Stop and Reset controls
+- Water, detergent and rinse timing controls
+- Flow protection and manual valve controls
+- HACS-based frontend updates
 
 ## Version 1.0.0
 
