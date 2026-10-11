@@ -5,13 +5,13 @@
 
 ### Automatic multi-zone solar-panel washing with ESP32, ESPHome and Home Assistant
 
-**Version 1.1.7**
+**Version 1.1.8**
 
 [![ESPHome](https://img.shields.io/badge/ESPHome-2026.x-000000?logo=esphome)](https://esphome.io/)
 [![Home Assistant](https://img.shields.io/badge/Home%20Assistant-Dashboard-18BCF2?logo=homeassistant&logoColor=white)](https://www.home-assistant.io/)
-**License: MIT**
+[License: MIT](LICENSE)
 
-<img src="https://raw.githubusercontent.com/EvgenyKrinets/solar-panel-washing/main/assets/ChatGPT%20Image%20Oct%2011%2C%202026%2C%2009_53_43%20PM.png" width="100%" alt="Solar Panel Washing — Automated Cleaning System">
+![Solar Panel Washing — Automated Cleaning System](assets/ChatGPT%20Image%20Oct%2011%2C%202026%2C%2009_53_43%20PM.png)
 
 </div>
 
