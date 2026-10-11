@@ -5,7 +5,7 @@
 
 ### Automatic multi-zone solar-panel washing with ESP32, ESPHome and Home Assistant
 
-**Version 1.1.6**
+**Version 1.1.7**
 
 [![ESPHome](https://img.shields.io/badge/ESPHome-2026.x-000000?logo=esphome)](https://esphome.io/)
 [![Home Assistant](https://img.shields.io/badge/Home%20Assistant-Dashboard-18BCF2?logo=homeassistant&logoColor=white)](https://www.home-assistant.io/)
