@@ -18,6 +18,17 @@ jobs:
           unzip -o assets/solar-panel-washing-screenshots.zip -d .
           test -f assets/screenshots/01-washing-control.png
           test -f assets/screenshots/06-system-manual-valves.png
+      - name: Remove unrelated PID card from washing screenshot
+        run: |
+          python -m pip install --quiet Pillow
+          python - <<'PY'
+          from PIL import Image
+          from pathlib import Path
+          p = Path("assets/screenshots/01-washing-control.png")
+          im = Image.open(p)
+          # The upper card is Sungrow PID, unrelated to Solar Panel Washing.
+          im.crop((0, 278, im.width, im.height)).save(p, optimize=True)
+          PY
       - name: Commit extracted images
         run: |
           git config user.name "github-actions[bot]"
