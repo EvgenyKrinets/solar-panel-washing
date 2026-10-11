@@ -6,7 +6,15 @@ class SolarPanelWashingCard extends HTMLElement {
   state(id, fallback="—"){ const x=this.e(id); return x ? x.state : fallback; }
   call(domain, service, entity_id, data={}) { this._hass.callService(domain, service, {entity_id, ...data}); }
   toggle(id){ const x=this.e(id); if(x) this.call("homeassistant","toggle",id); }
-  button(id){ if(this.e(id)) this.call("button","press",id); }
+  button(id){
+    let x=this.e(id);
+    if(!x){
+      const wanted=id.split(".").pop();
+      const tokens=wanted.split("_").filter(t=>!["solar","panel","washing"].includes(t));
+      x=Object.values(this._hass.states).find(s=>s.entity_id.startsWith("button.") && tokens.every(t=>s.entity_id.includes(t)));
+    }
+    if(x) this.call("button","press",x.entity_id);
+  }
   num(id,v){ if(this.e(id)) this.call("number","set_value",id,{value:Number(v)}); }
   select(id,v){ if(this.e(id)) this.call("select","select_option",id,{option:v}); }
   rowNum(id,label){
