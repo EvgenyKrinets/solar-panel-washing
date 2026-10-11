@@ -27,7 +27,7 @@ jobs:
           p = Path("assets/screenshots/01-washing-control.png")
           im = Image.open(p)
           # The upper card is Sungrow PID, unrelated to Solar Panel Washing.
-          im.crop((0, 278, im.width, im.height)).save(p, optimize=True)
+          im.crop((0, 278, im.width, im.height)).save("assets/screenshots/01-washing-control-clean.png", optimize=True)
           PY
       - name: Commit extracted images
         run: |
