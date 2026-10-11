@@ -35,11 +35,31 @@ The reference hardware is the **Waveshare ESP32-S3-ETH-8DI-8RO**. Eight relay ch
 
 ## Dashboard screenshots
 
-The dashboard provides washing controls, an automatic weekly schedule, five selectable zones, timing settings, flow protection, system status, and manual relay controls.
+Real screenshots of the Home Assistant dashboard, showing the controls and configuration sections.
 
-![Solar Panel Washing dashboard preview](assets/dashboard-preview.svg)
+### Washing control
 
-> This is a dashboard illustration, not a live screenshot. Actual screenshots of the installed dashboard will be added here when full dashboard captures are available.
+![Washing control and live status](assets/screenshots/01-washing-control.png)
+
+### Automatic schedule and zones
+
+![Automatic schedule and active zones](assets/screenshots/02-schedule-zones.png)
+
+### Water times
+
+![Water times for five zones](assets/screenshots/03-water-times.png)
+
+### Detergent and rinse times
+
+![Detergent and rinse settings](assets/screenshots/04-detergent-rinse-times.png)
+
+### Switching and flow protection
+
+![Switching settings and flow protection](assets/screenshots/05-switching-flow-protection.png)
+
+### System and manual valves
+
+![System status and manual valve controls](assets/screenshots/06-system-manual-valves.png)
 
 ## Relay map
 
