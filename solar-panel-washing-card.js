@@ -6,14 +6,14 @@ class SolarPanelWashingCard extends HTMLElement {
   state(id, fallback="—"){ const x=this.e(id); return x ? x.state : fallback; }
   call(domain, service, entity_id, data={}) { this._hass.callService(domain, service, {entity_id, ...data}); }
   toggle(id){ const x=this.e(id); if(x) this.call("homeassistant","toggle",id); }
-  button(id){
+  button(id, el){
     let x=this.e(id);
     if(!x){
       const wanted=id.split(".").pop();
       const tokens=wanted.split("_").filter(t=>!["solar","panel","washing"].includes(t));
       x=Object.values(this._hass.states).find(s=>s.entity_id.startsWith("button.") && tokens.every(t=>s.entity_id.includes(t)));
     }
-    if(x) this.call("button","press",x.entity_id);
+    if(x){ this.call("button","press",x.entity_id); if(el){ el.classList.add("pressed"); const old=el.innerHTML; el.innerHTML="✓ SENT"; setTimeout(()=>{el.classList.remove("pressed");el.innerHTML=old;},900); } }
   }
   num(id,v){ if(this.e(id)) this.call("number","set_value",id,{value:Number(v)}); }
   select(id,v){ if(this.e(id)) this.call("select","select_option",id,{option:v}); }
@@ -47,7 +47,7 @@ class SolarPanelWashingCard extends HTMLElement {
         .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,280px),1fr));gap:14px;align-items:start}.grid>*{min-width:0}.box{border:1px solid rgba(127,127,127,.18);border-radius:16px;padding:14px;background:var(--spw-bg);box-shadow:0 3px 12px rgba(0,0,0,.04)}.box h3{margin:0 0 12px;font-size:17px}.wide{grid-column:1/-1}
         .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(100px,1fr));gap:8px;margin-bottom:14px}.stat{padding:10px;border-radius:12px;background:rgba(22,132,216,.08);text-align:center}.stat b{display:block;font-size:18px}.stat small{opacity:.65}
         select{width:100%;padding:10px;border-radius:10px;border:1px solid rgba(127,127,127,.3);background:var(--card-background-color);color:var(--primary-text-color);margin-bottom:10px}
-        button{font:inherit}.actions{display:grid;grid-template-columns:1fr 1fr;gap:8px}.action{border:0;border-radius:12px;padding:14px;color:white;font-weight:700;cursor:pointer}.start{background:var(--spw-green)}.stop{background:var(--spw-red)}.reset{background:#e8eef3;color:#345;width:100%;margin-top:8px}
+        button{font:inherit}.actions{display:grid;grid-template-columns:1fr 1fr;gap:8px}.action{border:0;border-radius:12px;padding:14px;color:white;font-weight:700;cursor:pointer}.start{background:var(--spw-green)}.stop{background:var(--spw-red)}.reset{background:#e8eef3;color:#345;width:100%;margin-top:8px}.action{transition:transform .08s ease,filter .12s ease,box-shadow .12s ease}.action:hover{filter:brightness(1.06);box-shadow:0 4px 12px rgba(0,0,0,.18)}.action:active{transform:scale(.96);filter:brightness(.88);box-shadow:inset 0 2px 7px rgba(0,0,0,.22)}.action.pressed{transform:scale(.97);filter:brightness(.82);box-shadow:inset 0 2px 8px rgba(0,0,0,.28)}.start.pressed{background:#087c39}.stop.pressed{background:#b91f2c}.reset.pressed{background:#cbd6df}
         .chips{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}.zones{grid-template-columns:repeat(5,1fr)}.chip{min-width:0;border:1px solid rgba(127,127,127,.22);border-radius:11px;padding:9px 4px;background:rgba(127,127,127,.08);color:var(--primary-text-color);cursor:pointer}.chip.on{background:var(--spw-blue);color:white}.chip small{display:none}
         .toggleline{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}.toggle{border:0;border-radius:999px;padding:7px 12px;cursor:pointer}.toggle.on{background:var(--spw-green);color:white}
         .numrow{display:grid;grid-template-columns:1fr 34px 65px 34px;gap:5px;align-items:center;padding:5px 0}.numrow button{border:0;border-radius:8px;padding:6px;cursor:pointer}.numrow b{text-align:center}
@@ -94,7 +94,7 @@ class SolarPanelWashingCard extends HTMLElement {
       </div>
     </ha-card>`;
     this.querySelectorAll("[data-toggle]").forEach(b=>b.onclick=()=>this.toggle(b.dataset.toggle));
-    this.querySelectorAll("[data-press]").forEach(b=>b.onclick=()=>this.button(b.dataset.press));
+    this.querySelectorAll("[data-press]").forEach(b=>b.onclick=()=>this.button(b.dataset.press,b));
     this.querySelectorAll("[data-select]").forEach(s=>s.onchange=()=>this.select(s.dataset.select,s.value));
     this.querySelectorAll("[data-num]").forEach(b=>b.onclick=()=>{const id=b.dataset.num, st=this.e(id); if(!st)return; const step=Number(st.attributes.step||1), min=Number(st.attributes.min??-1e9), max=Number(st.attributes.max??1e9); this.num(id,Math.max(min,Math.min(max,Number(st.state)+Number(b.dataset.d)*step)));});
   }
