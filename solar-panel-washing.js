@@ -30,7 +30,7 @@ class SolarPanelWashingCard extends HTMLElement {
   getCardSize() { return 12; }
   e(id){ return this._hass && this._hass.states[id]; }
   state(id, fallback="—"){ const x=this.e(id); return x ? x.state : fallback; }
-  call(domain, service, entity_id, data={}) { this._hass.callService(domain, service, {entity_id, ...data}); }
+  call(domain, service, entity_id, data={}) { return this._hass.callService(domain, service, {entity_id, ...data}); }
   toggle(id){ const x=this.e(id); if(x) this.call("homeassistant","toggle",id); }
   button(id, el){
     let x=this.e(id);
