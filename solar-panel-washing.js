@@ -11,7 +11,7 @@ class SolarPanelWashingCard extends HTMLElement {
       clearTimeout(this._releaseTimer);
       this._releaseTimer = setTimeout(() => {
         this._interacting = false;
-        if (this._pendingRender) {
+        if (this._pendingRender && !this.querySelector(".numinput:focus")) {
           this._pendingRender = false;
           this.render();
         }
@@ -23,9 +23,9 @@ class SolarPanelWashingCard extends HTMLElement {
   }
   set hass(hass) {
     this._hass = hass;
-    if (this._interacting) { this._pendingRender = true; return; }
+    if (this._interacting || this.querySelector(".numinput:focus")) { this._pendingRender = true; return; }
     clearTimeout(this._renderTimer);
-    this._renderTimer = setTimeout(() => this.render(), 40);
+    this._renderTimer = setTimeout(() => { if (this.querySelector(".numinput:focus")) { this._pendingRender = true; return; } this.render(); }, 40);
   }
   getCardSize() { return 12; }
   e(id){ return this._hass && this._hass.states[id]; }
@@ -44,7 +44,8 @@ class SolarPanelWashingCard extends HTMLElement {
   num(id,v){ if(this.e(id)) this.call("number","set_value",id,{value:Number(v)}); }
   select(id,v){ if(this.e(id)) this.call("select","select_option",id,{option:v}); }
   rowNum(id,label){
-    const s=this.e(id), v=s?s.state:"—";
+    const s=this.e(id), rawValue=s?Number(s.state):NaN;
+    const v=Number.isFinite(rawValue) ? (Number.isInteger(rawValue) || Number(s?.attributes?.step) >= 1 ? String(Math.round(rawValue)) : String(rawValue)) : "";
     const rawUnit=(s?.attributes?.unit_of_measurement||"").toLowerCase();
     const unit = rawUnit==="s" ? "sec" : rawUnit==="min" ? "min" : rawUnit==="l/min" ? "L/min" : rawUnit==="l" ? "L" : rawUnit;
     return `<div class="numrow"><span>${label}</span><div class="numedit"><input class="numinput" type="number" inputmode="decimal" data-numinput="${id}" value="${v}" min="${s?.attributes.min ?? ""}" max="${s?.attributes.max ?? ""}" step="${s?.attributes.step ?? 1}" aria-label="${label}"><span class="unit">${unit}</span></div></div>`;
@@ -124,10 +125,10 @@ class SolarPanelWashingCard extends HTMLElement {
     this.querySelectorAll("[data-toggle]").forEach(b=>b.onclick=()=>{const wasOn=b.classList.contains("on");b.classList.toggle("on",!wasOn);if(b.classList.contains("toggle"))b.textContent=wasOn?"OFF":"ON";b.classList.add("tap");this.toggle(b.dataset.toggle);setTimeout(()=>b.classList.remove("tap"),220);});
     this.querySelectorAll("[data-press]").forEach(b=>b.onclick=()=>this.button(b.dataset.press,b));
     this.querySelectorAll("[data-select]").forEach(s=>s.onchange=()=>this.select(s.dataset.select,s.value));
-    this.querySelectorAll("[data-num]").forEach(b=>b.onclick=()=>{const id=b.dataset.num, st=this.e(id); if(!st)return; const step=Number(st.attributes.step||1), min=Number(st.attributes.min??-1e9), max=Number(st.attributes.max??1e9); this.num(id,Math.max(min,Math.min(max,Number(st.state)+Number(b.dataset.d)*step)));}); this.querySelectorAll("[data-numinput]").forEach(i=>{const send=()=>{const st=this.e(i.dataset.numinput);if(!st)return;const min=Number(st.attributes.min??-1e9),max=Number(st.attributes.max??1e9),v=Number(i.value);if(!Number.isFinite(v))return;const value=Math.max(min,Math.min(max,v));i.value=value;this.num(i.dataset.numinput,value);};i.onchange=send;i.onkeydown=e=>{if(e.key==="Enter"){e.preventDefault();send();i.blur();}};});
+    this.querySelectorAll("[data-num]").forEach(b=>b.onclick=()=>{const id=b.dataset.num, st=this.e(id); if(!st)return; const step=Number(st.attributes.step||1), min=Number(st.attributes.min??-1e9), max=Number(st.attributes.max??1e9); this.num(id,Math.max(min,Math.min(max,Number(st.state)+Number(b.dataset.d)*step)));}); this.querySelectorAll("[data-numinput]").forEach(i=>{const send=()=>{const st=this.e(i.dataset.numinput);if(!st)return;const min=Number(st.attributes.min??-1e9),max=Number(st.attributes.max??1e9),v=Number(i.value);if(!Number.isFinite(v))return;const value=Math.max(min,Math.min(max,v));i.value=value;this.num(i.dataset.numinput,value);};i.onchange=send;i.onblur=()=>{if(this._pendingRender){this._pendingRender=false;setTimeout(()=>{if(!this.querySelector(".numinput:focus"))this.render();},150);}};i.onkeydown=e=>{if(e.key==="Enter"){e.preventDefault();send();i.blur();}};});
   }
 }
 customElements.define("solar-panel-washing-card", SolarPanelWashingCard);
 window.customCards = window.customCards || [];
 window.customCards.push({type:"solar-panel-washing-card",name:"Solar Panel Washing",description:"Complete dashboard card for the Solar Panel Washing ESPHome controller",preview:true});
-console.info("%c SOLAR-PANEL-WASHING-CARD %c v1.1.12 ","color:white;background:#1684d8;font-weight:700","color:#1684d8;background:white");
+console.info("%c SOLAR-PANEL-WASHING-CARD %c v1.1.13 ","color:white;background:#1684d8;font-weight:700","color:#1684d8;background:white");
