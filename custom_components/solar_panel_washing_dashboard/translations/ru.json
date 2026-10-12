@@ -1,0 +1,18 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Создать Dashboard мойки панелей",
+        "description": "Создать отдельный Dashboard с независимыми карточками мойки. Существующие Dashboard не изменяются."
+      }
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Настройки Dashboard",
+        "description": "Пользовательские изменения Dashboard не перезаписываются."
+      }
+    }
+  }
+}
