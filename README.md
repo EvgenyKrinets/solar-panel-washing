@@ -9,7 +9,7 @@
 [![ESPHome](https://img.shields.io/badge/ESPHome-2026.x-000000?logo=esphome)](https://esphome.io/)
 [![Home Assistant](https://img.shields.io/badge/Home%20Assistant-Dashboard-18BCF2?logo=homeassistant&logoColor=white)](https://www.home-assistant.io/)
 [![Languages: EN RU HE](https://img.shields.io/badge/Languages-English%20%7C%20Русский%20%7C%20עברית-1684d8)](#languages)
-[License: MIT](LICENSE)
+[![License: MIT](https://img.shields.io/badge/License-MIT-2ea44f)](LICENSE)
 
 ![Solar Panel Washing — Automated Cleaning System](assets/ChatGPT%20Image%20Oct%2011%2C%202026%2C%2009_53_43%20PM.png)
 
