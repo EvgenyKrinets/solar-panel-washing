@@ -26,6 +26,22 @@ The Home Assistant dashboard supports **three interface languages**:
 Use the **🌐 language selector** in the dashboard header. The **Auto** setting follows your Home Assistant language (English, Russian or Hebrew); other Home Assistant languages fall back to English. The language selector changes the dashboard labels and explanatory text only. ESPHome entity names, control commands, washing programs and safety behavior remain unchanged.
 
 
+## Automatic dashboard installer (Home Assistant integration)
+
+The repository now also contains a **Home Assistant backend integration** at
+[`custom_components/solar_panel_washing_dashboard/`](custom_components/solar_panel_washing_dashboard/).
+
+**Install once:**
+1. Keep the **Solar Panel Washing Dashboard** JavaScript card installed through HACS.
+2. Copy the folder `custom_components/solar_panel_washing_dashboard` from this repository to `/config/custom_components/solar_panel_washing_dashboard` in Home Assistant.
+3. Restart Home Assistant.
+4. Open **Settings → Devices & services → Add integration**, search for **Solar Panel Washing Dashboard Installer**, and confirm installation.
+5. A new sidebar dashboard **Solar Panel Washing** is created with ten independent section cards, up to three columns wide. Each card can be moved or copied to another dashboard.
+
+The installer creates the dashboard **only if it does not already exist**. It never overwrites your edits, never changes other dashboards, and never deletes a dashboard when the integration is removed. Reinstalling or updating the integration preserves an existing dashboard.
+
+**Note:** HACS's dashboard/frontend plugin does **not** install Python backend integrations. Until this component is distributed as a separate HACS Integration, step 2 is required. Updating the JavaScript card alone cannot provision the dashboard. The new backend installer has not yet been tested on a live Home Assistant installation; please report any errors from Settings → System → Logs.
+
 ## Ready-made modular dashboard
 
 A complete 10-section Home Assistant dashboard is provided at [home-assistant/modular-dashboard.yaml](home-assistant/modular-dashboard.yaml). Create a new dashboard, open its raw YAML editor, and paste the file contents. It uses a Sections view with up to three columns on desktop and a responsive mobile layout. Existing dashboards remain unchanged.
