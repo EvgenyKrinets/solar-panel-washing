@@ -834,7 +834,6 @@ binary_sensor:
   - platform: template
     name: "ESP32 Time Synchronized"
     device_class: connectivity
-    update_interval: 10s
     lambda: |-
       return id(system_time).now().is_valid();
 
