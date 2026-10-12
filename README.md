@@ -25,6 +25,54 @@ The Home Assistant dashboard supports **three interface languages**:
 
 Use the **🌐 language selector** in the dashboard header. The **Auto** setting follows your Home Assistant language (English, Russian or Hebrew); other Home Assistant languages fall back to English. The language selector changes the dashboard labels and explanatory text only. ESPHome entity names, control commands, washing programs and safety behavior remain unchanged.
 
+
+## Reusable dashboard sections (v1.1.30+)
+
+You can still use the complete dashboard card:
+
+```yaml
+type: custom:solar-panel-washing-card
+```
+
+Alternatively, add **independent section cards** to any Home Assistant dashboard using the same HACS JavaScript resource:
+
+```yaml
+type: custom:solar-panel-washing-section-card
+section: water-times
+```
+
+Available `section` values:
+
+| Section | Contents |
+| --- | --- |
+| `control` | Manual washing mode, start, stop, alarm reset |
+| `schedule` | Weekly automatic schedule |
+| `zones` | Enable or disable zones |
+| `water-times` | Water-only wash duration for each zone |
+| `detergent-times` | Detergent duration |
+| `rinse-times` | Post-detergent rinse duration |
+| `switching` | Zone overlap and source delay |
+| `flow-protection` | Flow safety thresholds |
+| `system` | Wi-Fi, uptime and alarm |
+| `manual-valves` | Direct valve/relay controls |
+
+To arrange three cards side by side, use a **Grid card** with three columns in a sufficiently wide dashboard:
+
+```yaml
+type: grid
+columns: 3
+square: false
+cards:
+  - type: custom:solar-panel-washing-section-card
+    section: zones
+  - type: custom:solar-panel-washing-section-card
+    section: water-times
+  - type: custom:solar-panel-washing-section-card
+    section: rinse-times
+```
+
+For automatic responsive placement, use a Home Assistant **Sections** view and adjust the view's column layout. The full card also uses a responsive grid: up to three columns on wide displays and one column on narrow screens. Home Assistant view layout can limit the available width. Separate section cards keep their existing actions and settings; this is a dashboard-only change.
+
 ## Overview
 
 Solar Panel Washing is a local-first automatic washing controller for rooftop photovoltaic arrays. The ESP32 runs the washing sequence and safety logic locally, while Home Assistant provides a clean interface for starting, stopping, scheduling and tuning the system.
