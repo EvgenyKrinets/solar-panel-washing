@@ -44,7 +44,6 @@ def _dashboard_config() -> dict:
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Install dashboard once; never overwrite an existing user's dashboard."""
-    await hass.async_block_till_done()
     lovelace = hass.data.get(LOVELACE_DATA)
     if lovelace is None:
         _LOGGER.error("Lovelace has not been initialized")
