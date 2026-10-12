@@ -257,9 +257,32 @@ class SolarPanelWashingSectionCard extends SolarPanelWashingCard {
     if (!root) return;
     const grid=root.querySelector(".grid");
     if (!grid) return;
+    if (!this.config.language) {
+      let lang="auto";
+      try { lang=localStorage.getItem("solar_panel_washing_language")||"auto"; } catch (_) {}
+      this.config={...this.config,language:lang};
+      super.render();
+    }
     const index=SPW_SECTIONS.indexOf(this.config.section);
     const boxes=Array.from(grid.children);
     boxes.forEach((box,i)=>{if(i!==index)box.remove();});
+    if (this.config.section==="control") {
+      const host=grid.querySelector(".box");
+      const bar=document.createElement("div");
+      bar.style.cssText="display:flex;gap:8px;justify-content:flex-end;margin-bottom:10px;align-items:center";
+      const version=document.createElement("small");version.textContent="v1.3.8";
+      const select=document.createElement("select");
+      select.innerHTML='<option value="auto">🌐 Auto</option><option value="en">🇺🇸 English</option><option value="ru">🇷🇺 Русский</option><option value="he">🇮🇱 עברית</option>';
+      select.value=this.config.language;
+      select.addEventListener("change",()=>{
+        try { localStorage.setItem("solar_panel_washing_language",select.value); } catch (_) {}
+        document.querySelectorAll(".spw-language-linked").forEach(el=>{
+          el.setConfig({...el.config,language:select.value});el.render();
+        });
+      });
+      bar.append(version,select);host.prepend(bar);
+    }
+    this.classList.add("spw-language-linked");
     root.querySelector(".hero")?.remove();
     root.querySelector(".stats")?.remove();
     const wrap=root.querySelector(".wrap");
