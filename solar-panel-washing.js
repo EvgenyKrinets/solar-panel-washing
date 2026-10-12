@@ -3,29 +3,56 @@ class SolarPanelWashingCard extends HTMLElement {
   connectedCallback() {
     if (this._interactionHandlersInstalled) return;
     this._interactionHandlersInstalled = true;
+    this.addEventListener("pointerover", (event) => {
+      if (event.pointerType !== "mouse") return;
+      const control = event.target.closest?.("button, input, select");
+      if (control && this.contains(control)) this._hoveredControl = control;
+    }, true);
+    this.addEventListener("pointerout", (event) => {
+      if (event.pointerType !== "mouse") return;
+      const control = event.target.closest?.("button, input, select");
+      if (control && control === this._hoveredControl && !control.contains(event.relatedTarget)) {
+        this._hoveredControl = null;
+        this.scheduleRender();
+      }
+    }, true);
     this.addEventListener("pointerdown", () => {
       this._interacting = true;
-      if (this._renderTimer) { clearTimeout(this._renderTimer); this._renderTimer = null; }
+      clearTimeout(this._renderTimer);
     }, true);
     const release = () => {
       clearTimeout(this._releaseTimer);
       this._releaseTimer = setTimeout(() => {
         this._interacting = false;
-        if (this._pendingRender && !this.querySelector(".numinput:focus")) {
-          this._pendingRender = false;
-          this.render();
-        }
-      }, 300);
+        this.scheduleRender();
+      }, 450);
     };
     this.addEventListener("pointerup", release, true);
     this.addEventListener("pointercancel", release, true);
-    this.addEventListener("pointerleave", release, true);
+    this.addEventListener("pointerleave", () => {
+      this._hoveredControl = null;
+      release();
+    }, true);
+  }
+  isEditing() { return !!this.querySelector(".numinput:focus"); }
+  scheduleRender() {
+    if (!this._hass || this._interacting || this._hoveredControl || this.isEditing()) {
+      this._pendingRender = true;
+      return;
+    }
+    clearTimeout(this._renderTimer);
+    this._renderTimer = setTimeout(() => {
+      if (this._interacting || this._hoveredControl || this.isEditing()) {
+        this._pendingRender = true;
+        return;
+      }
+      this._pendingRender = false;
+      this.render();
+    }, 100);
   }
   set hass(hass) {
     this._hass = hass;
-    if (this._interacting || this.querySelector(".numinput:focus")) { this._pendingRender = true; return; }
-    clearTimeout(this._renderTimer);
-    this._renderTimer = setTimeout(() => { if (this.querySelector(".numinput:focus")) { this._pendingRender = true; return; } this.render(); }, 40);
+    this.scheduleRender();
   }
   getCardSize() { return 12; }
   e(id){ return this._hass && this._hass.states[id]; }
@@ -133,12 +160,12 @@ class SolarPanelWashingCard extends HTMLElement {
     </ha-card>`;
     this.querySelectorAll("[data-toggle]").forEach(b=>b.onclick=()=>{const wasOn=b.classList.contains("on");b.classList.toggle("on",!wasOn);if(b.classList.contains("toggle"))b.textContent=wasOn?"OFF":"ON";b.classList.add("tap");this.toggle(b.dataset.toggle);setTimeout(()=>b.classList.remove("tap"),220);});
     this.querySelectorAll("[data-press]").forEach(b=>b.onclick=()=>this.button(b.dataset.press,b));
-    this.querySelectorAll("[data-weekmode]").forEach(b=>b.onclick=async()=>{const day=b.dataset.weekday,mode=b.dataset.weekmode;const enabledId=`switch.${p}auto_start_${day}`;const modeId=`select.${p}auto_mode_${day}`;const group=b.closest(".weekly-choices");if(group.dataset.busy==="1")return;if(mode!=="Off"&&!this.e(modeId)){b.classList.add("failed");setTimeout(()=>b.classList.remove("failed"),1100);return;}group.dataset.busy="1";group.querySelectorAll("button").forEach(x=>{x.classList.remove("selected","off","water","soap");});b.classList.add("selected",mode==="Off"?"off":mode==="Water"?"water":"soap","pending");try{if(mode==="Off"){await this.call("switch","turn_off",enabledId);}else{await this.call("select","select_option",modeId,{option:mode});await this.call("switch","turn_on",enabledId);}}catch(err){b.classList.add("failed");console.error("Solar washing schedule update failed",err);}finally{b.classList.remove("pending");delete group.dataset.busy;setTimeout(()=>{if(!this._interacting)this.render();},550);}});
+    this.querySelectorAll("[data-weekmode]").forEach(b=>b.onclick=async()=>{const day=b.dataset.weekday,mode=b.dataset.weekmode;const enabledId=`switch.${p}auto_start_${day}`;const modeId=`select.${p}auto_mode_${day}`;const group=b.closest(".weekly-choices");if(group.dataset.busy==="1")return;if(mode!=="Off"&&!this.e(modeId)){b.classList.add("failed");setTimeout(()=>b.classList.remove("failed"),1100);return;}group.dataset.busy="1";group.querySelectorAll("button").forEach(x=>{x.classList.remove("selected","off","water","soap");});b.classList.add("selected",mode==="Off"?"off":mode==="Water"?"water":"soap","pending");try{if(mode==="Off"){await this.call("switch","turn_off",enabledId);}else{await this.call("select","select_option",modeId,{option:mode});await this.call("switch","turn_on",enabledId);}}catch(err){b.classList.add("failed");console.error("Solar washing schedule update failed",err);}finally{b.classList.remove("pending");delete group.dataset.busy;setTimeout(()=>this.scheduleRender(),550);}});
     this.querySelectorAll("[data-mode]").forEach(b=>b.onclick=()=>{this.querySelectorAll("[data-mode]").forEach(x=>x.classList.toggle("on",x===b));this.select(b.dataset.modeEntity,b.dataset.mode);});
-    this.querySelectorAll("[data-num]").forEach(b=>b.onclick=()=>{const id=b.dataset.num, st=this.e(id); if(!st)return; const step=Number(st.attributes.step||1), min=Number(st.attributes.min??-1e9), max=Number(st.attributes.max??1e9); this.num(id,Math.max(min,Math.min(max,Number(st.state)+Number(b.dataset.d)*step)));}); this.querySelectorAll("[data-numinput]").forEach(i=>{const send=()=>{const st=this.e(i.dataset.numinput);if(!st)return;const min=Number(st.attributes.min??-1e9),max=Number(st.attributes.max??1e9),v=Number(i.value);if(!Number.isFinite(v))return;const value=Math.max(min,Math.min(max,v));i.value=value;this.num(i.dataset.numinput,value);};i.onchange=send;i.onblur=()=>{if(this._pendingRender){this._pendingRender=false;setTimeout(()=>{if(!this.querySelector(".numinput:focus"))this.render();},150);}};i.onkeydown=e=>{if(e.key==="Enter"){e.preventDefault();send();i.blur();}};});
+    this.querySelectorAll("[data-num]").forEach(b=>b.onclick=()=>{const id=b.dataset.num, st=this.e(id); if(!st)return; const step=Number(st.attributes.step||1), min=Number(st.attributes.min??-1e9), max=Number(st.attributes.max??1e9); this.num(id,Math.max(min,Math.min(max,Number(st.state)+Number(b.dataset.d)*step)));}); this.querySelectorAll("[data-numinput]").forEach(i=>{const send=()=>{const st=this.e(i.dataset.numinput);if(!st)return;const min=Number(st.attributes.min??-1e9),max=Number(st.attributes.max??1e9),v=Number(i.value);if(!Number.isFinite(v))return;const value=Math.max(min,Math.min(max,v));i.value=value;this.num(i.dataset.numinput,value);};i.onchange=send;i.onblur=()=>{if(this._pendingRender)this.scheduleRender();};i.onkeydown=e=>{if(e.key==="Enter"){e.preventDefault();send();i.blur();}};});
   }
 }
 customElements.define("solar-panel-washing-card", SolarPanelWashingCard);
 window.customCards = window.customCards || [];
 window.customCards.push({type:"solar-panel-washing-card",name:"Solar Panel Washing",description:"Complete dashboard card for the Solar Panel Washing ESPHome controller",preview:true});
-console.info("%c SOLAR-PANEL-WASHING-CARD %c v1.1.19 ","color:white;background:#1684d8;font-weight:700","color:#1684d8;background:white");
+console.info("%c SOLAR-PANEL-WASHING-CARD %c v1.1.20 ","color:white;background:#1684d8;font-weight:700","color:#1684d8;background:white");
