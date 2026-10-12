@@ -11,30 +11,60 @@ views:
       - type: grid
         cards:
           - type: custom:solar-panel-washing-control-card
+            grid_options:
+              columns: 12
+              rows: auto
       - type: grid
         cards:
           - type: custom:solar-panel-washing-schedule-card
+            grid_options:
+              columns: 12
+              rows: auto
       - type: grid
         cards:
           - type: custom:solar-panel-washing-zones-card
+            grid_options:
+              columns: 12
+              rows: auto
       - type: grid
         cards:
           - type: custom:solar-panel-washing-water-times-card
+            grid_options:
+              columns: 12
+              rows: auto
       - type: grid
         cards:
           - type: custom:solar-panel-washing-detergent-times-card
+            grid_options:
+              columns: 12
+              rows: auto
       - type: grid
         cards:
           - type: custom:solar-panel-washing-rinse-times-card
+            grid_options:
+              columns: 12
+              rows: auto
       - type: grid
         cards:
           - type: custom:solar-panel-washing-switching-card
+            grid_options:
+              columns: 12
+              rows: auto
       - type: grid
         cards:
           - type: custom:solar-panel-washing-flow-protection-card
+            grid_options:
+              columns: 12
+              rows: auto
       - type: grid
         cards:
           - type: custom:solar-panel-washing-system-card
+            grid_options:
+              columns: 12
+              rows: auto
       - type: grid
         cards:
           - type: custom:solar-panel-washing-manual-valves-card
+            grid_options:
+              columns: 12
+              rows: auto
