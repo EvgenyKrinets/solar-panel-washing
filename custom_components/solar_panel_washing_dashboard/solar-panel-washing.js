@@ -176,7 +176,7 @@ class SolarPanelWashingCard extends HTMLElement {
         @media(max-width:600px){.wrap{padding:12px}.hero h1{font-size:22px}.actions{grid-template-columns:1fr}.manual{grid-template-columns:repeat(2,minmax(0,1fr))}}
       </style>
       <div class="wrap">
-        <div class="hero"><ha-icon icon="mdi:solar-panel"></ha-icon><div><h1>Solar Panel Washing</h1><p>Automatic multi-zone washing controller</p></div><div class="language-control"><div class="spw-version" aria-label="Dashboard version">v1.3.6</div><button type="button" class="language-trigger" data-language-toggle aria-haspopup="true" aria-expanded="false">🌐 ${({"auto":"Auto","en":"English","ru":"Русский","he":"עברית"})[this.config?.language||"auto"]||"Auto"} ▾</button><div class="language-menu" data-language-menu hidden><button type="button" data-language-choice="auto">🌐 Auto</button><button type="button" data-language-choice="en">🇺🇸 English</button><button type="button" data-language-choice="ru">🇷🇺 Русский</button><button type="button" data-language-choice="he">🇮🇱 עברית</button></div></div></div>
+        <div class="hero"><ha-icon icon="mdi:solar-panel"></ha-icon><div><h1>Solar Panel Washing</h1><p>Automatic multi-zone washing controller</p></div><div class="language-control"><div class="spw-version" aria-label="Dashboard version">v1.3.7</div><button type="button" class="language-trigger" data-language-toggle aria-haspopup="true" aria-expanded="false">🌐 ${({"auto":"Auto","en":"English","ru":"Русский","he":"עברית"})[this.config?.language||"auto"]||"Auto"} ▾</button><div class="language-menu" data-language-menu hidden><button type="button" data-language-choice="auto">🌐 Auto</button><button type="button" data-language-choice="en">🇺🇸 English</button><button type="button" data-language-choice="ru">🇷🇺 Русский</button><button type="button" data-language-choice="he">🇮🇱 עברית</button></div></div></div>
         <div class="stats">
           <div class="stat"><small>Status</small><b class="${this.state(E.alarm)==="on"?"alarm":"ok"}">${this.state(E.status)}</b></div>
           <div class="stat"><small>Zone</small><b>${this.state(E.zone)}</b></div>
@@ -250,7 +250,7 @@ class SolarPanelWashingSectionCard extends SolarPanelWashingCard {
     const wrap=root.querySelector(".wrap");
     if(wrap)wrap.classList.add("standalone-section");
     const style=root.querySelector("style");
-    if(style)style.textContent += ".standalone-section{padding:0;min-width:0;width:100%;box-sizing:border-box}.standalone-section .grid{display:block;min-width:0}.standalone-section .box{width:100%;min-width:0;box-sizing:border-box;border:0;box-shadow:none;border-radius:var(--ha-card-border-radius,12px)}.standalone-section .box.wide{grid-column:auto}.standalone-section .mode-options,.standalone-section .actions{grid-template-columns:repeat(2,minmax(0,1fr))}.standalone-section button{min-width:0;overflow-wrap:anywhere}.standalone-section .weekly-choices{grid-template-columns:repeat(3,minmax(0,1fr))}";
+    if(style)style.textContent += ".standalone-section{padding:0;min-width:0;width:100%;box-sizing:border-box}.standalone-section .grid{display:block;min-width:0}.standalone-section .box{width:100%;min-width:0;box-sizing:border-box;border:1px solid var(--divider-color,rgba(127,127,127,.22));box-shadow:0 3px 12px rgba(0,0,0,.055);border-radius:14px}.standalone-section .box.wide{grid-column:auto}.standalone-section .mode-options,.standalone-section .actions{grid-template-columns:repeat(2,minmax(0,1fr))}.standalone-section button{min-width:0;overflow-wrap:anywhere}.standalone-section .weekly-choices{grid-template-columns:repeat(3,minmax(0,1fr))}";
   }
 }
 if (!customElements.get("solar-panel-washing-section-card")) customElements.define("solar-panel-washing-section-card",SolarPanelWashingSectionCard);
@@ -292,10 +292,25 @@ class SolarPanelWashingOverviewCard extends HTMLElement {
       .spw-column{display:flex;flex-direction:column;gap:12px;min-width:0}
       .spw-cell{min-width:0;display:block}
       .spw-cell>*{display:block;width:100%;min-width:0}
-      .spw-cell ha-card{border-radius:14px;overflow:hidden}
+      .spw-cell ha-card{border:1px solid var(--divider-color,rgba(127,127,127,.2));border-radius:14px;box-shadow:0 3px 12px rgba(0,0,0,.07);overflow:hidden;background:var(--card-background-color,#fff)}
+      .spw-head select{font:inherit;font-size:13px;font-weight:500;padding:8px 12px;border:1px solid var(--divider-color,#ddd);border-radius:9px;background:var(--card-background-color,#fff);color:var(--primary-text-color);cursor:pointer}
+      .spw-head .spw-language{margin-left:auto;display:flex;align-items:center;gap:10px}
+      .spw-head small{margin-left:0}
       @container (max-width:1050px){.spw-layout{grid-template-columns:repeat(2,minmax(0,1fr))}.spw-column{display:contents}.spw-cell{order:var(--tablet-order)}}
       @container (max-width:620px){.spw-layout{grid-template-columns:minmax(0,1fr)}.spw-column{display:contents}.spw-cell{order:var(--mobile-order)}.spw-head{font-size:18px;padding:10px 12px}}
-    </style><div class="spw-overview"><div class="spw-head">☀️ Solar Panel Washing <small>v1.3.6</small></div><div class="spw-layout"></div></div>`;
+    </style><div class="spw-overview"><div class="spw-head">☀️ Solar Panel Washing <div class="spw-language"><small>v1.3.7</small><select aria-label="Language" class="spw-language-select"><option value="auto">🌐 Auto</option><option value="en">🇺🇸 English</option><option value="ru">🇷🇺 Русский</option><option value="he">🇮🇱 עברית</option></select></div></div><div class="spw-layout"></div></div>`;
+    const langSelect=this.querySelector(".spw-language-select");
+    let savedLanguage="auto";
+    try { savedLanguage=localStorage.getItem("solar_panel_washing_language") || "auto"; } catch (_) {}
+    langSelect.value=this.config.language || savedLanguage;
+    langSelect.addEventListener("change",()=>{
+      this.config={...this.config,language:langSelect.value};
+      try { localStorage.setItem("solar_panel_washing_language",langSelect.value); } catch (_) {}
+      this.querySelectorAll(".spw-cell>*").forEach(card=>{
+        card.setConfig({...card.config,language:langSelect.value});
+        card.render();
+      });
+    });
     const grid=this.querySelector(".spw-layout");
     const columns=[
       ["control","switching"],
@@ -312,7 +327,7 @@ class SolarPanelWashingOverviewCard extends HTMLElement {
         cell.style.setProperty("--mobile-order",String(mobile.indexOf(section)));
         cell.style.setProperty("--tablet-order",String(tablet.indexOf(section)));
         const card=document.createElement("solar-panel-washing-"+section+"-card");
-        card.setConfig({...this.config,section});
+        card.setConfig({...this.config,language:langSelect.value,section});
         if(this._hass)card.hass=this._hass;
         cell.appendChild(card);column.appendChild(cell);
       }
@@ -324,4 +339,4 @@ class SolarPanelWashingOverviewCard extends HTMLElement {
 if(!customElements.get("solar-panel-washing-overview-card"))customElements.define("solar-panel-washing-overview-card",SolarPanelWashingOverviewCard);
 window.customCards.push({type:"solar-panel-washing-overview-card",name:"Solar Washing — Responsive Overview",description:"Desktop 4-column and mobile stacked washing dashboard",preview:true});
 
-console.info("%c SOLAR-PANEL-WASHING-CARD %c v1.3.6 ","color:white;background:#1684d8;font-weight:700","color:#1684d8;background:white");
+console.info("%c SOLAR-PANEL-WASHING-CARD %c v1.3.7 ","color:white;background:#1684d8;font-weight:700","color:#1684d8;background:white");
