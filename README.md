@@ -19,7 +19,7 @@
 
 The Home Assistant dashboard supports **three interface languages**:
 
-- 🇬🇧 **English** — default.
+- 🇺🇸 **English** — default.
 - 🇷🇺 **Русский** — Russian.
 - 🇮🇱 **עברית** — Hebrew.
 
