@@ -85,15 +85,17 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         _LOGGER.error("Lovelace has not been initialized")
         return False
 
-    resource_url = "/solar-panel-washing/solar-panel-washing.js"
+    resource_url = "/solar-panel-washing/solar-panel-washing.js?v=1.3.2"
     resources = lovelace.resources
     if hasattr(resources, "async_create_item"):
         await resources._async_ensure_loaded()
         existing = list(resources.async_items() or [])
         managed = next((r for r in existing if
-                        str(r.get("url", "")).split("?")[0] == resource_url), None)
+                        str(r.get("url", "")).split("?")[0] == resource_url.split("?")[0]), None)
         if managed is None:
             await resources.async_create_item({"res_type": "module", "url": resource_url})
+        elif managed.get("url") != resource_url:
+            await resources.async_update_item(managed["id"], {"url": resource_url})
     else:
         _LOGGER.warning("Lovelace resources are YAML-managed; add %s as a module resource", resource_url)
 
