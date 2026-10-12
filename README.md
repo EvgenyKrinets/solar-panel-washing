@@ -26,6 +26,12 @@ The Home Assistant dashboard supports **three interface languages**:
 Use the **🌐 language selector** in the dashboard header. The **Auto** setting follows your Home Assistant language (English, Russian or Hebrew); other Home Assistant languages fall back to English. The language selector changes the dashboard labels and explanatory text only. ESPHome entity names, control commands, washing programs and safety behavior remain unchanged.
 
 
+## Ready-made modular dashboard
+
+A complete 10-section Home Assistant dashboard is provided at [home-assistant/modular-dashboard.yaml](home-assistant/modular-dashboard.yaml). Create a new dashboard, open its raw YAML editor, and paste the file contents. It uses a Sections view with up to three columns on desktop and a responsive mobile layout. Existing dashboards remain unchanged.
+
+**Important:** HACS installs the custom card frontend only. It does not have permission to automatically create or replace Lovelace dashboards. Truly automatic dashboard provisioning requires a separate Home Assistant backend integration and explicit authorization.
+
 ## Individual cards in Home Assistant (v1.1.32+)
 
 In **Edit dashboard → Add card**, search **Solar Washing**. Each section is now a separate selectable card with its own preview:
