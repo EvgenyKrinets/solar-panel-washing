@@ -831,6 +831,14 @@ binary_sensor:
   - platform: status
     name: "Washing Controller Online"
 
+  - platform: template
+    name: "ESP32 Time Synchronized"
+    device_class: connectivity
+    update_interval: 10s
+    lambda: |-
+      return id(system_time).now().is_valid();
+
+
 
   - platform: template
     name: "Washing Active"
@@ -854,6 +862,19 @@ binary_sensor:
 # ============================================================
 
 text_sensor:
+
+  - platform: template
+    name: "ESP32 Date Time"
+    icon: mdi:calendar-clock
+    update_interval: 10s
+    lambda: |-
+      auto now = id(system_time).now();
+      if (!now.is_valid()) return {"Not synchronized"};
+      char buffer[24];
+      snprintf(buffer, sizeof(buffer), "%04d-%02d-%02d %02d:%02d:%02d",
+               now.year, now.month, now.day_of_month,
+               now.hour, now.minute, now.second);
+      return {buffer};
 
   - platform: template
     name: "Washing Status"
