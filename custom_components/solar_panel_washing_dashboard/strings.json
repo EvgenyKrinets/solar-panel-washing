@@ -1,0 +1,18 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Create Solar Panel Washing dashboard",
+        "description": "Create a separate modular dashboard with independent washing cards. Existing dashboards are not changed."
+      }
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Dashboard settings",
+        "description": "The dashboard is managed independently. Your custom changes are never overwritten."
+      }
+    }
+  }
+}
