@@ -54,6 +54,44 @@ class SolarPanelWashingCard extends HTMLElement {
     this._hass = hass;
     this.scheduleRender();
   }
+
+  language() {
+    const configured=this.config?.language || "auto";
+    if(configured!=="auto") return ["en","ru","he"].includes(configured)?configured:"en";
+    const ha=this._hass?.language || "en";
+    return ha.startsWith("ru")?"ru":ha.startsWith("he")?"he":"en";
+  }
+  translateUI(){
+    const lang=this.language();
+    const picker=this.querySelector("[data-language]");
+    if(picker)picker.value=this.config?.language || "auto";
+    const dict={"Solar Panel Washing":["Мойка солнечных панелей","שטיפת פאנלים סולאריים"],"Automatic multi-zone washing controller":["Автоматическая многозонная система мойки","מערכת שטיפה אוטומטית רב-אזורית"],"Status":["Состояние","מצב"],"Zone":["Зона","אזור"],"Flow":["Расход","ספיקה"],"Total Water":["Всего воды","סך מים"],"Washing Control":["Управление мойкой","בקרת שטיפה"],"Water":["Вода","מים"],"Detergent + Water":["Моющее средство + вода","חומר ניקוי + מים"],"START":["СТАРТ","הפעלה"],"EMERGENCY STOP":["АВАРИЙНЫЙ СТОП","עצירת חירום"],"Reset Alarm":["Сброс аварии","איפוס התראה"],"Automatic Schedule":["Автоматическое расписание","לוח זמנים אוטומטי"],"Automatic Start":["Автозапуск","הפעלה אוטומטית"],"Start Time":["Время запуска","שעת התחלה"],"OFF":["ВЫКЛ","כבוי"],"ON":["ВКЛ","פעיל"],"Soap":["Средство","סבון"],"Next:":["Следующий запуск:","ההפעלה הבאה:"],"Disabled":["Отключено","מושבת"],"Active Zones":["Активные зоны","אזורים פעילים"],"Water Times":["Время мойки водой","זמני שטיפה במים"],"Detergent Times":["Время подачи средства","זמני חומר ניקוי"],"Rinse Times":["Время ополаскивания","זמני שטיפה חוזרת"],"Switching":["Переключение","מעברים"],"Zone Overlap":["Перекрытие зон","חפיפת אזורים"],"Source Delay":["Пауза между источниками","השהיית מעבר מקור"],"Flow Protection":["Защита по расходу","הגנת ספיקה"],"Protection":["Защита","הגנה"],"Minimum":["Минимум","מינימום"],"Maximum":["Максимум","מקסימום"],"Leak":["Утечка","דליפה"],"Check Delay":["Задержка проверки","השהיית בדיקה"],"System":["Система","מערכת"],"Uptime:":["Время работы:","זמן פעולה:"],"Alarm:":["Авария:","התראה:"],"OK":["Норма","תקין"],"ACTIVE":["АКТИВНА","פעילה"],"Manual Valve Control":["Ручное управление клапанами","בקרה ידנית בשסתומים"],"Zone 1":["Зона 1","אזור 1"],"Zone 2":["Зона 2","אזור 2"],"Zone 3":["Зона 3","אזור 3"],"Zone 4":["Зона 4","אזור 4"],"Zone 5":["Зона 5","אזור 5"],"sec":["сек","שנ׳"],"min":["мин","דק׳"],"Select the mode for manual START. Emergency Stop closes the valves and stops the program. Reset Alarm clears a latched alarm after the cause has been resolved.":["Выберите режим ручного запуска. Аварийный стоп закрывает клапаны и останавливает программу. Сброс аварии разрешён после устранения причины.","בחרו מצב להפעלה ידנית. עצירת חירום סוגרת את השסתומים ועוצרת את התוכנית. יש לאפס התראה רק לאחר טיפול בתקלה."],"Automatic Start enables the weekly schedule. Choose OFF, Water or Soap for each weekday. Start Time is the local time on the ESP32; Soap means detergent followed by rinse.":["Автозапуск включает недельное расписание. Для каждого дня выберите ВЫКЛ, Вода или Средство. Время задаётся по часам ESP32. Средство означает мойку с последующим ополаскиванием.","הפעלה אוטומטית מפעילה לוח שבועי. בחרו לכל יום כבוי, מים או סבון. שעת ההתחלה היא לפי שעון ESP32. סבון כולל שטיפה במים לאחר הניקוי."],"Only enabled zones are included in automatic and manual START washing programs. Disable a zone to skip it.":["В программу входят только включённые зоны. Отключите зону, чтобы пропустить её при мойке.","רק אזורים פעילים נכללים בתוכנית. כבו אזור כדי לדלג עליו."],"Duration of filtered-water washing for each enabled zone in Water mode. In Detergent + Water mode, the Rinse Times below are used instead.":["Продолжительность мойки фильтрованной водой для каждой зоны в режиме «Вода». В режиме со средством используется время ополаскивания ниже.","משך השטיפה במים מסוננים לכל אזור במצב מים. במצב חומר ניקוי משתמשים בזמני השטיפה החוזרת שלהלן."],"How long detergent flows through each enabled zone before rinsing. Each zone has its own setting.":["Сколько секунд моющее средство подаётся в каждую зону до ополаскивания. Настраивается отдельно для каждой зоны.","משך הזרמת חומר הניקוי לכל אזור לפני שטיפה במים. לכל אזור הגדרה נפרדת."],"How long filtered water rinses each zone after detergent. The zone stays open between detergent and rinse.":["Сколько секунд чистая вода промывает зону после моющего средства. Клапан зоны остаётся открытым при смене жидкости.","משך השטיפה במים מסוננים לאחר חומר הניקוי. שסתום האזור נשאר פתוח בזמן המעבר."],"Zone Overlap: opens the next zone before closing the previous one to reduce pressure shock. Source Delay: pause between detergent and filtered water so both source valves are never open together.":["Перекрытие зон: следующая зона открывается до закрытия предыдущей, чтобы уменьшить гидроудар. Пауза источников: промежуток между средством и водой, когда оба клапана источников закрыты.","חפיפת אזורים: פתיחת האזור הבא לפני סגירת הקודם להפחתת מכות לחץ. השהיית מקור: הפסקה בין חומר ניקוי למים כאשר שני שסתומי המקור סגורים."],"Requires a correctly connected and calibrated flow sensor. When enabled, the controller checks for low flow, excessive flow and unexpected flow while idle. Keep OFF until the sensor is installed and tested.":["Требуется подключённый и проверенный датчик расхода. Защита контролирует недостаточный, чрезмерный и неожиданный расход при простое. Не включайте до проверки датчика.","נדרש חיישן ספיקה מחובר ומכויל. ההגנה בודקת ספיקה נמוכה, גבוהה וזרימה בלתי צפויה במנוחה. השאירו כבוי עד לבדיקת החיישן."],"Wi-Fi shows signal strength in dBm (closer to zero is stronger). Uptime is time since the ESP32 last restarted. Alarm shows whether a fault is latched.":["Wi-Fi — уровень сигнала в dBm (ближе к нулю — сильнее). Время работы — с последней перезагрузки ESP32. Авария показывает сохранённую ошибку.","Wi-Fi מציג עוצמת אות ב-dBm (קרוב יותר לאפס פירושו אות חזק יותר). זמן פעולה נספר מההפעלה האחרונה. התראה מציגה תקלה פעילה."],"Direct relay controls for testing and maintenance. These bypass the normal washing sequence: use carefully and never open detergent and water sources together.":["Прямое управление реле для проверки и обслуживания. Обходит обычную последовательность мойки. Не открывайте одновременно подачу воды и средства.","שליטה ישירה בממסרים לבדיקה ותחזוקה. עוקפת את רצף השטיפה הרגיל. אין לפתוח יחד את מקורות המים וחומר הניקוי."],"Time when two consecutive zone valves are open together during a water transition.":["Время одновременного открытия двух соседних зон при переходе.","משך הזמן שבו שני שסתומי אזורים פתוחים יחד במעבר."],"Pause with both source valves closed when changing between detergent and filtered water.":["Пауза с закрытыми источниками при переходе между средством и водой.","השהיה כששני שסתומי המקור סגורים במעבר בין חומר ניקוי למים."],"If measured flow falls below this value during washing (after Check Delay), protection stops the system.":["Если расход ниже порога после задержки проверки, система аварийно остановится.","אם הספיקה יורדת מתחת לסף לאחר ההשהיה, המערכת נעצרת."],"If measured flow rises above this value during washing (after Check Delay), protection stops the system.":["Если расход выше порога после задержки проверки, система аварийно остановится.","אם הספיקה עולה מעל הסף לאחר ההשהיה, המערכת נעצרת."],"Unexpected flow above this value while washing is idle triggers a leak alarm.":["Расход выше порога при остановленной мойке вызывает сигнал утечки.","זרימה מעל הסף כשהשטיפה כבויה מפעילה התראת דליפה."],"Wait after opening a source valve before checking minimum and maximum flow.":["Задержка после открытия источника перед проверкой минимального и максимального расхода.","השהיה לאחר פתיחת מקור לפני בדיקת ספיקה מינימלית ומקסימלית."],"Enable flow-based alarms only after the flow meter has been installed and tested.":["Включайте защиту только после установки и проверки расходомера.","יש להפעיל הגנה רק לאחר התקנת ובדיקת מד הספיקה."],"Enable flow monitoring and automatic fault shutdown.":["Включить контроль расхода и аварийное отключение.","הפעלת ניטור ספיקה וכיבוי אוטומטי בתקלה."],"Ready":["Готово","מוכן"],"None":["Нет","ללא"],"Running":["Работает","פועל"],"Water - Zone 1":["Вода — зона 1","מים — אזור 1"]};
+    if(lang==="en")return;
+    const index=lang==="ru"?0:1;
+    const root=this.querySelector("ha-card");
+    if(!root)return;
+    const walker=document.createTreeWalker(root,NodeFilter.SHOW_TEXT);
+    const nodes=[];
+    while(walker.nextNode())nodes.push(walker.currentNode);
+    for(const node of nodes){
+      const parent=node.parentElement;
+      if(!parent || ["STYLE","SCRIPT","OPTION"].includes(parent.tagName))continue;
+      const raw=node.nodeValue, trimmed=raw.trim();
+      if(!trimmed)continue;
+      let replacement=dict[trimmed]?.[index];
+      if(!replacement){
+        const emoji=trimmed.match(/^([^\\p{L}\\p{N}]*)(.+)$/u);
+        if(emoji)replacement=dict[emoji[2]]?.[index] ? emoji[1]+dict[emoji[2]][index] : null;
+      }
+      if(!replacement && /^Zone [1-5]$/.test(trimmed))replacement=dict[trimmed]?.[index];
+      if(replacement)node.nodeValue=raw.replace(trimmed,replacement);
+    }
+    const weekday=lang==="ru"?["Пн","Вт","Ср","Чт","Пт","Сб","Вс"]:["ב׳","ג׳","ד׳","ה׳","ו׳","ש׳","א׳"];
+    root.querySelectorAll(".weekly-row > span").forEach((el,i)=>{el.textContent=weekday[i]||el.textContent;});
+    root.querySelectorAll(".weekly-choices button").forEach(el=>{const k=el.dataset.weekmode==="Off"?"OFF":el.dataset.weekmode==="Water"?"Water":"Soap";el.textContent=dict[k]?.[index]||el.textContent;});
+    root.querySelectorAll(".mode-option").forEach(el=>{const k=el.dataset.mode;el.textContent=(k==="Water"?"💧 ":"🧴 ")+(dict[k]?.[index]||k);});
+    root.querySelectorAll(".numinput").forEach(el=>{if(dict[el.getAttribute("aria-label")])el.setAttribute("aria-label",dict[el.getAttribute("aria-label")][index]);});
+  }
   getCardSize() { return 12; }
   e(id){ return this._hass && this._hass.states[id]; }
   state(id, fallback="—"){ const x=this.e(id); return x ? x.state : fallback; }
@@ -124,7 +162,7 @@ class SolarPanelWashingCard extends HTMLElement {
         @media(max-width:600px){.wrap{padding:12px}.hero h1{font-size:22px}.actions{grid-template-columns:1fr}.manual{grid-template-columns:repeat(2,minmax(0,1fr))}}
       </style>
       <div class="wrap">
-        <div class="hero"><ha-icon icon="mdi:solar-panel"></ha-icon><div><h1>Solar Panel Washing</h1><p>Automatic multi-zone washing controller</p></div></div>
+        <div class="hero"><ha-icon icon="mdi:solar-panel"></ha-icon><div><h1>Solar Panel Washing</h1><p>Automatic multi-zone washing controller</p></div><select data-language aria-label="Interface language" style="margin-left:auto;max-width:105px;min-width:80px;border:1px solid var(--divider-color,#ddd);border-radius:9px;padding:7px;background:var(--card-background-color,#fff);color:var(--primary-text-color)"><option value="auto">🌐 Auto</option><option value="en">English</option><option value="ru">Русский</option><option value="he">עברית</option></select></div>
         <div class="stats">
           <div class="stat"><small>Status</small><b class="${this.state(E.alarm)==="on"?"alarm":"ok"}">${this.state(E.status)}</b></div>
           <div class="stat"><small>Zone</small><b>${this.state(E.zone)}</b></div>
@@ -160,6 +198,8 @@ class SolarPanelWashingCard extends HTMLElement {
         </div>
       </div>
     </ha-card>`;
+    this.translateUI();
+    this.querySelector("[data-language]")?.addEventListener("change",e=>{this.config={...this.config,language:e.target.value};this.render();});
     this.querySelectorAll("[data-toggle]").forEach(b=>b.onclick=()=>{const wasOn=b.classList.contains("on");b.classList.toggle("on",!wasOn);if(b.classList.contains("toggle"))b.textContent=wasOn?"OFF":"ON";b.classList.add("tap");this.toggle(b.dataset.toggle);setTimeout(()=>b.classList.remove("tap"),220);});
     this.querySelectorAll("[data-press]").forEach(b=>b.onclick=()=>this.button(b.dataset.press,b));
     this.querySelectorAll("[data-weekmode]").forEach(b=>b.onclick=async()=>{const day=b.dataset.weekday,mode=b.dataset.weekmode;const enabledId=`switch.${p}auto_start_${day}`;const modeId=`select.${p}auto_mode_${day}`;const group=b.closest(".weekly-choices");if(group.dataset.busy==="1")return;if(mode!=="Off"&&!this.e(modeId)){b.classList.add("failed");setTimeout(()=>b.classList.remove("failed"),1100);return;}group.dataset.busy="1";group.querySelectorAll("button").forEach(x=>{x.classList.remove("selected","off","water","soap");});b.classList.add("selected",mode==="Off"?"off":mode==="Water"?"water":"soap","pending");try{if(mode==="Off"){await this.call("switch","turn_off",enabledId);}else{await this.call("select","select_option",modeId,{option:mode});await this.call("switch","turn_on",enabledId);}}catch(err){b.classList.add("failed");console.error("Solar washing schedule update failed",err);}finally{b.classList.remove("pending");delete group.dataset.busy;setTimeout(()=>this.scheduleRender(),550);}});
@@ -170,4 +210,4 @@ class SolarPanelWashingCard extends HTMLElement {
 customElements.define("solar-panel-washing-card", SolarPanelWashingCard);
 window.customCards = window.customCards || [];
 window.customCards.push({type:"solar-panel-washing-card",name:"Solar Panel Washing",description:"Complete dashboard card for the Solar Panel Washing ESPHome controller",preview:true});
-console.info("%c SOLAR-PANEL-WASHING-CARD %c v1.1.22 ","color:white;background:#1684d8;font-weight:700","color:#1684d8;background:white");
+console.info("%c SOLAR-PANEL-WASHING-CARD %c v1.1.23 ","color:white;background:#1684d8;font-weight:700","color:#1684d8;background:white");
