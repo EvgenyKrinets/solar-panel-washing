@@ -1,0 +1,40 @@
+# Ready-to-paste Home Assistant dashboard configuration.
+# Create a NEW dashboard and use its raw YAML editor. HACS cannot install it automatically.
+title: Solar Panel Washing
+views:
+  - title: Washing
+    path: washing
+    icon: mdi:solar-panel
+    type: sections
+    max_columns: 3
+    sections:
+      - type: grid
+        cards:
+          - type: custom:solar-panel-washing-control-card
+      - type: grid
+        cards:
+          - type: custom:solar-panel-washing-schedule-card
+      - type: grid
+        cards:
+          - type: custom:solar-panel-washing-zones-card
+      - type: grid
+        cards:
+          - type: custom:solar-panel-washing-water-times-card
+      - type: grid
+        cards:
+          - type: custom:solar-panel-washing-detergent-times-card
+      - type: grid
+        cards:
+          - type: custom:solar-panel-washing-rinse-times-card
+      - type: grid
+        cards:
+          - type: custom:solar-panel-washing-switching-card
+      - type: grid
+        cards:
+          - type: custom:solar-panel-washing-flow-protection-card
+      - type: grid
+        cards:
+          - type: custom:solar-panel-washing-system-card
+      - type: grid
+        cards:
+          - type: custom:solar-panel-washing-manual-valves-card
