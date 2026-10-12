@@ -223,9 +223,9 @@ class SolarPanelWashingCard extends HTMLElement {
           <div class="box spw-system"><h3>ℹ️ System Status</h3>
             ${(()=>{
               const online=this.state(`binary_sensor.${p}washing_controller_online`,"unknown");
-              const ip=this.state(`text_sensor.${p}ip_address`);
-              const ssid=this.state(`text_sensor.${p}wifi_network`);
-              const mac=this.state(`text_sensor.${p}wifi_mac_address`);
+              const ip=this.state(`sensor.${p}ip_address`);
+              const ssid=this.state(`sensor.${p}wifi_network`);
+              const mac=this.state(`sensor.${p}wifi_mac_address`);
               const wifi=this.state(E.wifi);
               const valid=v=>v&&!["—","unknown","unavailable","none",""].includes(String(v).toLowerCase());
               const connection=valid(ssid)?"Wi-Fi":valid(ip)?"Network":"Unknown";
@@ -235,7 +235,7 @@ class SolarPanelWashingCard extends HTMLElement {
                 line("🔌","Connection",connection),
                 line("📶","Wi-Fi Signal",valid(wifi)?wifi+" dBm":"—"),
                 line("⏱","Uptime",this.uptime(E.uptime)),
-                line("📅","ESP32 Date & Time",this.state(`text_sensor.${p}esp32_date_time`)),
+                line("📅","ESP32 Date & Time",this.state(`sensor.${p}esp32_date_time`)),
                 line("🕒","Time Sync",(()=>{
                   const v=this.state(`binary_sensor.${p}esp32_time_synchronized`,"unknown");
                   return v==="on"?"Synchronized":v==="off"?"Not synchronized":"Unavailable — update ESP32";
