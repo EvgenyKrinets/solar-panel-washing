@@ -235,7 +235,7 @@ class SolarPanelWashingCard extends HTMLElement {
                 line("🔌","Connection",connection),
                 line("📶","Wi-Fi Signal",valid(wifi)?wifi+" dBm":"—"),
                 line("⏱","Uptime",this.uptime(E.uptime)),
-                line("📅","ESP32 Date & Time",this.state(`sensor.${p}esp32_date_time`)),
+                line("📅","ESP32 Date & Time",`<span data-spw-live-clock>${this.state(`sensor.${p}esp32_date_time`)}</span>`),
                 line("🕒","Time Sync",(()=>{
                   const v=this.state(`binary_sensor.${p}esp32_time_synchronized`,"unknown");
                   return v==="on"?"Synchronized":v==="off"?"Not synchronized":"Unavailable — update ESP32";
@@ -280,6 +280,8 @@ class SolarPanelWashingSectionCard extends SolarPanelWashingCard {
   getGridOptions() { return {columns: 12, rows: "auto", min_columns: 6}; }
   connectedCallback() {
     super.connectedCallback();
+    if(this.config?.section==="system" && !this._clockInterval)
+      this._clockInterval=setInterval(()=>this._updateLiveClock(),1000);
     if (this._spwLanguageListener) return;
     this._spwLanguageListener=(event)=>{
       this.config={...this.config,language:event.detail};
@@ -287,7 +289,41 @@ class SolarPanelWashingSectionCard extends SolarPanelWashingCard {
     };
     window.addEventListener("spw-language-change",this._spwLanguageListener);
   }
+  set hass(hass) {
+    // The ESP32 publishes a new timestamp every 10 seconds. Update only the
+    // clock text; replacing the full card DOM makes mobile scrolling jump.
+    if (this.config?.section === "system") {
+      const entity=hass.states?.["sensor.solar_panel_washing_esp32_date_time"];
+      const value=entity?.state;
+      if (value && value !== this._clockSourceValue) {
+        this._clockSourceValue=value;
+        const parsed=/^(\\d{4})-(\\d{2})-(\\d{2}) (\\d{2}):(\\d{2}):(\\d{2})$/.exec(value);
+        this._clockEpoch=parsed?new Date(+parsed[1],+parsed[2]-1,+parsed[3],+parsed[4],+parsed[5],+parsed[6]).getTime():null;
+        this._clockReceivedAt=Date.now();
+      }
+      const other=Object.keys(hass.states||{}).filter(id=>id.startsWith("solar_panel_washing_")||id.includes(".solar_panel_washing_")).filter(id=>id!=="sensor.solar_panel_washing_esp32_date_time").map(id=>id+":"+hass.states[id].state).join("|");
+      if (this._hass && this._systemOtherSignature===other) {
+        this._hass=hass;
+        this._updateLiveClock();
+        return;
+      }
+      this._systemOtherSignature=other;
+    }
+    super.hass=hass;
+    if(this.config?.section==="system") this._updateLiveClock();
+  }
+  _updateLiveClock() {
+    const el=this.querySelector("[data-spw-live-clock]");
+    if(!el || !this._clockEpoch) return;
+    const elapsed=Math.max(0,Math.floor((Date.now()-this._clockReceivedAt)/1000));
+    // Display ESP32 local time; never substitute the browser's wall clock.
+    const d=new Date(this._clockEpoch+elapsed*1000);
+    const pad=n=>String(n).padStart(2,"0");
+    el.textContent=`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+  }
   disconnectedCallback() {
+    clearInterval(this._clockInterval);
+    this._clockInterval=null;
     if(this._spwLanguageListener)window.removeEventListener("spw-language-change",this._spwLanguageListener);
     this._spwLanguageListener=null;
   }
