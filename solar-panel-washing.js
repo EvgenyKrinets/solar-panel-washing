@@ -285,23 +285,38 @@ class SolarPanelWashingOverviewCard extends HTMLElement {
     this._built=true;
     this.innerHTML=`<style>
       :host{display:block;width:100%;min-width:0}
-      .spw-overview{container-type:inline-size;width:100%}
+      .spw-overview{width:100%;container-type:inline-size;box-sizing:border-box;padding:8px}
       .spw-head{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:12px 16px;margin-bottom:12px;background:var(--ha-card-background,var(--card-background-color,#fff));border-radius:14px;font-weight:700;font-size:22px}
       .spw-head small{margin-left:auto;font-size:12px;color:var(--secondary-text-color);font-weight:500}
-      .spw-layout{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));grid-template-areas:"control schedule zones flow-protection" "water-times detergent-times rinse-times rinse-times" "switching manual-valves manual-valves system";gap:10px;align-items:stretch}
-      .spw-cell{min-width:0;display:flex}
-      .spw-cell>*{width:100%;min-width:0}
-      .spw-cell ha-card{height:100%}
-      @container (max-width:1050px){.spw-layout{grid-template-columns:repeat(2,minmax(0,1fr));grid-template-areas:"control schedule" "zones flow-protection" "water-times detergent-times" "rinse-times switching" "manual-valves system"}}
-      @container (max-width:620px){.spw-layout{grid-template-columns:minmax(0,1fr);grid-template-areas:"control" "zones" "schedule" "flow-protection" "water-times" "detergent-times" "rinse-times" "switching" "manual-valves" "system"} .spw-head{font-size:18px;padding:10px 12px}}
+      .spw-layout{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;align-items:start}
+      .spw-column{display:flex;flex-direction:column;gap:12px;min-width:0}
+      .spw-cell{min-width:0;display:block}
+      .spw-cell>*{display:block;width:100%;min-width:0}
+      .spw-cell ha-card{border-radius:14px;overflow:hidden}
+      @container (max-width:1050px){.spw-layout{grid-template-columns:repeat(2,minmax(0,1fr))}.spw-column{display:contents}.spw-cell{order:var(--tablet-order)}}
+      @container (max-width:620px){.spw-layout{grid-template-columns:minmax(0,1fr)}.spw-column{display:contents}.spw-cell{order:var(--mobile-order)}.spw-head{font-size:18px;padding:10px 12px}}
     </style><div class="spw-overview"><div class="spw-head">☀️ Solar Panel Washing <small>v1.3.6</small></div><div class="spw-layout"></div></div>`;
     const grid=this.querySelector(".spw-layout");
-    for(const section of ["control","schedule","zones","flow-protection","water-times","detergent-times","rinse-times","switching","manual-valves","system"]){
-      const cell=document.createElement("div");cell.className="spw-cell";cell.style.gridArea=section;
-      const card=document.createElement("solar-panel-washing-"+section+"-card");
-      card.setConfig({...this.config,section});
-      if(this._hass)card.hass=this._hass;
-      cell.appendChild(card);grid.appendChild(cell);
+    const columns=[
+      ["control","switching"],
+      ["schedule","water-times","detergent-times"],
+      ["zones","rinse-times","manual-valves"],
+      ["flow-protection","system"]
+    ];
+    const mobile=["control","zones","schedule","flow-protection","water-times","detergent-times","rinse-times","switching","manual-valves","system"];
+    const tablet=["control","schedule","zones","flow-protection","water-times","detergent-times","rinse-times","switching","manual-valves","system"];
+    for(const items of columns){
+      const column=document.createElement("div");column.className="spw-column";
+      for(const section of items){
+        const cell=document.createElement("div");cell.className="spw-cell";
+        cell.style.setProperty("--mobile-order",String(mobile.indexOf(section)));
+        cell.style.setProperty("--tablet-order",String(tablet.indexOf(section)));
+        const card=document.createElement("solar-panel-washing-"+section+"-card");
+        card.setConfig({...this.config,section});
+        if(this._hass)card.hass=this._hass;
+        cell.appendChild(card);column.appendChild(cell);
+      }
+      grid.appendChild(column);
     }
   }
   set hass(hass){this._hass=hass;this.querySelectorAll(".spw-cell>*").forEach(card=>{card.hass=hass;});}
