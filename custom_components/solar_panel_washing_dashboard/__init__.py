@@ -32,43 +32,47 @@ def _dashboard_config() -> dict:
             "title": "Washing",
             "path": "washing",
             "icon": "mdi:solar-panel",
-            "type": "sections",
-            "max_columns": 3,
-            "sections": [
-                {"type": "grid", "cards": [
-                    {"type": f"custom:solar-panel-washing-{section}-card",
-                     "grid_options": {"columns": 12, "rows": "auto"}}
-                ]}
-                for section in SECTIONS
-            ],
+            "type": "panel",
+            "cards": [{"type": "custom:solar-panel-washing-overview-card"}],
         }],
     }
 
 
 
-async def _fix_existing_card_widths(store) -> None:
-    """Migrate only our own cards, without changing layout or other cards."""
+async def _upgrade_generated_dashboard(store) -> None:
+    """Upgrade the unmodified generated layout; preserve user-customized dashboards."""
     try:
         config = await store.async_load(False)
     except (HomeAssistantError, ValueError, KeyError):
-        _LOGGER.exception("Could not read existing washing dashboard")
+        _LOGGER.exception("Could not load washing dashboard for layout upgrade")
         return
-    changed = False
-    for view in config.get("views", []):
-        for section in view.get("sections", []):
-            for card in section.get("cards", []):
-                card_type = card.get("type", "")
-                if card_type.startswith("custom:solar-panel-washing-") and card_type.endswith("-card"):
-                    options = card.setdefault("grid_options", {})
-                    if "columns" not in options:
-                        options["columns"] = 12
-                        changed = True
-                    if "rows" not in options:
-                        options["rows"] = "auto"
-                        changed = True
-    if changed:
-        await store.async_save(config)
-        _LOGGER.info("Updated grid widths of existing washing cards without replacing dashboard")
+    views = config.get("views", [])
+    if len(views) != 1:
+        return
+    view = views[0]
+    if view.get("type") != "sections":
+        return
+    sections = view.get("sections", [])
+    if len(sections) != len(SECTIONS):
+        return
+    card_types = []
+    for section in sections:
+        cards = section.get("cards", [])
+        if len(cards) != 1:
+            return
+        card_types.append(cards[0].get("type"))
+    expected = [f"custom:solar-panel-washing-{section}-card" for section in SECTIONS]
+    if card_types != expected:
+        _LOGGER.info("Custom washing dashboard layout detected; preserving user edits")
+        return
+    view.pop("sections", None)
+    view.pop("max_columns", None)
+    view["type"] = "panel"
+    view["cards"] = [{"type": "custom:solar-panel-washing-overview-card"}]
+    await store.async_save(config)
+    _LOGGER.info("Upgraded generated washing dashboard to responsive overview")
+
+
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
@@ -85,7 +89,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         _LOGGER.error("Lovelace has not been initialized")
         return False
 
-    resource_url = "/solar-panel-washing/solar-panel-washing.js?v=1.3.2"
+    resource_url = "/solar-panel-washing/solar-panel-washing.js?v=1.3.3"
     resources = lovelace.resources
     if hasattr(resources, "async_create_item"):
         await resources._async_ensure_loaded()
@@ -100,7 +104,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         _LOGGER.warning("Lovelace resources are YAML-managed; add %s as a module resource", resource_url)
 
     if DASHBOARD_PATH in lovelace.dashboards:
-        await _fix_existing_card_widths(lovelace.dashboards[DASHBOARD_PATH])
+        await _upgrade_generated_dashboard(lovelace.dashboards[DASHBOARD_PATH])
         return True
 
     collection = lovelace_dashboard.DashboardsCollection(hass)
