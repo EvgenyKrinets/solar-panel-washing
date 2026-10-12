@@ -1,3 +1,20 @@
+## HACS Integration — single installation (v1.3.0+)
+
+This repository is now a **HACS Integration**, not a HACS Dashboard/Frontend plugin. The Python integration bundles the JavaScript cards and registers the Lovelace resource automatically.
+
+**One-time migration from the old Dashboard plugin:**
+1. In HACS, remove the **old Dashboard/Frontend repository installation** (not your dashboards or ESPHome device).
+2. Add `https://github.com/EvgenyKrinets/solar-panel-washing` as a **custom repository of type Integration**, then install it.
+3. Restart Home Assistant when prompted.
+4. Go to **Settings → Devices & services → Add integration → Solar Panel Washing Dashboard**, and confirm.
+5. A new sidebar dashboard with ten independent cards is provisioned once. Your other dashboards and settings remain unchanged.
+
+**Future releases:** HACS updates the Python backend and bundled JS together. A Home Assistant restart may be needed to load the new version. HACS does not install updates silently by default. Dashboard edits are preserved; the installer does not replace existing dashboard content.
+
+**Migration note:** The old frontend plugin and the new integration must not both register the same card JS resource. Remove the old Lovelace resource if the browser reports duplicate custom-element registrations. Existing manually configured cards remain supported.
+
+**Limitations:** Lovelace YAML-managed resources require adding the bundled module URL manually (`/solar-panel-washing/solar-panel-washing.js`). The integration has not yet been end-to-end tested on a running HA installation.
+
 <div align="center">
   
 
