@@ -26,6 +26,22 @@ The Home Assistant dashboard supports **three interface languages**:
 Use the **🌐 language selector** in the dashboard header. The **Auto** setting follows your Home Assistant language (English, Russian or Hebrew); other Home Assistant languages fall back to English. The language selector changes the dashboard labels and explanatory text only. ESPHome entity names, control commands, washing programs and safety behavior remain unchanged.
 
 
+## Individual cards in Home Assistant (v1.1.32+)
+
+In **Edit dashboard → Add card**, search **Solar Washing**. Each section is now a separate selectable card with its own preview:
+
+**Washing Control, Automatic Schedule, Active Zones, Water Times, Detergent Times, Rinse Times, Switching, Flow Protection, System, Manual Valve Control.**
+
+Select the desired card directly and place it in a Sections dashboard column. No YAML configuration is needed for these individual cards.
+
+Example for a single independent Water Times card:
+
+```yaml
+type: custom:solar-panel-washing-water-times-card
+```
+
+Other section cards follow the same naming pattern (e.g. `solar-panel-washing-zones-card`, `solar-panel-washing-flow-protection-card`). The combined card remains available separately.
+
 ## Reusable dashboard sections (v1.1.30+)
 
 You can still use the complete dashboard card:
