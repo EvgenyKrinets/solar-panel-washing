@@ -1,0 +1,95 @@
+"""Provision a dedicated, editable Lovelace dashboard on explicit integration setup.
+
+Never edits an existing dashboard. Uses Home Assistant's Lovelace storage API.
+"""
+from __future__ import annotations
+
+import logging
+from homeassistant.components import frontend
+from homeassistant.components.lovelace import dashboard as lovelace_dashboard
+from homeassistant.components.lovelace.const import LOVELACE_DATA, MODE_STORAGE
+from homeassistant.core import HomeAssistant
+from homeassistant.config_entries import ConfigEntry
+from homeassistant.exceptions import HomeAssistantError
+
+from .const import DOMAIN, DASHBOARD_PATH, DASHBOARD_TITLE
+
+_LOGGER = logging.getLogger(__name__)
+
+SECTIONS = (
+    "control", "schedule", "zones", "water-times", "detergent-times",
+    "rinse-times", "switching", "flow-protection", "system", "manual-valves",
+)
+
+
+def _dashboard_config() -> dict:
+    """Create separate, movable cards in a responsive Sections view."""
+    return {
+        "title": DASHBOARD_TITLE,
+        "views": [{
+            "title": "Washing",
+            "path": "washing",
+            "icon": "mdi:solar-panel",
+            "type": "sections",
+            "max_columns": 3,
+            "sections": [
+                {"type": "grid", "cards": [
+                    {"type": f"custom:solar-panel-washing-{section}-card"}
+                ]}
+                for section in SECTIONS
+            ],
+        }],
+    }
+
+
+async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+    """Install dashboard once; never overwrite an existing user's dashboard."""
+    await hass.async_block_till_done()
+    lovelace = hass.data.get(LOVELACE_DATA)
+    if lovelace is None:
+        _LOGGER.error("Lovelace has not been initialized")
+        return False
+
+    if DASHBOARD_PATH in lovelace.dashboards:
+        _LOGGER.info("Solar Panel Washing dashboard already exists; leaving it unchanged")
+        return True
+
+    collection = lovelace_dashboard.DashboardsCollection(hass)
+    await collection.async_load()
+    if any(item.get("url_path") == DASHBOARD_PATH for item in collection.async_items()):
+        _LOGGER.info("Dashboard exists in storage; leaving it unchanged")
+        return True
+
+    # Creating a dashboard is explicitly authorized by adding this integration.
+    try:
+        item = await collection.async_create_item({
+            "url_path": DASHBOARD_PATH,
+            "title": DASHBOARD_TITLE,
+            "icon": "mdi:solar-panel",
+            "show_in_sidebar": True,
+            "require_admin": False,
+        })
+        store = lovelace_dashboard.LovelaceStorage(hass, item)
+        await store.async_save(_dashboard_config())
+        # This collection is independent from the core collection's listener,
+        # so register the panel in this running HA session as well.
+        lovelace.dashboards[DASHBOARD_PATH] = store
+        frontend.async_register_built_in_panel(
+            hass, "lovelace",
+            frontend_url_path=DASHBOARD_PATH,
+            require_admin=False,
+            show_in_sidebar=True,
+            sidebar_title=DASHBOARD_TITLE,
+            sidebar_icon="mdi:solar-panel",
+            config={"mode": MODE_STORAGE},
+        )
+        _LOGGER.info("Created Solar Panel Washing dashboard at /%s/washing", DASHBOARD_PATH)
+    except (HomeAssistantError, ValueError, KeyError):
+        _LOGGER.exception("Could not provision Solar Panel Washing dashboard")
+        return False
+    return True
+
+
+async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+    """Never delete the user's dashboard on uninstall."""
+    return True
