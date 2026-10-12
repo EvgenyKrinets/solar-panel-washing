@@ -191,7 +191,7 @@ class SolarPanelWashingCard extends HTMLElement {
         @media(max-width:600px){.wrap{padding:12px}.hero h1{font-size:22px}.actions{grid-template-columns:1fr}.manual{grid-template-columns:repeat(2,minmax(0,1fr))}}
       </style>
       <div class="wrap">
-        <div class="hero"><ha-icon icon="mdi:solar-panel"></ha-icon><div><h1>Solar Panel Washing</h1><p>Automatic multi-zone washing controller</p></div><div class="language-control"><div class="spw-version" aria-label="Dashboard version">v1.3.8</div><button type="button" class="language-trigger" data-language-toggle aria-haspopup="true" aria-expanded="false">🌐 ${({"auto":"Auto","en":"English","ru":"Русский","he":"עברית"})[this.config?.language||"auto"]||"Auto"} ▾</button><div class="language-menu" data-language-menu hidden><button type="button" data-language-choice="auto">🌐 Auto</button><button type="button" data-language-choice="en">🇺🇸 English</button><button type="button" data-language-choice="ru">🇷🇺 Русский</button><button type="button" data-language-choice="he">🇮🇱 עברית</button></div></div></div>
+        <div class="hero"><ha-icon icon="mdi:solar-panel"></ha-icon><div><h1>Solar Panel Washing</h1><p>Automatic multi-zone washing controller</p></div><div class="language-control"><div class="spw-version" aria-label="Dashboard version">v1.3.9</div><button type="button" class="language-trigger" data-language-toggle aria-haspopup="true" aria-expanded="false">🌐 ${({"auto":"Auto","en":"English","ru":"Русский","he":"עברית"})[this.config?.language||"auto"]||"Auto"} ▾</button><div class="language-menu" data-language-menu hidden><button type="button" data-language-choice="auto">🌐 Auto</button><button type="button" data-language-choice="en">🇺🇸 English</button><button type="button" data-language-choice="ru">🇷🇺 Русский</button><button type="button" data-language-choice="he">🇮🇱 עברית</button></div></div></div>
         <div class="stats">
           <div class="stat"><small>Status</small><b class="${this.state(E.alarm)==="on"?"alarm":"ok"}">${this.state(E.status)}</b></div>
           <div class="stat"><small>Zone</small><b>${this.state(E.zone)}</b></div>
@@ -251,18 +251,30 @@ class SolarPanelWashingSectionCard extends SolarPanelWashingCard {
   }
   static getStubConfig() { return {section:"control"}; }
   getGridOptions() { return {columns: 12, rows: "auto", min_columns: 6}; }
+  connectedCallback() {
+    super.connectedCallback();
+    if (this._spwLanguageListener) return;
+    this._spwLanguageListener=(event)=>{
+      this.config={...this.config,language:event.detail};
+      this.render();
+    };
+    window.addEventListener("spw-language-change",this._spwLanguageListener);
+  }
+  disconnectedCallback() {
+    if(this._spwLanguageListener)window.removeEventListener("spw-language-change",this._spwLanguageListener);
+    this._spwLanguageListener=null;
+  }
   render() {
+    if (!this.config.language) {
+      let lang="auto";
+      try { lang=localStorage.getItem("solar_panel_washing_language")||"auto"; } catch (_) {}
+      this.config={...this.config,language:lang};
+    }
     super.render();
     const root=this.querySelector("ha-card");
     if (!root) return;
     const grid=root.querySelector(".grid");
     if (!grid) return;
-    if (!this.config.language) {
-      let lang="auto";
-      try { lang=localStorage.getItem("solar_panel_washing_language")||"auto"; } catch (_) {}
-      this.config={...this.config,language:lang};
-      super.render();
-    }
     const index=SPW_SECTIONS.indexOf(this.config.section);
     const boxes=Array.from(grid.children);
     boxes.forEach((box,i)=>{if(i!==index)box.remove();});
@@ -270,15 +282,13 @@ class SolarPanelWashingSectionCard extends SolarPanelWashingCard {
       const host=grid.querySelector(".box");
       const bar=document.createElement("div");
       bar.style.cssText="display:flex;gap:8px;justify-content:flex-end;margin-bottom:10px;align-items:center";
-      const version=document.createElement("small");version.textContent="v1.3.8";
+      const version=document.createElement("small");version.textContent="v1.3.9";
       const select=document.createElement("select");
       select.innerHTML='<option value="auto">🌐 Auto</option><option value="en">🇺🇸 English</option><option value="ru">🇷🇺 Русский</option><option value="he">🇮🇱 עברית</option>';
       select.value=this.config.language;
       select.addEventListener("change",()=>{
         try { localStorage.setItem("solar_panel_washing_language",select.value); } catch (_) {}
-        document.querySelectorAll(".spw-language-linked").forEach(el=>{
-          el.setConfig({...el.config,language:select.value});el.render();
-        });
+        window.dispatchEvent(new CustomEvent("spw-language-change",{detail:select.value}));
       });
       bar.append(version,select);host.prepend(bar);
     }
@@ -336,7 +346,7 @@ class SolarPanelWashingOverviewCard extends HTMLElement {
       .spw-head small{margin-left:0}
       @container (max-width:1050px){.spw-layout{grid-template-columns:repeat(2,minmax(0,1fr))}.spw-column{display:contents}.spw-cell{order:var(--tablet-order)}}
       @container (max-width:620px){.spw-layout{grid-template-columns:minmax(0,1fr)}.spw-column{display:contents}.spw-cell{order:var(--mobile-order)}.spw-head{font-size:18px;padding:10px 12px}}
-    </style><div class="spw-overview"><div class="spw-head">☀️ Solar Panel Washing <div class="spw-language"><small>v1.3.8</small><select aria-label="Language" class="spw-language-select"><option value="auto">🌐 Auto</option><option value="en">🇺🇸 English</option><option value="ru">🇷🇺 Русский</option><option value="he">🇮🇱 עברית</option></select></div></div><div class="spw-layout"></div></div>`;
+    </style><div class="spw-overview"><div class="spw-head">☀️ Solar Panel Washing <div class="spw-language"><small>v1.3.9</small><select aria-label="Language" class="spw-language-select"><option value="auto">🌐 Auto</option><option value="en">🇺🇸 English</option><option value="ru">🇷🇺 Русский</option><option value="he">🇮🇱 עברית</option></select></div></div><div class="spw-layout"></div></div>`;
     const langSelect=this.querySelector(".spw-language-select");
     let savedLanguage="auto";
     try { savedLanguage=localStorage.getItem("solar_panel_washing_language") || "auto"; } catch (_) {}
@@ -377,4 +387,4 @@ class SolarPanelWashingOverviewCard extends HTMLElement {
 if(!customElements.get("solar-panel-washing-overview-card"))customElements.define("solar-panel-washing-overview-card",SolarPanelWashingOverviewCard);
 window.customCards.push({type:"solar-panel-washing-overview-card",name:"Solar Washing — Responsive Overview",description:"Desktop 4-column and mobile stacked washing dashboard",preview:true});
 
-console.info("%c SOLAR-PANEL-WASHING-CARD %c v1.3.8 ","color:white;background:#1684d8;font-weight:700","color:#1684d8;background:white");
+console.info("%c SOLAR-PANEL-WASHING-CARD %c v1.3.9 ","color:white;background:#1684d8;font-weight:700","color:#1684d8;background:white");
