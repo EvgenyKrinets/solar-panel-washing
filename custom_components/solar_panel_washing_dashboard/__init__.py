@@ -5,7 +5,9 @@ Never edits an existing dashboard. Uses Home Assistant's Lovelace storage API.
 from __future__ import annotations
 
 import logging
+from pathlib import Path
 from homeassistant.components import frontend
+from homeassistant.components.http import StaticPathConfig
 from homeassistant.components.lovelace import dashboard as lovelace_dashboard
 from homeassistant.components.lovelace.const import LOVELACE_DATA, MODE_STORAGE
 from homeassistant.core import HomeAssistant
@@ -44,10 +46,29 @@ def _dashboard_config() -> dict:
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Install dashboard once; never overwrite an existing user's dashboard."""
+    await hass.http.async_register_static_paths([
+        StaticPathConfig(
+            "/solar-panel-washing/solar-panel-washing.js",
+            str(Path(__file__).parent / "solar-panel-washing.js"),
+            False,
+        )
+    ])
     lovelace = hass.data.get(LOVELACE_DATA)
     if lovelace is None:
         _LOGGER.error("Lovelace has not been initialized")
         return False
+
+    resource_url = "/solar-panel-washing/solar-panel-washing.js"
+    resources = lovelace.resources
+    if hasattr(resources, "async_create_item"):
+        await resources._async_ensure_loaded()
+        existing = list(resources.async_items() or [])
+        managed = next((r for r in existing if
+                        str(r.get("url", "")).split("?")[0] == resource_url), None)
+        if managed is None:
+            await resources.async_create_item({"res_type": "module", "url": resource_url})
+    else:
+        _LOGGER.warning("Lovelace resources are YAML-managed; add %s as a module resource", resource_url)
 
     if DASHBOARD_PATH in lovelace.dashboards:
         _LOGGER.info("Solar Panel Washing dashboard already exists; leaving it unchanged")
