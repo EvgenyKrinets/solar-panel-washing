@@ -218,11 +218,10 @@ window.customCards.push({type:"solar-panel-washing-card",name:"Solar Panel Washi
 const SPW_SECTIONS = ["control","schedule","zones","water-times","detergent-times","rinse-times","switching","flow-protection","system","manual-valves"];
 class SolarPanelWashingSectionCard extends SolarPanelWashingCard {
   setConfig(config) {
-    if (!config || !SPW_SECTIONS.includes(config.section)) {
-      throw new Error("Solar Panel Washing: set section to one of "+SPW_SECTIONS.join(", "));
-    }
-    super.setConfig(config);
+    const section=SPW_SECTIONS.includes(config?.section)?config.section:"control";
+    super.setConfig({...config,section});
   }
+  static getStubConfig() { return {section:"control"}; }
   getGridOptions() { return {columns: 4, rows: "auto", min_columns: 2}; }
   render() {
     super.render();
@@ -242,5 +241,25 @@ class SolarPanelWashingSectionCard extends SolarPanelWashingCard {
   }
 }
 customElements.define("solar-panel-washing-section-card",SolarPanelWashingSectionCard);
-window.customCards.push({type:"solar-panel-washing-section-card",name:"Solar Panel Washing — Section",description:"Independent movable washing section card. Configure section in YAML.",preview:false});
-console.info("%c SOLAR-PANEL-WASHING-CARD %c v1.1.31 ","color:white;background:#1684d8;font-weight:700","color:#1684d8;background:white");
+
+const SPW_SECTION_TITLES = {
+  control:"Washing Control",schedule:"Automatic Schedule",zones:"Active Zones",
+  "water-times":"Water Times","detergent-times":"Detergent Times","rinse-times":"Rinse Times",
+  switching:"Switching","flow-protection":"Flow Protection",system:"System","manual-valves":"Manual Valve Control"
+};
+for (const section of SPW_SECTIONS) {
+  const tag="solar-panel-washing-"+section+"-card";
+  class SingleWashingSectionCard extends SolarPanelWashingSectionCard {
+    setConfig(config) { super.setConfig({...config,section}); }
+    static getStubConfig() { return {section}; }
+  }
+  if (!customElements.get(tag)) customElements.define(tag,SingleWashingSectionCard);
+  window.customCards.push({
+    type:tag,name:"Solar Washing — "+SPW_SECTION_TITLES[section],
+    description:"Standalone "+SPW_SECTION_TITLES[section]+" section; add to any dashboard",
+    preview:true
+  });
+}
+
+window.customCards.push({type:"solar-panel-washing-section-card",name:"Solar Panel Washing — Section",description:"Independent washing section; configure section in YAML.",preview:true});
+console.info("%c SOLAR-PANEL-WASHING-CARD %c v1.1.32 ","color:white;background:#1684d8;font-weight:700","color:#1684d8;background:white");
