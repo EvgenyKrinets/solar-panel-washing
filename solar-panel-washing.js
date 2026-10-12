@@ -81,7 +81,7 @@ class SolarPanelWashingCard extends HTMLElement {
       if(!trimmed)continue;
       let replacement=dict[trimmed]?.[index];
       if(!replacement){
-        const emoji=trimmed.match(/^([^\\p{L}\\p{N}]*)(.+)$/u);
+        const emoji=trimmed.match(/^([^\p{L}\p{N}]*)(.+)$/u);
         if(emoji)replacement=dict[emoji[2]]?.[index] ? emoji[1]+dict[emoji[2]][index] : null;
       }
       if(!replacement && /^Zone [1-5]$/.test(trimmed))replacement=dict[trimmed]?.[index];
@@ -214,4 +214,4 @@ class SolarPanelWashingCard extends HTMLElement {
 customElements.define("solar-panel-washing-card", SolarPanelWashingCard);
 window.customCards = window.customCards || [];
 window.customCards.push({type:"solar-panel-washing-card",name:"Solar Panel Washing",description:"Complete dashboard card for the Solar Panel Washing ESPHome controller",preview:true});
-console.info("%c SOLAR-PANEL-WASHING-CARD %c v1.1.27 ","color:white;background:#1684d8;font-weight:700","color:#1684d8;background:white");
+console.info("%c SOLAR-PANEL-WASHING-CARD %c v1.1.28 ","color:white;background:#1684d8;font-weight:700","color:#1684d8;background:white");
