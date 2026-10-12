@@ -163,7 +163,7 @@ class SolarPanelWashingCard extends HTMLElement {
         @media(max-width:600px){.wrap{padding:12px}.hero h1{font-size:22px}.actions{grid-template-columns:1fr}.manual{grid-template-columns:repeat(2,minmax(0,1fr))}}
       </style>
       <div class="wrap">
-        <div class="hero"><ha-icon icon="mdi:solar-panel"></ha-icon><div><h1>Solar Panel Washing</h1><p>Automatic multi-zone washing controller</p></div><div class="language-control"><div class="spw-version" aria-label="Dashboard version">v1.3.2</div><button type="button" class="language-trigger" data-language-toggle aria-haspopup="true" aria-expanded="false">🌐 ${({"auto":"Auto","en":"English","ru":"Русский","he":"עברית"})[this.config?.language||"auto"]||"Auto"} ▾</button><div class="language-menu" data-language-menu hidden><button type="button" data-language-choice="auto">🌐 Auto</button><button type="button" data-language-choice="en">🇺🇸 English</button><button type="button" data-language-choice="ru">🇷🇺 Русский</button><button type="button" data-language-choice="he">🇮🇱 עברית</button></div></div></div>
+        <div class="hero"><ha-icon icon="mdi:solar-panel"></ha-icon><div><h1>Solar Panel Washing</h1><p>Automatic multi-zone washing controller</p></div><div class="language-control"><div class="spw-version" aria-label="Dashboard version">v1.3.3</div><button type="button" class="language-trigger" data-language-toggle aria-haspopup="true" aria-expanded="false">🌐 ${({"auto":"Auto","en":"English","ru":"Русский","he":"עברית"})[this.config?.language||"auto"]||"Auto"} ▾</button><div class="language-menu" data-language-menu hidden><button type="button" data-language-choice="auto">🌐 Auto</button><button type="button" data-language-choice="en">🇺🇸 English</button><button type="button" data-language-choice="ru">🇷🇺 Русский</button><button type="button" data-language-choice="he">🇮🇱 עברית</button></div></div></div>
         <div class="stats">
           <div class="stat"><small>Status</small><b class="${this.state(E.alarm)==="on"?"alarm":"ok"}">${this.state(E.status)}</b></div>
           <div class="stat"><small>Zone</small><b>${this.state(E.zone)}</b></div>
@@ -262,4 +262,38 @@ for (const section of SPW_SECTIONS) {
 }
 
 window.customCards.push({type:"solar-panel-washing-section-card",name:"Solar Panel Washing — Section",description:"Independent washing section; configure section in YAML.",preview:true});
-console.info("%c SOLAR-PANEL-WASHING-CARD %c v1.3.2 ","color:white;background:#1684d8;font-weight:700","color:#1684d8;background:white");
+
+class SolarPanelWashingOverviewCard extends HTMLElement {
+  setConfig(config) { this.config=config||{}; }
+  static getStubConfig() { return {}; }
+  getGridOptions() { return {columns:12,rows:"auto"}; }
+  connectedCallback() {
+    if(this._built)return;
+    this._built=true;
+    this.innerHTML=`<style>
+      :host{display:block;width:100%;min-width:0}
+      .spw-overview{container-type:inline-size;width:100%}
+      .spw-head{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:12px 16px;margin-bottom:12px;background:var(--ha-card-background,var(--card-background-color,#fff));border-radius:14px;font-weight:700;font-size:22px}
+      .spw-head small{margin-left:auto;font-size:12px;color:var(--secondary-text-color);font-weight:500}
+      .spw-layout{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));grid-template-areas:"control schedule zones flow-protection" "water-times detergent-times rinse-times rinse-times" "switching manual-valves manual-valves system";gap:10px;align-items:stretch}
+      .spw-cell{min-width:0;display:flex}
+      .spw-cell>*{width:100%;min-width:0}
+      .spw-cell ha-card{height:100%}
+      @container (max-width:1050px){.spw-layout{grid-template-columns:repeat(2,minmax(0,1fr));grid-template-areas:"control schedule" "zones flow-protection" "water-times detergent-times" "rinse-times switching" "manual-valves system"}}
+      @container (max-width:620px){.spw-layout{grid-template-columns:minmax(0,1fr);grid-template-areas:"control" "zones" "schedule" "flow-protection" "water-times" "detergent-times" "rinse-times" "switching" "manual-valves" "system"} .spw-head{font-size:18px;padding:10px 12px}}
+    </style><div class="spw-overview"><div class="spw-head">☀️ Solar Panel Washing <small>v1.3.3</small></div><div class="spw-layout"></div></div>`;
+    const grid=this.querySelector(".spw-layout");
+    for(const section of ["control","schedule","zones","flow-protection","water-times","detergent-times","rinse-times","switching","manual-valves","system"]){
+      const cell=document.createElement("div");cell.className="spw-cell";cell.style.gridArea=section;
+      const card=document.createElement("solar-panel-washing-"+section+"-card");
+      card.setConfig({...this.config,section});
+      if(this._hass)card.hass=this._hass;
+      cell.appendChild(card);grid.appendChild(cell);
+    }
+  }
+  set hass(hass){this._hass=hass;this.querySelectorAll(".spw-cell>*").forEach(card=>{card.hass=hass;});}
+}
+if(!customElements.get("solar-panel-washing-overview-card"))customElements.define("solar-panel-washing-overview-card",SolarPanelWashingOverviewCard);
+window.customCards.push({type:"solar-panel-washing-overview-card",name:"Solar Washing — Responsive Overview",description:"Desktop 4-column and mobile stacked washing dashboard",preview:true});
+
+console.info("%c SOLAR-PANEL-WASHING-CARD %c v1.3.3 ","color:white;background:#1684d8;font-weight:700","color:#1684d8;background:white");
