@@ -25,61 +25,59 @@ SECTIONS = (
 
 
 def _dashboard_config() -> dict:
-    """Create separate, movable cards in a responsive Sections view."""
+    """Native Lovelace masonry: independently editable and movable cards."""
     return {
         "title": DASHBOARD_TITLE,
         "views": [{
             "title": "Washing",
             "path": "washing",
             "icon": "mdi:solar-panel",
-            "type": "panel",
-            "cards": [{"type": "custom:solar-panel-washing-overview-card"}],
+            "type": "masonry",
+            "cards": [
+                {"type": f"custom:solar-panel-washing-{section}-card"}
+                for section in (
+                    "control", "switching", "schedule", "water-times",
+                    "detergent-times", "zones", "rinse-times",
+                    "manual-valves", "flow-protection", "system"
+                )
+            ],
         }],
     }
 
 
-
 async def _upgrade_generated_dashboard(store) -> None:
-    """Upgrade the unmodified generated layout; preserve user-customized dashboards."""
+    """Convert only the exact generated overview into real HA cards.
+
+    User-customized dashboards and unrelated views remain untouched.
+    """
     try:
         config = await store.async_load(False)
     except (HomeAssistantError, ValueError, KeyError):
-        _LOGGER.exception("Could not load washing dashboard for layout upgrade")
+        _LOGGER.exception("Unable to load washing dashboard")
         return
     views = config.get("views", [])
     if len(views) != 1:
         return
     view = views[0]
-    if view.get("type") != "sections":
+    cards = view.get("cards", [])
+    if view.get("type") != "panel" or len(cards) != 1:
         return
-    sections = view.get("sections", [])
-    if len(sections) != len(SECTIONS):
+    if cards[0].get("type") != "custom:solar-panel-washing-overview-card":
         return
-    card_types = []
-    for section in sections:
-        cards = section.get("cards", [])
-        if len(cards) != 1:
-            return
-        card_types.append(cards[0].get("type"))
-    expected = [f"custom:solar-panel-washing-{section}-card" for section in SECTIONS]
-    if card_types != expected:
-        _LOGGER.info("Custom washing dashboard layout detected; preserving user edits")
-        return
-    view.pop("sections", None)
-    view.pop("max_columns", None)
-    view["type"] = "panel"
-    view["cards"] = [{"type": "custom:solar-panel-washing-overview-card"}]
+    # Preserve any custom settings on the overview and propagate them.
+    settings = {k: v for k, v in cards[0].items() if k != "type"}
+    replacement = _dashboard_config()["views"][0]
+    view["type"] = "masonry"
+    view["cards"] = [{**card, **settings} for card in replacement["cards"]]
     await store.async_save(config)
-    _LOGGER.info("Upgraded generated washing dashboard to responsive overview")
-
-
+    _LOGGER.info("Migrated washing overview to independently editable masonry cards")
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Install dashboard once; never overwrite an existing user's dashboard."""
     await hass.http.async_register_static_paths([
         StaticPathConfig(
-            "/solar-panel-washing/v1.3.7/solar-panel-washing.js",
+            "/solar-panel-washing/v1.3.8/solar-panel-washing.js",
             str(Path(__file__).parent / "solar-panel-washing.js"),
             False,
         )
@@ -89,7 +87,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         _LOGGER.error("Lovelace has not been initialized")
         return False
 
-    resource_url = "/solar-panel-washing/v1.3.7/solar-panel-washing.js"
+    resource_url = "/solar-panel-washing/v1.3.8/solar-panel-washing.js"
     resources = lovelace.resources
     if hasattr(resources, "async_create_item"):
         await resources._async_ensure_loaded()
