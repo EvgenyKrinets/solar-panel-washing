@@ -36,12 +36,39 @@ def _dashboard_config() -> dict:
             "max_columns": 3,
             "sections": [
                 {"type": "grid", "cards": [
-                    {"type": f"custom:solar-panel-washing-{section}-card"}
+                    {"type": f"custom:solar-panel-washing-{section}-card",
+                     "grid_options": {"columns": 12, "rows": "auto"}}
                 ]}
                 for section in SECTIONS
             ],
         }],
     }
+
+
+
+async def _fix_existing_card_widths(store) -> None:
+    """Migrate only our own cards, without changing layout or other cards."""
+    try:
+        config = await store.async_load(False)
+    except (HomeAssistantError, ValueError, KeyError):
+        _LOGGER.exception("Could not read existing washing dashboard")
+        return
+    changed = False
+    for view in config.get("views", []):
+        for section in view.get("sections", []):
+            for card in section.get("cards", []):
+                card_type = card.get("type", "")
+                if card_type.startswith("custom:solar-panel-washing-") and card_type.endswith("-card"):
+                    options = card.setdefault("grid_options", {})
+                    if "columns" not in options:
+                        options["columns"] = 12
+                        changed = True
+                    if "rows" not in options:
+                        options["rows"] = "auto"
+                        changed = True
+    if changed:
+        await store.async_save(config)
+        _LOGGER.info("Updated grid widths of existing washing cards without replacing dashboard")
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
@@ -71,13 +98,13 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         _LOGGER.warning("Lovelace resources are YAML-managed; add %s as a module resource", resource_url)
 
     if DASHBOARD_PATH in lovelace.dashboards:
-        _LOGGER.info("Solar Panel Washing dashboard already exists; leaving it unchanged")
+        await _fix_existing_card_widths(lovelace.dashboards[DASHBOARD_PATH])
         return True
 
     collection = lovelace_dashboard.DashboardsCollection(hass)
     await collection.async_load()
     if any(item.get("url_path") == DASHBOARD_PATH for item in collection.async_items()):
-        _LOGGER.info("Dashboard exists in storage; leaving it unchanged")
+        _LOGGER.info("Existing washing dashboard found in storage; leaving other settings unchanged")
         return True
 
     # Creating a dashboard is explicitly authorized by adding this integration.
