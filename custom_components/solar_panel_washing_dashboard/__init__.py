@@ -20,7 +20,7 @@ _LOGGER = logging.getLogger(__name__)
 
 SECTIONS = (
     "control", "schedule", "zones", "water-times", "detergent-times",
-    "rinse-times", "switching", "flow-protection", "system", "manual-valves",
+    "rinse-times", "switching", "flow-protection", "system", "water-consumption", "manual-valves",
 )
 
 
@@ -38,7 +38,7 @@ def _dashboard_config() -> dict:
                 for section in (
                     "control", "switching", "schedule", "water-times",
                     "detergent-times", "zones", "rinse-times",
-                    "manual-valves", "flow-protection", "system"
+                    "manual-valves", "flow-protection", "system", "water-consumption"
                 )
             ],
         }],
@@ -60,6 +60,19 @@ async def _upgrade_generated_dashboard(store) -> None:
         return
     view = views[0]
     cards = view.get("cards", [])
+    # Only augment dashboards that still contain all ten generated cards.
+    # Never replace user layouts or touch dashboards with a custom selection.
+    generated = {f"custom:solar-panel-washing-{name}-card"
+                 for name in SECTIONS if name != "water-consumption"}
+    present = {card.get("type") for card in cards}
+    if (generated.issubset(present) and
+            "custom:solar-panel-washing-water-consumption-card" not in present):
+        view.setdefault("cards", []).append({
+            "type": "custom:solar-panel-washing-water-consumption-card"
+        })
+        await store.async_save(config)
+        _LOGGER.info("Added independent water consumption card to washing dashboard")
+        return
     if view.get("type") != "panel" or len(cards) != 1:
         return
     if cards[0].get("type") != "custom:solar-panel-washing-overview-card":
@@ -77,7 +90,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Install dashboard once; never overwrite an existing user's dashboard."""
     await hass.http.async_register_static_paths([
         StaticPathConfig(
-            "/solar-panel-washing/v1.3.17/solar-panel-washing.js",
+            "/solar-panel-washing/v1.3.18/solar-panel-washing.js",
             str(Path(__file__).parent / "solar-panel-washing.js"),
             False,
         )
@@ -87,7 +100,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         _LOGGER.error("Lovelace has not been initialized")
         return False
 
-    resource_url = "/solar-panel-washing/v1.3.17/solar-panel-washing.js"
+    resource_url = "/solar-panel-washing/v1.3.18/solar-panel-washing.js"
     resources = lovelace.resources
     if hasattr(resources, "async_create_item"):
         await resources._async_ensure_loaded()
