@@ -72,6 +72,24 @@ globals:
     restore_value: no
     initial_value: 'false'
 
+  # Per-cycle water accounting (litres). The flow meter remains the source of truth.
+  - id: wash_liters
+    type: float
+    restore_value: no
+    initial_value: '0.0'
+  - id: wash_zone_liters
+    type: std::array<float, 5>
+    restore_value: no
+    initial_value: '{0.0f, 0.0f, 0.0f, 0.0f, 0.0f}'
+  - id: last_meter_liters
+    type: float
+    restore_value: no
+    initial_value: '0.0'
+  - id: meter_initialized
+    type: bool
+    restore_value: no
+    initial_value: 'false'
+
   - id: emergency_active
     type: bool
     restore_value: no
@@ -813,6 +831,67 @@ sensor:
         - multiply: 0.0025252525
 
 
+  # Litres in the current/most recently completed wash.
+  - platform: template
+    id: current_wash_water
+    name: "Current Wash Water"
+    unit_of_measurement: "L"
+    icon: mdi:water-check
+    accuracy_decimals: 2
+    update_interval: 2s
+    lambda: |-
+      return id(wash_liters);
+
+  - platform: template
+    name: "Wash Zone 1 Water"
+    id: wash_zone_1_water
+    unit_of_measurement: "L"
+    icon: mdi:water
+    accuracy_decimals: 2
+    update_interval: 2s
+    lambda: |-
+      return id(wash_zone_liters)[0];
+
+  - platform: template
+    name: "Wash Zone 2 Water"
+    id: wash_zone_2_water
+    unit_of_measurement: "L"
+    icon: mdi:water
+    accuracy_decimals: 2
+    update_interval: 2s
+    lambda: |-
+      return id(wash_zone_liters)[1];
+
+  - platform: template
+    name: "Wash Zone 3 Water"
+    id: wash_zone_3_water
+    unit_of_measurement: "L"
+    icon: mdi:water
+    accuracy_decimals: 2
+    update_interval: 2s
+    lambda: |-
+      return id(wash_zone_liters)[2];
+
+  - platform: template
+    name: "Wash Zone 4 Water"
+    id: wash_zone_4_water
+    unit_of_measurement: "L"
+    icon: mdi:water
+    accuracy_decimals: 2
+    update_interval: 2s
+    lambda: |-
+      return id(wash_zone_liters)[3];
+
+  - platform: template
+    name: "Wash Zone 5 Water"
+    id: wash_zone_5_water
+    unit_of_measurement: "L"
+    icon: mdi:water
+    accuracy_decimals: 2
+    update_interval: 2s
+    lambda: |-
+      return id(wash_zone_liters)[4];
+
   - platform: wifi_signal
     name: "WiFi Signal"
     update_interval: 30s
@@ -1274,6 +1353,13 @@ script:
                 else:
 
                   - lambda: |-
+                      // Reset only on an accepted new wash, never on a blocked START.
+                      id(wash_liters) = 0.0f;
+                      id(wash_zone_liters).fill(0.0f);
+                      if (!isnan(id(water_total).state)) {
+                        id(last_meter_liters) = id(water_total).state;
+                        id(meter_initialized) = true;
+                      }
                       id(wash_running) = true;
                       id(flow_check_allowed) = false;
                       id(current_zone_num) = 0;
@@ -1892,6 +1978,34 @@ script:
 # ============================================================
 
 interval:
+
+  # Account for actual meter volume deltas, not flow estimates. If two
+  # zone relays overlap, divide that volume equally between open zones.
+  - interval: 1s
+    then:
+      - lambda: |-
+          const float meter = id(water_total).state;
+          if (isnan(meter)) return;
+          if (!id(meter_initialized)) {
+            id(last_meter_liters) = meter;
+            id(meter_initialized) = true;
+            return;
+          }
+          const float delta = meter - id(last_meter_liters);
+          id(last_meter_liters) = meter;
+          if (delta <= 0.0f || !id(wash_running)) return;
+          id(wash_liters) += delta;
+          const bool open[5] = {
+            id(zone1_relay).state, id(zone2_relay).state,
+            id(zone3_relay).state, id(zone4_relay).state,
+            id(zone5_relay).state
+          };
+          int count = 0;
+          for (int i = 0; i < 5; ++i) if (open[i]) ++count;
+          if (count > 0) {
+            for (int i = 0; i < 5; ++i)
+              if (open[i]) id(wash_zone_liters)[i] += delta / count;
+          }
 
   - interval: 1s
 
