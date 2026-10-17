@@ -23,6 +23,9 @@ esp32:
 
 logger:
 
+preferences:
+  flash_write_interval: 1min
+
 
 api:
   encryption:
@@ -66,6 +69,21 @@ pca9554:
 # ============================================================
 
 globals:
+
+  # Persisted total water. Initial seed from the user's existing reading.
+  # This initial_value is only used when no saved preference exists.
+  - id: persistent_water_liters
+    type: float
+    restore_value: yes
+    initial_value: '30.6237333'
+  - id: last_raw_pulses_liters
+    type: float
+    restore_value: no
+    initial_value: '0.0'
+  - id: raw_meter_initialized
+    type: bool
+    restore_value: no
+    initial_value: 'false'
 
   - id: wash_running
     type: bool
@@ -821,8 +839,8 @@ sensor:
       - multiply: 0.0025252525
 
     total:
-      id: water_total
-      name: "Total Water"
+      id: water_total_raw
+      internal: true
       icon: mdi:water
       unit_of_measurement: "L"
       accuracy_decimals: 2
@@ -830,6 +848,18 @@ sensor:
       filters:
         - multiply: 0.0025252525
 
+
+  # Public total survives reboot/OTA through ESPHome preferences.
+  - platform: template
+    id: water_total
+    name: "Total Water"
+    icon: mdi:water
+    unit_of_measurement: "L"
+    state_class: total_increasing
+    accuracy_decimals: 2
+    update_interval: 2s
+    lambda: |-
+      return id(persistent_water_liters);
 
   # Litres in the current/most recently completed wash.
   - platform: template
@@ -1978,6 +2008,23 @@ script:
 # ============================================================
 
 interval:
+
+  # Integrate raw hardware pulses into a persisted total independently
+  # of whether a washing program is running or valves are opened manually.
+  - interval: 1s
+    then:
+      - lambda: |-
+          const float raw = id(water_total_raw).state;
+          if (isnan(raw)) return;
+          if (!id(raw_meter_initialized)) {
+            id(last_raw_pulses_liters) = raw;
+            id(raw_meter_initialized) = true;
+            return;
+          }
+          const float delta = raw - id(last_raw_pulses_liters);
+          id(last_raw_pulses_liters) = raw;
+          if (delta > 0.0f && delta < 10000.0f)
+            id(persistent_water_liters) += delta;
 
   # Account for actual meter volume deltas, not flow estimates. If two
   # zone relays overlap, divide that volume equally between open zones.
