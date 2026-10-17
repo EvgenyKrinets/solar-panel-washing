@@ -310,3 +310,9 @@ Initial public release:
 ## License
 
 MIT License. See `LICENSE`.
+
+### Water consumption per wash and zone (v1.3.18+)
+
+The ESP32 tracks **Current Wash Water** and **Wash Zone 1–5 Water** in litres using the measured pulse-counter total. Counters reset when a new wash actually starts, and retain the most recent wash values after completion. Total Water and instantaneous Water Flow remain available. During zone valve overlap, the measured volume is split equally between open zone relays; zone totals are therefore estimates, while the wash total comes from the single meter. Water passing while no zone is open is included in the wash total but not assigned to a zone. The counters are volatile and reset after ESP32 reboot.
+
+The integration adds a standalone `custom:solar-panel-washing-water-consumption-card` to standard generated dashboards during update; customized dashboards can add that card through the editor. **Both ESPHome firmware and the HACS integration must be updated** to use the new entities.
