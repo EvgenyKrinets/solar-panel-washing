@@ -159,6 +159,7 @@ class SolarPanelWashingCard extends HTMLElement {
     const on=this.state(id)==="on";
     return `<button class="chip ${on?"on":""}" data-toggle="${id}" title="${label}"><b>${short||label}</b><small>${label}</small></button>`;
   }
+  waterNumber(entity) { const v=Number(this._hass?.states?.[entity]?.state); return Number.isFinite(v)?v.toFixed(2):"—"; }
   render(){
     if(!this._hass) return;
     const p="solar_panel_washing_";
@@ -206,16 +207,17 @@ class SolarPanelWashingCard extends HTMLElement {
         .alarm{color:var(--spw-red);font-weight:700}.ok{color:var(--spw-green);font-weight:700}
         @media(max-width:900px){.stats{grid-template-columns:repeat(auto-fit,minmax(100px,1fr))}}
         @media(max-width:600px){.wrap{padding:12px}.hero h1{font-size:22px}.actions{grid-template-columns:1fr}.manual{grid-template-columns:repeat(2,minmax(0,1fr))}}
-      .spw-consumption-summary{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin:10px 0 14px}.spw-consumption-summary>div{display:flex;flex-direction:column;gap:5px;padding:12px 9px;border-radius:10px;background:var(--secondary-background-color,#f1f5f9);min-width:0}.spw-consumption-summary small{font-size:11px;color:var(--secondary-text-color)}.spw-consumption-summary strong{font-size:19px;color:var(--primary-text-color);overflow-wrap:anywhere}.spw-consumption-line{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 2px;border-bottom:1px solid var(--divider-color,rgba(127,127,127,.15));font-size:13px}.spw-consumption-line b{font-variant-numeric:tabular-nums}.spw-consumption-total{font-weight:700}.spw-consumption-note{display:block;margin-top:10px;font-size:11px;line-height:1.4;color:var(--secondary-text-color)}
+      .spw-history{cursor:pointer;text-decoration:underline;text-decoration-style:dotted;text-underline-offset:3px}.spw-history:hover{color:var(--primary-color)}.spw-history:focus-visible{outline:2px solid var(--primary-color);border-radius:3px}
+        .spw-consumption-summary{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin:10px 0 14px}.spw-consumption-summary>div{display:flex;flex-direction:column;gap:5px;padding:12px 9px;border-radius:10px;background:var(--secondary-background-color,#f1f5f9);min-width:0}.spw-consumption-summary small{font-size:11px;color:var(--secondary-text-color)}.spw-consumption-summary strong{font-size:19px;color:var(--primary-text-color);overflow-wrap:anywhere}.spw-consumption-line{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 2px;border-bottom:1px solid var(--divider-color,rgba(127,127,127,.15));font-size:13px}.spw-consumption-line b{font-variant-numeric:tabular-nums}.spw-consumption-total{font-weight:700}.spw-consumption-note{display:block;margin-top:10px;font-size:11px;line-height:1.4;color:var(--secondary-text-color)}
         .spw-system .spw-status-row{display:flex;justify-content:space-between;align-items:baseline;gap:12px;padding:7px 0;border-bottom:1px solid var(--divider-color,rgba(127,127,127,.12));font-size:13px}.spw-system .spw-status-row:last-child{border-bottom:0}.spw-system .spw-status-label{color:var(--secondary-text-color);white-space:nowrap}.spw-system .spw-status-row strong{font-weight:600;overflow-wrap:anywhere;text-align:end;min-width:0}
 </style>
       <div class="wrap">
-        <div class="hero"><ha-icon icon="mdi:solar-panel"></ha-icon><div><h1>Solar Panel Washing</h1><p>Automatic multi-zone washing controller</p></div><div class="language-control"><div class="spw-version" aria-label="Dashboard version">v1.3.19</div><button type="button" class="language-trigger" data-language-toggle aria-haspopup="true" aria-expanded="false">🌐 ${({"auto":"Auto","en":"English","ru":"Русский","he":"עברית"})[this.config?.language||"auto"]||"Auto"} ▾</button><div class="language-menu" data-language-menu hidden><button type="button" data-language-choice="auto">🌐 Auto</button><button type="button" data-language-choice="en">🇺🇸 English</button><button type="button" data-language-choice="ru">🇷🇺 Русский</button><button type="button" data-language-choice="he">🇮🇱 עברית</button></div></div></div>
+        <div class="hero"><ha-icon icon="mdi:solar-panel"></ha-icon><div><h1>Solar Panel Washing</h1><p>Automatic multi-zone washing controller</p></div><div class="language-control"><div class="spw-version" aria-label="Dashboard version">v1.3.20</div><button type="button" class="language-trigger" data-language-toggle aria-haspopup="true" aria-expanded="false">🌐 ${({"auto":"Auto","en":"English","ru":"Русский","he":"עברית"})[this.config?.language||"auto"]||"Auto"} ▾</button><div class="language-menu" data-language-menu hidden><button type="button" data-language-choice="auto">🌐 Auto</button><button type="button" data-language-choice="en">🇺🇸 English</button><button type="button" data-language-choice="ru">🇷🇺 Русский</button><button type="button" data-language-choice="he">🇮🇱 עברית</button></div></div></div>
         <div class="stats">
           <div class="stat"><small>Status</small><b class="${this.state(E.alarm)==="on"?"alarm":"ok"}">${this.state(E.status)}</b></div>
           <div class="stat"><small>Zone</small><b>${this.state(E.zone)}</b></div>
-          <div class="stat"><small>Flow</small><b>${this.state(E.flow)} L/min</b></div>
-          <div class="stat"><small>Total Water</small><b>${this.state(E.total)} L</b></div>
+          <div class="stat"><small>Flow</small><b><span class="spw-history" tabindex="0" role="button" title="Open Home Assistant history" data-history="${E.flow}">${this.state(E.flow)} L/min</span></b></div>
+          <div class="stat"><small>Total Water</small><b><span class="spw-history" tabindex="0" role="button" title="Open Home Assistant history" data-history="${E.total}">${this.waterNumber(E.total)} L</span></b></div>
         </div>
         <div class="grid">
           <div class="box"><h3>💧 Washing Control</h3>${this.helpLine("Select the mode for manual START. Emergency Stop closes the valves and stops the program. Reset Alarm clears a latched alarm after the cause has been resolved.")}
@@ -269,13 +271,13 @@ class SolarPanelWashingCard extends HTMLElement {
             })()}</div>
           <div class="box spw-consumption"><h3>💧 Water Consumption</h3>
             <div class="spw-consumption-summary">
-              <div><small>Flow</small><strong>${this.state(E.flow)} <small>L/min</small></strong></div>
-              <div><small>Current Wash</small><strong>${this.state(`sensor.${p}current_wash_water`)} <small>L</small></strong></div>
+              <div><small>Flow</small><strong><span class="spw-history" tabindex="0" role="button" title="Open Home Assistant history" data-history="${E.flow}">${this.state(E.flow)} <small>L/min</small></span></strong></div>
+              <div><small>Current Wash</small><strong><span class="spw-history" tabindex="0" role="button" title="Open Home Assistant history" data-history="${`sensor.${p}current_wash_water`}">${this.waterNumber(`sensor.${p}current_wash_water`)} <small>L</small></span></strong></div>
             </div>
             <div class="spw-consumption-zones">
-              ${zones.map(z=>`<div class="spw-consumption-line"><span>Zone ${z}</span><b>${this.state(`sensor.${p}wash_zone_${z}_water`)} L</b></div>`).join("")}
+              ${zones.map(z=>`<div class="spw-consumption-line"><span>Zone ${z}</span><b><span class="spw-history" tabindex="0" role="button" title="Open Home Assistant history" data-history="${`sensor.${p}wash_zone_${z}_water`}">${this.waterNumber(`sensor.${p}wash_zone_${z}_water`)} L</span></b></div>`).join("")}
             </div>
-            <div class="spw-consumption-line spw-consumption-total"><span>Total Water</span><b>${this.state(E.total)} L</b></div>
+            <div class="spw-consumption-line spw-consumption-total"><span>Total Water</span><b><span class="spw-history" tabindex="0" role="button" title="Open Home Assistant history" data-history="${E.total}">${this.waterNumber(E.total)} L</span></b></div>
             <small class="spw-consumption-note">During valve overlap, measured water is divided equally between open zones. Values remain visible until the next wash.</small>
           </div>
           <div class="box wide"><h3>🔧 Manual Valve Control</h3>${this.helpLine("Direct relay controls for testing and maintenance. These bypass the normal washing sequence: use carefully and never open detergent and water sources together.")}<div class="manual">
@@ -285,6 +287,13 @@ class SolarPanelWashingCard extends HTMLElement {
         </div>
       </div>
     </ha-card>`;
+    this.querySelectorAll("[data-history]").forEach(el=>{
+      const open=()=>this.dispatchEvent(new CustomEvent("hass-more-info",{
+        bubbles:true,composed:true,detail:{entityId:el.dataset.history}
+      }));
+      el.addEventListener("click",open);
+      el.addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();open();}});
+    });
     this.translateUI();
     const languageToggle=this.querySelector("[data-language-toggle]");
     const languageMenu=this.querySelector("[data-language-menu]");
@@ -340,7 +349,7 @@ class SolarPanelWashingSectionCard extends SolarPanelWashingCard {
       const host=grid.querySelector(".box");
       const bar=document.createElement("div");
       bar.style.cssText="display:flex;gap:8px;justify-content:flex-end;margin-bottom:10px;align-items:center";
-      const version=document.createElement("small");version.textContent="v1.3.19";
+      const version=document.createElement("small");version.textContent="v1.3.20";
       const picker=document.createElement("div");
       picker.style.cssText="position:relative";
       const trigger=document.createElement("button");
@@ -433,7 +442,7 @@ class SolarPanelWashingOverviewCard extends HTMLElement {
       .spw-head small{margin-left:0}
       @container (max-width:1050px){.spw-layout{grid-template-columns:repeat(2,minmax(0,1fr))}.spw-column{display:contents}.spw-cell{order:var(--tablet-order)}}
       @container (max-width:620px){.spw-layout{grid-template-columns:minmax(0,1fr)}.spw-column{display:contents}.spw-cell{order:var(--mobile-order)}.spw-head{font-size:18px;padding:10px 12px}}
-    </style><div class="spw-overview"><div class="spw-head">☀️ Solar Panel Washing <div class="spw-language"><small>v1.3.19</small><select aria-label="Language" class="spw-language-select"><option value="auto">🌐 Auto</option><option value="en">🇺🇸 English</option><option value="ru">🇷🇺 Русский</option><option value="he">🇮🇱 עברית</option></select></div></div><div class="spw-layout"></div></div>`;
+    </style><div class="spw-overview"><div class="spw-head">☀️ Solar Panel Washing <div class="spw-language"><small>v1.3.20</small><select aria-label="Language" class="spw-language-select"><option value="auto">🌐 Auto</option><option value="en">🇺🇸 English</option><option value="ru">🇷🇺 Русский</option><option value="he">🇮🇱 עברית</option></select></div></div><div class="spw-layout"></div></div>`;
     const langSelect=this.querySelector(".spw-language-select");
     let savedLanguage="auto";
     try { savedLanguage=localStorage.getItem("solar_panel_washing_language") || "auto"; } catch (_) {}
@@ -474,4 +483,4 @@ class SolarPanelWashingOverviewCard extends HTMLElement {
 if(!customElements.get("solar-panel-washing-overview-card"))customElements.define("solar-panel-washing-overview-card",SolarPanelWashingOverviewCard);
 window.customCards.push({type:"solar-panel-washing-overview-card",name:"Solar Washing — Responsive Overview",description:"Desktop 4-column and mobile stacked washing dashboard",preview:true});
 
-console.info("%c SOLAR-PANEL-WASHING-CARD %c v1.3.19 ","color:white;background:#1684d8;font-weight:700","color:#1684d8;background:white");
+console.info("%c SOLAR-PANEL-WASHING-CARD %c v1.3.20 ","color:white;background:#1684d8;font-weight:700","color:#1684d8;background:white");
