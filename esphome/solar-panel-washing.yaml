@@ -24,7 +24,7 @@ esp32:
 logger:
 
 preferences:
-  flash_write_interval: 1min
+  flash_write_interval: 24h
 
 
 api:
