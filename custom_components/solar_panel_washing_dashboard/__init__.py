@@ -40,7 +40,7 @@ async def _setup_water_snapshots(hass: HomeAssistant) -> None:
     snapshots = await store.async_load() or []
     hass.data[_SNAPSHOT_KEY] = {"snapshots": snapshots, "store": store}
 
-    async def save_snapshot() -> None:
+    async def save_snapshot(force: bool = False) -> None:
         values = []
         for entity_id in _WATER_ENTITIES:
             state = hass.states.get(entity_id)
@@ -55,23 +55,21 @@ async def _setup_water_snapshots(hass: HomeAssistant) -> None:
         timestamp = dt_util.now().isoformat()
         day = dt_util.now().date().isoformat()
         records = hass.data[_SNAPSHOT_KEY]["snapshots"]
-        if records and records[-1].get("date") == day:
+        if not force and any(x.get("date") == day and x.get("source") == "daily" for x in records):
             return
-        records.append({"date": day, "time": timestamp, "values": values})
+        records.append({"date": day, "time": timestamp, "values": values, "source": "manual" if force else "daily"})
         await store.async_save(records)
         _LOGGER.info("Saved daily water snapshot for %s", day)
 
     async def snapshot_service(call) -> None:
-        await save_snapshot()
+        await save_snapshot(force=True)
 
+    @websocket_api.websocket_command({vol.Required("type"): f"{DOMAIN}/water_snapshots"})
+    @websocket_api.async_response
     async def handle_snapshots(hass, connection, msg) -> None:
         connection.send_result(msg["id"], hass.data[_SNAPSHOT_KEY]["snapshots"])
 
-    websocket_api.async_register_command(
-        hass,
-        websocket_api.async_response(handle_snapshots),
-        {vol.Required("type"): f"{DOMAIN}/water_snapshots"},
-    )
+    websocket_api.async_register_command(hass, handle_snapshots)
     hass.services.async_register(DOMAIN, "save_water_snapshot", snapshot_service)
 
     def scheduled_snapshot(now: datetime) -> None:
