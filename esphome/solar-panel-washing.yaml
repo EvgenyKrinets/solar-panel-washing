@@ -1544,7 +1544,8 @@ script:
             lambda: |-
               return
                 id(wash_running) ||
-                id(emergency_active);
+                id(emergency_active) ||
+                id(restore_pending);
 
           then:
 
