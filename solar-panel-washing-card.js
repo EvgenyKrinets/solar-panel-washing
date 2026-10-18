@@ -80,6 +80,12 @@ class SolarPanelWashingCard extends HTMLElement {
     }
     this._stateSignature = signature;
     this._hass = hass;
+    if(this.config?.section==="water-consumption" &&
+       this.querySelector?.("[data-restore-datetime]")===document.activeElement){
+      this._restoreAt=document.activeElement.value;
+      this._restoreRenderDeferred=true;
+      return;
+    }
     this.scheduleRender();
   }
 
@@ -147,13 +153,13 @@ class SolarPanelWashingCard extends HTMLElement {
     return d ? `${d}d ${h}h ${m}m` : h ? `${h}h ${m}m ${s}s` : m ? `${m}m ${s}s` : `${s}s`;
   }
   helpLine(message){ return `<p class="setting-help">${message}</p>`; }
-  rowNum(id,label){
+  rowNum(id,label,kind=0,zone=0){
     const s=this.e(id), rawValue=s?Number(s.state):NaN;
     const v=Number.isFinite(rawValue) ? (Number.isInteger(rawValue) || Number(s?.attributes?.step) >= 1 ? String(Math.round(rawValue)) : String(rawValue)) : "";
     const rawUnit=(s?.attributes?.unit_of_measurement||"").toLowerCase();
     const unit = rawUnit==="s" ? "sec" : rawUnit==="min" ? "min" : rawUnit==="l/min" ? "L/min" : rawUnit==="l" ? "L" : rawUnit;
     const descriptions={"Zone Overlap":"Time when two consecutive zone valves are open together during a water transition.","Source Delay":"Pause with both source valves closed when changing between detergent and filtered water.","Minimum":"If measured flow falls below this value during washing (after Check Delay), protection stops the system.","Maximum":"If measured flow rises above this value during washing (after Check Delay), protection stops the system.","Leak":"Flow above this threshold while idle or during final valve verification triggers an alarm after continuous confirmation.","Check Delay":"Seconds of continuous abnormal flow needed to trigger a fault; also used for the final main-valve check.","Protection":"Enable flow-based alarms only after the flow meter has been installed and tested."};
-    return `<div class="numrow"><span class="setting-label">${label}${descriptions[label] ? `<small class="setting-detail">${descriptions[label]}</small>` : ""}</span><div class="numedit"><input class="numinput" type="number" inputmode="decimal" data-numinput="${id}" value="${v}" min="${s?.attributes.min ?? ""}" max="${s?.attributes.max ?? ""}" step="${s?.attributes.step ?? 1}" aria-label="${label}"><span class="unit">${unit}</span></div></div>`;
+    return `<div class="numrow"><span class="setting-label">${label}${descriptions[label] ? `<small class="setting-detail">${descriptions[label]}</small>` : ""}</span><div class="numedit"><input class="numinput" type="number" inputmode="decimal" data-numinput="${id}" value="${v}" min="${s?.attributes.min ?? ""}" max="${s?.attributes.max ?? ""}" step="${s?.attributes.step ?? 1}" aria-label="${label}"><span class="unit">${unit}</span>${kind&&zone?this.stageCountdown(kind,zone):""}</div></div>`;
   }
   stageCountdown(kind,zone){
     const p="solar_panel_washing_";
@@ -166,8 +172,10 @@ class SolarPanelWashingCard extends HTMLElement {
     const z=Number(this.state(`sensor.${p}stage_zone`,0));
     const active=k===kind&&z===zone;
     const sec=Number(this.state(`sensor.${p}stage_seconds_remaining`,0));
+    const lang=this.language();
+    const t=lang==="ru"?{actual:"Факт",remaining:"Осталось",stopped:"Стоп"}:lang==="he"?{actual:"בפועל",remaining:"נותרו",stopped:"נעצר"}:{actual:"Actual",remaining:"Remaining",stopped:"Stopped"};
     const alarm=this.state(`binary_sensor.${p}washing_alarm`)==="on";
-    return `<small class="spw-stage-count ${alarm?"spw-fault":""}" style="display:block;margin:-2px 0 9px 0;text-align:end">Actual: ${actual} sec${active?` · ${alarm?"Stopped":"Remaining"}: ${Number.isFinite(sec)?Math.max(0,Math.ceil(sec)):"—"} sec`:""}</small>`;
+    return `<span class="spw-actual-inline ${alarm?"spw-fault":""}" style="white-space:nowrap;font-size:11px;margin-inline-start:7px;color:var(--secondary-text-color);font-weight:500">${t.actual}: ${actual} ${lang==="ru"?"сек":lang==="he"?"שנ׳":"sec"}${active?` · ${alarm?t.stopped:t.remaining}: ${Number.isFinite(sec)?Math.max(0,Math.ceil(sec)):"—"}`:""}</span>`;
   }
   sw(id,label,short=""){
     const on=this.state(id)==="on";
@@ -370,7 +378,7 @@ class SolarPanelWashingCard extends HTMLElement {
         .spw-system .spw-status-row{display:flex;justify-content:space-between;align-items:baseline;gap:12px;padding:7px 0;border-bottom:1px solid var(--divider-color,rgba(127,127,127,.12));font-size:13px}.spw-system .spw-status-row:last-child{border-bottom:0}.spw-system .spw-status-label{color:var(--secondary-text-color);white-space:nowrap}.spw-system .spw-status-row strong{font-weight:600;overflow-wrap:anywhere;text-align:end;min-width:0}
 </style>
       <div class="wrap">
-        <div class="hero"><ha-icon icon="mdi:solar-panel"></ha-icon><div><h1>Solar Panel Washing</h1><p>Automatic multi-zone washing controller</p></div><div class="language-control"><div class="spw-version" aria-label="Dashboard version">v1.3.25</div><button type="button" class="language-trigger" data-language-toggle aria-haspopup="true" aria-expanded="false">🌐 ${({"auto":"Auto","en":"English","ru":"Русский","he":"עברית"})[this.config?.language||"auto"]||"Auto"} ▾</button><div class="language-menu" data-language-menu hidden><button type="button" data-language-choice="auto">🌐 Auto</button><button type="button" data-language-choice="en">🇺🇸 English</button><button type="button" data-language-choice="ru">🇷🇺 Русский</button><button type="button" data-language-choice="he">🇮🇱 עברית</button></div></div></div>
+        <div class="hero"><ha-icon icon="mdi:solar-panel"></ha-icon><div><h1>Solar Panel Washing</h1><p>Automatic multi-zone washing controller</p></div><div class="language-control"><div class="spw-version" aria-label="Dashboard version">v1.3.26</div><button type="button" class="language-trigger" data-language-toggle aria-haspopup="true" aria-expanded="false">🌐 ${({"auto":"Auto","en":"English","ru":"Русский","he":"עברית"})[this.config?.language||"auto"]||"Auto"} ▾</button><div class="language-menu" data-language-menu hidden><button type="button" data-language-choice="auto">🌐 Auto</button><button type="button" data-language-choice="en">🇺🇸 English</button><button type="button" data-language-choice="ru">🇷🇺 Русский</button><button type="button" data-language-choice="he">🇮🇱 עברית</button></div></div></div>
         <div class="stats">
           <div class="stat"><small>Status</small><b class="${this.state(E.alarm)==="on"?"alarm":"ok"}">${this.state(E.status)}</b></div>
           <div class="stat"><small>Zone</small><b>${this.state(E.zone)}</b></div>
@@ -391,9 +399,9 @@ class SolarPanelWashingCard extends HTMLElement {
             <div style="margin-top:10px;opacity:.7">Next: <b>${this.state(E.next)}</b></div>
           </div>
           <div class="box"><h3>🚿 Active Zones</h3>${this.helpLine("Only enabled zones are included in automatic and manual START washing programs. Disable a zone to skip it.")}<div class="chips zones">${zones.map(z=>this.sw(`switch.${p}zone_${z}_enabled`,`Zone ${z}`,`Z${z}`)).join("")}</div></div>
-          <div class="box"><h3>💦 Water Times</h3>${this.helpLine("Duration of filtered-water washing for each enabled zone in Water mode. In Detergent + Water mode, the Rinse Times below are used instead.")}${zones.map(z=>this.rowNum(`number.${p}water_time_zone_${z}`,`Zone ${z}`)+this.stageCountdown(1,z)).join("")}</div>
-          <div class="box"><h3>🧴 Detergent Times</h3>${this.helpLine("How long detergent flows through each enabled zone before rinsing. Each zone has its own setting.")}${zones.map(z=>this.rowNum(`number.${p}detergent_time_zone_${z}`,`Zone ${z}`)+this.stageCountdown(2,z)).join("")}</div>
-          <div class="box"><h3>🚿 Rinse Times</h3>${this.helpLine("How long filtered water rinses each zone after detergent. The zone stays open between detergent and rinse.")}${zones.map(z=>this.rowNum(`number.${p}rinse_time_zone_${z}`,`Zone ${z}`)+this.stageCountdown(3,z)).join("")}</div>
+          <div class="box"><h3>💦 Water Times</h3>${this.helpLine("Duration of filtered-water washing for each enabled zone in Water mode. In Detergent + Water mode, the Rinse Times below are used instead.")}${zones.map(z=>this.rowNum(`number.${p}water_time_zone_${z}`,`Zone ${z}`,1,z)).join("")}</div>
+          <div class="box"><h3>🧴 Detergent Times</h3>${this.helpLine("How long detergent flows through each enabled zone before rinsing. Each zone has its own setting.")}${zones.map(z=>this.rowNum(`number.${p}detergent_time_zone_${z}`,`Zone ${z}`,2,z)).join("")}</div>
+          <div class="box"><h3>🚿 Rinse Times</h3>${this.helpLine("How long filtered water rinses each zone after detergent. The zone stays open between detergent and rinse.")}${zones.map(z=>this.rowNum(`number.${p}rinse_time_zone_${z}`,`Zone ${z}`,3,z)).join("")}</div>
           <div class="box"><h3>🔄 Switching</h3>${this.helpLine("Zone Overlap: opens the next zone before closing the previous one to reduce pressure shock. Source Delay: pause between detergent and filtered water so both source valves are never open together.")}${this.rowNum(`number.${p}zone_overlap`,"Zone Overlap")}${this.rowNum(`number.${p}source_change_delay`,"Source Delay")}</div>
           <div class="box"><h3>🛡️ Flow Protection</h3>${this.helpLine("Requires a correctly connected and calibrated flow sensor. When enabled, the controller checks for low flow, excessive flow and unexpected flow while idle. Keep OFF until the sensor is installed and tested.")}
             <div class="toggleline"><span>Protection <small class="setting-detail">Enable flow monitoring and automatic fault shutdown.</small></span><button class="toggle ${this.state(E.protect)==="on"?"on":""}" data-toggle="${E.protect}">${this.state(E.protect)==="on"?"ON":"OFF"}</button></div>
@@ -453,6 +461,16 @@ class SolarPanelWashingCard extends HTMLElement {
     this.querySelector("[data-restore-toggle]")?.addEventListener("click",()=>{this._restoreOpen=!this._restoreOpen;this.render();});
     this.querySelector("[data-save-counters]")?.addEventListener("click",()=>this.saveWaterCounters());
     this.querySelector("[data-backup-ha]")?.addEventListener("click",()=>this.backupWaterInHA());
+    const dateInput=this.querySelector("[data-restore-datetime]");
+    dateInput?.addEventListener("input",()=>{this._restoreAt=dateInput.value;this._restorePreview=null;});
+    dateInput?.addEventListener("change",()=>{this._restoreAt=dateInput.value;this._restorePreview=null;});
+    dateInput?.addEventListener("blur",()=>{
+      this._restoreAt=dateInput.value;
+      if(this._restoreRenderDeferred){
+        this._restoreRenderDeferred=false;
+        this.scheduleRender();
+      }
+    });
     this.querySelector("[data-restore-load]")?.addEventListener("click",()=>this.loadWaterHistory());
     this.querySelector("[data-restore-confirm]")?.addEventListener("click",()=>this.restoreWaterHistory());
     this.querySelectorAll("[data-history]").forEach(el=>{
@@ -517,7 +535,7 @@ class SolarPanelWashingSectionCard extends SolarPanelWashingCard {
       const host=grid.querySelector(".box");
       const bar=document.createElement("div");
       bar.style.cssText="display:flex;gap:8px;justify-content:flex-end;margin-bottom:10px;align-items:center";
-      const version=document.createElement("small");version.textContent="v1.3.25";
+      const version=document.createElement("small");version.textContent="v1.3.26";
       const picker=document.createElement("div");
       picker.style.cssText="position:relative";
       const trigger=document.createElement("button");
@@ -610,7 +628,7 @@ class SolarPanelWashingOverviewCard extends HTMLElement {
       .spw-head small{margin-left:0}
       @container (max-width:1050px){.spw-layout{grid-template-columns:repeat(2,minmax(0,1fr))}.spw-column{display:contents}.spw-cell{order:var(--tablet-order)}}
       @container (max-width:620px){.spw-layout{grid-template-columns:minmax(0,1fr)}.spw-column{display:contents}.spw-cell{order:var(--mobile-order)}.spw-head{font-size:18px;padding:10px 12px}}
-    </style><div class="spw-overview"><div class="spw-head">☀️ Solar Panel Washing <div class="spw-language"><small>v1.3.25</small><select aria-label="Language" class="spw-language-select"><option value="auto">🌐 Auto</option><option value="en">🇺🇸 English</option><option value="ru">🇷🇺 Русский</option><option value="he">🇮🇱 עברית</option></select></div></div><div class="spw-layout"></div></div>`;
+    </style><div class="spw-overview"><div class="spw-head">☀️ Solar Panel Washing <div class="spw-language"><small>v1.3.26</small><select aria-label="Language" class="spw-language-select"><option value="auto">🌐 Auto</option><option value="en">🇺🇸 English</option><option value="ru">🇷🇺 Русский</option><option value="he">🇮🇱 עברית</option></select></div></div><div class="spw-layout"></div></div>`;
     const langSelect=this.querySelector(".spw-language-select");
     let savedLanguage="auto";
     try { savedLanguage=localStorage.getItem("solar_panel_washing_language") || "auto"; } catch (_) {}
@@ -651,4 +669,4 @@ class SolarPanelWashingOverviewCard extends HTMLElement {
 if(!customElements.get("solar-panel-washing-overview-card"))customElements.define("solar-panel-washing-overview-card",SolarPanelWashingOverviewCard);
 window.customCards.push({type:"solar-panel-washing-overview-card",name:"Solar Washing — Responsive Overview",description:"Desktop 4-column and mobile stacked washing dashboard",preview:true});
 
-console.info("%c SOLAR-PANEL-WASHING-CARD %c v1.3.25 ","color:white;background:#1684d8;font-weight:700","color:#1684d8;background:white");
+console.info("%c SOLAR-PANEL-WASHING-CARD %c v1.3.26 ","color:white;background:#1684d8;font-weight:700","color:#1684d8;background:white");
