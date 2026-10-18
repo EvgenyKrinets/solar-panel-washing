@@ -1728,6 +1728,15 @@ script:
     then:
 
       - lambda: |-
+          if (id(actual_stage_last_kind) >= 1 && id(actual_stage_last_kind) <= 3 &&
+              id(actual_stage_last_zone) >= 1 && id(actual_stage_last_zone) <= 5 &&
+              id(actual_stage_started_ms) != 0) {
+            const int i = (id(actual_stage_last_kind) - 1) * 5 + id(actual_stage_last_zone) - 1;
+            id(actual_stage_seconds)[i] += (millis() - id(actual_stage_started_ms)) / 1000u;
+          }
+          id(actual_stage_last_kind) = 0;
+          id(actual_stage_last_zone) = 0;
+          id(actual_stage_started_ms) = 0;
           id(emergency_active) = true;
           id(wash_running) = false;
           id(flow_check_allowed) = false;
