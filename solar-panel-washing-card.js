@@ -95,6 +95,45 @@ class SolarPanelWashingCard extends HTMLElement {
     const ha=this._hass?.language || "en";
     return ha.startsWith("ru")?"ru":ha.startsWith("he")?"he":"en";
   }
+  // One localization entry point for dynamic messages and controls.
+  t(key,...args){
+    const messages={
+      "Restore counters":["Восстановить счётчики","שחזור מונים"],
+      "Date and time":["Дата и время","תאריך ושעה"],
+      "Load history":["Загрузить историю","טעינת היסטוריה"],
+      "Confirm restore":["Подтвердить восстановление","אישור שחזור"],
+      "History not loaded":["История ещё не загружена","ההיסטוריה טרם נטענה"],
+      "Loading…":["Загрузка…","טוען…"],
+      "Current":["Сейчас","נוכחי"],
+      "From HA":["Из HA","מ-HA"],
+      "Recorded at":["Записано","נרשם ב"],
+      "Total Water":["Всего воды","סך מים"],
+      "Current Wash":["Текущая мойка","שטיפה נוכחית"],
+      "Zone":["Зона","אזור"],
+      "Choose a valid past date and time":["Выберите корректные дату и время в прошлом","בחרו תאריך ושעה תקינים בעבר"],
+      "No recorded value for":["Нет сохранённого значения для","אין ערך שמור עבור"],
+      "Recorder history unavailable. Showing the last daily 06:00 backup; check its recorded time.":["История Recorder недоступна. Показана последняя копия на 06:00; проверьте время записи.","היסטוריית Recorder אינה זמינה. מוצג גיבוי 06:00 האחרון; בדקו את זמן הרישום."],
+      "Stop washing and close all valves before restoring.":["Перед восстановлением остановите мойку и закройте все клапаны.","יש לעצור את השטיפה ולסגור את כל השסתומים לפני שחזור."],
+      "All eight relays must report OFF before restoring.":["Для восстановления все восемь реле должны быть выключены.","כל שמונת הממסרים חייבים להיות כבויים לפני השחזור."],
+      "ESPHome restore action not available. Update ESP32 firmware and reconnect Home Assistant.":["Команда восстановления ESPHome недоступна. Обновите прошивку ESP32 и переподключите Home Assistant.","פעולת השחזור של ESPHome אינה זמינה. עדכנו את קושחת ESP32 וחברו מחדש את Home Assistant."],
+      "Restore counters from":["Восстановить счётчики на","לשחזר מונים לתאריך"],
+      "This replaces the current values in ESP32.":["Текущие показания ESP32 будут заменены.","הערכים הנוכחיים ב-ESP32 יוחלפו."],
+      "Water snapshot requested in Home Assistant.":["Сохранение копии в Home Assistant запрошено.","התבקשה שמירת גיבוי ב-Home Assistant."],
+      "Save button unavailable. Update ESP32 firmware.":["Кнопка сохранения недоступна. Обновите прошивку ESP32.","כפתור השמירה אינו זמין. עדכנו את קושחת ESP32."],
+      "Save requested on ESP32.":["Отправлена команда сохранения в ESP32.","נשלחה בקשת שמירה ל-ESP32."],
+      "No active flow violation":["Нарушений расхода нет","אין חריגת ספיקה פעילה"],
+      "Final valve check":["Финальная проверка клапана","בדיקת שסתום סופית"],
+      "remaining":["осталось","נותרו"],
+      "sec":["сек","שנ׳"],
+      "Flow below minimum":["Расход ниже минимума","ספיקה מתחת למינימום"],
+      "Flow above maximum":["Расход выше максимума","ספיקה מעל למקסימום"],
+      "Unexpected flow":["Неожиданный расход","ספיקה בלתי צפויה"]
+    };
+    const lang=this.language();
+    let value=lang==="en"?key:(messages[key]?.[lang==="ru"?0:1]||key);
+    args.forEach((arg,i)=>{value=value.replaceAll("{"+i+"}",String(arg));});
+    return value;
+  }
   translateUI(){
     const lang=this.language();
 
@@ -195,22 +234,22 @@ class SolarPanelWashingCard extends HTMLElement {
     const preview=this._restorePreview;
     const msg=this._restoreError;
     const busy=!!this._restoreLoading;
-    const labels=this.waterLabels(),ids=this.waterCounterIds();
+    const labels=this.waterLabels().map(x=>x.startsWith("Zone ")?this.t("Zone")+" "+x.slice(5):this.t(x)),ids=this.waterCounterIds();
     const table=preview?`<div class="spw-restore-table">
-      <div class="spw-restore-row"><b></b><b>Current</b><b>From HA</b></div>
-      ${preview.map((item,i)=>`<div class="spw-restore-row"><span>${labels[i]}</span><span>${this.waterNumber(ids[i])} L</span><span><b>${item.value.toFixed(2)} L</b><small>Recorded at ${new Date(item.time).toLocaleString()}</small></span></div>`).join("")}
-    </div>`:"<small>History not loaded</small>";
+      <div class="spw-restore-row"><b></b><b>${this.t("Current")}</b><b>${this.t("From HA")}</b></div>
+      ${preview.map((item,i)=>`<div class="spw-restore-row"><span>${labels[i]}</span><span>${this.waterNumber(ids[i])} L</span><span><b>${item.value.toFixed(2)} L</b><small>${this.t("Recorded at")} ${new Date(item.time).toLocaleString(this.language()==="ru"?"ru-RU":this.language()==="he"?"he-IL":"en-US")}</small></span></div>`).join("")}
+    </div>`:`<small>${this.t("History not loaded")}</small>`;
     return `<div class="spw-restore">
       <div class="spw-restore-actions">
-        <button type="button" data-restore-toggle style="width:100%;border-color:var(--primary-color,#1684d8);color:var(--primary-color,#1684d8);font-weight:600">Restore counters ${open?"▴":"▾"}</button>
+        <button type="button" data-restore-toggle style="width:100%;border-color:var(--primary-color,#1684d8);color:var(--primary-color,#1684d8);font-weight:600">${this.t("Restore counters")} ${open?"▴":"▾"}</button>
       </div>
       ${open?`<div class="spw-restore-expanded">
-        <label>Date and time <input type="datetime-local" data-restore-datetime value="${this._restoreAt||this.restoreDefaultDate()}"></label>
-        <button type="button" data-restore-load ${busy?"disabled":""}>Load history</button>
-        ${busy?"<small>Loading…</small>":""}
+        <label>${this.t("Date and time")} <input type="datetime-local" data-restore-datetime value="${this._restoreAt||this.restoreDefaultDate()}"></label>
+        <button type="button" data-restore-load ${busy?"disabled":""}>${this.t("Load history")}</button>
+        ${busy?`<small>${this.t("Loading…")}</small>`:""}
         ${msg?`<p class="spw-restore-error">${String(msg).replace(/[&<>"]/g,x=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[x]))}</p>`:""}
         ${table}
-        ${preview?`<button type="button" data-restore-confirm ${busy?"disabled":""}>Confirm restore</button>`:""}
+        ${preview?`<button type="button" data-restore-confirm ${busy?"disabled":""}>${this.t("Confirm restore")}</button>`:""}
       </div>`:""}
     </div>`;
   }
@@ -222,7 +261,7 @@ class SolarPanelWashingCard extends HTMLElement {
     this._restoreError="";
     const target=new Date(this._restoreAt);
     if(!Number.isFinite(target.getTime())||target.getTime()>Date.now()){
-      this._restoreError="Choose a valid past date and time";this.render();return;
+      this._restoreError=this.t("Choose a valid past date and time");this.render();return;
     }
     this._restoreLoading=true;this.render();
     try{
@@ -246,7 +285,7 @@ class SolarPanelWashingCard extends HTMLElement {
             return Number.isFinite(time.getTime())&&time.getTime()<=target.getTime()&&
               Number.isFinite(v)&&v>=0;
           });
-          if(!valid.length)throw Error(`No recorded value for ${id} at this time.`);
+          if(!valid.length)throw Error(`${this.t("No recorded value for")} ${id}.`);
           const x=valid[valid.length-1];
           return {value:Number(x.state??x.s),time:x.last_updated||x.last_changed||x.lu||x.lc};
         });
@@ -260,7 +299,7 @@ class SolarPanelWashingCard extends HTMLElement {
         if(!available.length)throw historyError;
         const snap=available[available.length-1];
         preview=snap.values.map(value=>({value:Number(value),time:snap.time}));
-        this._restoreError="Recorder history unavailable. Showing the last daily 06:00 backup; check its recorded time.";
+        this._restoreError=this.t("Recorder history unavailable. Showing the last daily 06:00 backup; check its recorded time.");
       }
       this._restorePreview=preview;
     }catch(e){this._restoreError=e?.message||String(e);}
@@ -273,18 +312,18 @@ class SolarPanelWashingCard extends HTMLElement {
     if(this.state(`binary_sensor.${p}washing_active`)==="on"||
        this.state(`sensor.${p}washing_status`)==="Main Valve Check"||
        this.state(`sensor.${p}washing_status`)==="Pressure Release"){
-      this._restoreError="Stop washing and close all valves before restoring.";this.render();return;
+      this._restoreError=this.t("Stop washing and close all valves before restoring.");this.render();return;
     }
     const switches=["ch8_valve_power","ch1_filtered_water","ch2_detergent",...Array.from({length:5},(_,i)=>`ch${i+3}_zone_${i+1}`)];
     if(switches.some(x=>this.state(`switch.${p}${x}`)!=="off")){
-      this._restoreError="All eight relays must report OFF before restoring.";this.render();return;
+      this._restoreError=this.t("All eight relays must report OFF before restoring.");this.render();return;
     }
     const service="solar_panel_washing_restore_water_counters";
     if(!this._hass.services?.esphome?.[service]){
-      this._restoreError="ESPHome restore action not available. Update ESP32 firmware and reconnect Home Assistant.";this.render();return;
+      this._restoreError=this.t("ESPHome restore action not available. Update ESP32 firmware and reconnect Home Assistant.");this.render();return;
     }
-    const valuesText=values.map((v,i)=>`${this.waterLabels()[i]}: ${v.value.toFixed(2)} L`).join("\n");
-    if(!window.confirm(`Restore counters from ${this._restoreAt}?\n\n${valuesText}\n\nThis replaces the current values in ESP32.`))return;
+    const valuesText=values.map((v,i)=>`${this.waterLabels()[i].startsWith("Zone ")?this.t("Zone")+" "+(i-1):this.t(this.waterLabels()[i])}: ${v.value.toFixed(2)} L`).join("\n");
+    if(!window.confirm(`${this.t("Restore counters from")} ${this._restoreAt}?\n\n${valuesText}\n\n${this.t("This replaces the current values in ESP32.")}`))return;
     this._restoreLoading=true;this.render();
     try{
       await this._hass.callService("esphome",service,{
@@ -303,16 +342,16 @@ class SolarPanelWashingCard extends HTMLElement {
   async backupWaterInHA(){
     try{
       await this._hass.callService("solar_panel_washing_dashboard","save_water_snapshot",{});
-      this._restoreError="Water snapshot requested in Home Assistant.";
+      this._restoreError=this.t("Water snapshot requested in Home Assistant.");
     }catch(e){this._restoreError=e?.message||String(e);this._restoreOpen=true;}
     this.render();
   }
   async saveWaterCounters(){
     try{
       const id="button.solar_panel_washing_save_water_counters";
-      if(!this._hass.states?.[id])throw Error("Save button unavailable. Update ESP32 firmware.");
+      if(!this._hass.states?.[id])throw Error(this.t("Save button unavailable. Update ESP32 firmware."));
       await this._hass.callService("button","press",{entity_id:id});
-      this._restoreError="Save requested on ESP32.";
+      this._restoreError=this.t("Save requested on ESP32.");
     }catch(e){this._restoreError=e?.message||String(e);this._restoreOpen=true;}
     this.render();
   }
@@ -380,7 +419,7 @@ class SolarPanelWashingCard extends HTMLElement {
         .spw-system .spw-status-row{display:flex;justify-content:space-between;align-items:baseline;gap:12px;padding:7px 0;border-bottom:1px solid var(--divider-color,rgba(127,127,127,.12));font-size:13px}.spw-system .spw-status-row:last-child{border-bottom:0}.spw-system .spw-status-label{color:var(--secondary-text-color);white-space:nowrap}.spw-system .spw-status-row strong{font-weight:600;overflow-wrap:anywhere;text-align:end;min-width:0}
 </style>
       <div class="wrap">
-        <div class="hero"><ha-icon icon="mdi:solar-panel"></ha-icon><div><h1>Solar Panel Washing</h1><p>Automatic multi-zone washing controller</p></div><div class="language-control"><div class="spw-version" aria-label="Dashboard version">v1.3.28</div><button type="button" class="language-trigger" data-language-toggle aria-haspopup="true" aria-expanded="false">🌐 ${({"auto":"Auto","en":"English","ru":"Русский","he":"עברית"})[this.config?.language||"auto"]||"Auto"} ▾</button><div class="language-menu" data-language-menu hidden><button type="button" data-language-choice="auto">🌐 Auto</button><button type="button" data-language-choice="en">🇺🇸 English</button><button type="button" data-language-choice="ru">🇷🇺 Русский</button><button type="button" data-language-choice="he">🇮🇱 עברית</button></div></div></div>
+        <div class="hero"><ha-icon icon="mdi:solar-panel"></ha-icon><div><h1>Solar Panel Washing</h1><p>Automatic multi-zone washing controller</p></div><div class="language-control"><div class="spw-version" aria-label="Dashboard version">v1.3.29</div><button type="button" class="language-trigger" data-language-toggle aria-haspopup="true" aria-expanded="false">🌐 ${({"auto":"Auto","en":"English","ru":"Русский","he":"עברית"})[this.config?.language||"auto"]||"Auto"} ▾</button><div class="language-menu" data-language-menu hidden><button type="button" data-language-choice="auto">🌐 Auto</button><button type="button" data-language-choice="en">🇺🇸 English</button><button type="button" data-language-choice="ru">🇷🇺 Русский</button><button type="button" data-language-choice="he">🇮🇱 עברית</button></div></div></div>
         <div class="stats">
           <div class="stat"><small>Status</small><b class="${this.state(E.alarm)==="on"?"alarm":"ok"}">${this.state(E.status)}</b></div>
           <div class="stat"><small>Zone</small><b>${this.state(E.zone)}</b></div>
@@ -541,7 +580,7 @@ class SolarPanelWashingSectionCard extends SolarPanelWashingCard {
       const host=grid.querySelector(".box");
       const bar=document.createElement("div");
       bar.style.cssText="display:flex;gap:8px;justify-content:flex-end;margin-bottom:10px;align-items:center";
-      const version=document.createElement("small");version.textContent="v1.3.28";
+      const version=document.createElement("small");version.textContent="v1.3.29";
       const picker=document.createElement("div");
       picker.style.cssText="position:relative";
       const trigger=document.createElement("button");
@@ -634,7 +673,7 @@ class SolarPanelWashingOverviewCard extends HTMLElement {
       .spw-head small{margin-left:0}
       @container (max-width:1050px){.spw-layout{grid-template-columns:repeat(2,minmax(0,1fr))}.spw-column{display:contents}.spw-cell{order:var(--tablet-order)}}
       @container (max-width:620px){.spw-layout{grid-template-columns:minmax(0,1fr)}.spw-column{display:contents}.spw-cell{order:var(--mobile-order)}.spw-head{font-size:18px;padding:10px 12px}}
-    </style><div class="spw-overview"><div class="spw-head">☀️ Solar Panel Washing <div class="spw-language"><small>v1.3.28</small><select aria-label="Language" class="spw-language-select"><option value="auto">🌐 Auto</option><option value="en">🇺🇸 English</option><option value="ru">🇷🇺 Русский</option><option value="he">🇮🇱 עברית</option></select></div></div><div class="spw-layout"></div></div>`;
+    </style><div class="spw-overview"><div class="spw-head">☀️ Solar Panel Washing <div class="spw-language"><small>v1.3.29</small><select aria-label="Language" class="spw-language-select"><option value="auto">🌐 Auto</option><option value="en">🇺🇸 English</option><option value="ru">🇷🇺 Русский</option><option value="he">🇮🇱 עברית</option></select></div></div><div class="spw-layout"></div></div>`;
     const langSelect=this.querySelector(".spw-language-select");
     let savedLanguage="auto";
     try { savedLanguage=localStorage.getItem("solar_panel_washing_language") || "auto"; } catch (_) {}
@@ -675,4 +714,4 @@ class SolarPanelWashingOverviewCard extends HTMLElement {
 if(!customElements.get("solar-panel-washing-overview-card"))customElements.define("solar-panel-washing-overview-card",SolarPanelWashingOverviewCard);
 window.customCards.push({type:"solar-panel-washing-overview-card",name:"Solar Washing — Responsive Overview",description:"Desktop 4-column and mobile stacked washing dashboard",preview:true});
 
-console.info("%c SOLAR-PANEL-WASHING-CARD %c v1.3.28 ","color:white;background:#1684d8;font-weight:700","color:#1684d8;background:white");
+console.info("%c SOLAR-PANEL-WASHING-CARD %c v1.3.29 ","color:white;background:#1684d8;font-weight:700","color:#1684d8;background:white");
