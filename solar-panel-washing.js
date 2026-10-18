@@ -92,7 +92,7 @@ class SolarPanelWashingCard extends HTMLElement {
   translateUI(){
     const lang=this.language();
 
-    const dict={"Solar Panel Washing":["Мойка солнечных панелей","שטיפת פאנלים סולאריים"],"Automatic multi-zone washing controller":["Автоматическая многозонная система мойки","מערכת שטיפה אוטומטית רב-אזורית"],"Status":["Состояние","מצב"],"Zone":["Зона","אזור"],"Flow":["Расход","ספיקה"],"Total Water":["Всего воды","סך מים"],"Washing Control":["Управление мойкой","בקרת שטיפה"],"Water Consumption":["Расход воды","צריכת מים"],"Current Wash":["Текущая мойка","שטיפה נוכחית"],"During valve overlap, measured water is divided equally between open zones. Values remain visible until the next wash.":["При перекрытии клапанов объём делится поровну между открытыми зонами. Значения сохраняются до следующей мойки.","בזמן חפיפת שסתומים המים מתחלקים שווה בשווה בין האזורים הפתוחים. הערכים נשמרים עד לשטיפה הבאה."],"Washing in progress":["Мойка выполняется","השטיפה מתבצעת"],"Washing stopped":["Мойка остановлена","השטיפה נעצרה"],"Washing alarm":["Авария мойки","תקלה בשטיפה"],"Water":["Вода","מים"],"Detergent + Water":["Моющее средство + вода","חומר ניקוי + מים"],"START":["СТАРТ","הפעלה"],"EMERGENCY STOP":["АВАРИЙНЫЙ СТОП","עצירת חירום"],"Reset Alarm":["Сброс аварии","איפוס התראה"],"Automatic Schedule":["Автоматическое расписание","לוח זמנים אוטומטי"],"Automatic Start":["Автозапуск","הפעלה אוטומטית"],"Start Time":["Время запуска","שעת התחלה"],"OFF":["ВЫКЛ","כבוי"],"ON":["ВКЛ","פעיל"],"Soap":["Средство","סבון"],"Next:":["Следующий запуск:","ההפעלה הבאה:"],"Disabled":["Отключено","מושבת"],"Active Zones":["Активные зоны","אזורים פעילים"],"Water Times":["Время мойки водой","זמני שטיפה במים"],"Detergent Times":["Время подачи средства","זמני חומר ניקוי"],"Rinse Times":["Время ополаскивания","זמני שטיפה חוזרת"],"Switching":["Переключение","מעברים"],"Zone Overlap":["Перекрытие зон","חפיפת אזורים"],"Source Delay":["Пауза между источниками","השהיית מעבר מקור"],"Flow Protection":["Защита по расходу","הגנת ספיקה"],"Protection":["Защита","הגנה"],"Minimum":["Минимум","מינימום"],"Maximum":["Максимум","מקסימום"],"Leak":["Утечка","דליפה"],"Check Delay":["Задержка проверки","השהיית בדיקה"],"System":["Система","מערכת"],"System Status":["Состояние системы","מצב מערכת"],"Controller":["Контроллер","בקר"],"Connection":["Подключение","חיבור"],"Wi-Fi Signal":["Сигнал Wi-Fi","אות Wi-Fi"],"Uptime":["Время работы","זמן פעולה"],"IP Address":["IP-адрес","כתובת IP"],"Wi-Fi Network":["Сеть Wi-Fi","רשת Wi-Fi"],"MAC Address":["MAC-адрес","כתובת MAC"],"Total Water":["Всего воды","סך מים"],"Alarm":["Авария","התראה"],"ESP32 Date & Time":["Дата и время ESP32","תאריך ושעה ESP32"],"Time Sync":["Синхронизация времени","סנכרון זמן"],"Synchronized":["Синхронизировано","מסונכרן"],"Not synchronized":["Не синхронизировано","לא מסונכרן"],"Unavailable — update ESP32":["Нет данных — обновите ESP32","אין נתונים — עדכנו ESP32"],"Online":["В сети","מחובר"],"Offline":["Не в сети","מנותק"],"Unknown":["Неизвестно","לא ידוע"],"Uptime:":["Время работы:","זמן פעולה:"],"Alarm:":["Авария:","התראה:"],"OK":["Норма","תקין"],"ACTIVE":["АКТИВНА","פעילה"],"Manual Valve Control":["Ручное управление клапанами","בקרה ידנית בשסתומים"],"Zone 1":["Зона 1","אזור 1"],"Zone 2":["Зона 2","אזור 2"],"Zone 3":["Зона 3","אזור 3"],"Zone 4":["Зона 4","אזור 4"],"Zone 5":["Зона 5","אזור 5"],"sec":["сек","שנ׳"],"min":["мин","דק׳"],"Select the mode for manual START. Emergency Stop closes the valves and stops the program. Reset Alarm clears a latched alarm after the cause has been resolved.":["Выберите режим ручного запуска. Аварийный стоп закрывает клапаны и останавливает программу. Сброс аварии разрешён после устранения причины.","בחרו מצב להפעלה ידנית. עצירת חירום סוגרת את השסתומים ועוצרת את התוכנית. יש לאפס התראה רק לאחר טיפול בתקלה."],"Automatic Start enables the weekly schedule. Choose OFF, Water or Soap for each weekday. Start Time is the local time on the ESP32; Soap means detergent followed by rinse.":["Автозапуск включает недельное расписание. Для каждого дня выберите ВЫКЛ, Вода или Средство. Время задаётся по часам ESP32. Средство означает мойку с последующим ополаскиванием.","הפעלה אוטומטית מפעילה לוח שבועי. בחרו לכל יום כבוי, מים או סבון. שעת ההתחלה היא לפי שעון ESP32. סבון כולל שטיפה במים לאחר הניקוי."],"Only enabled zones are included in automatic and manual START washing programs. Disable a zone to skip it.":["В программу входят только включённые зоны. Отключите зону, чтобы пропустить её при мойке.","רק אזורים פעילים נכללים בתוכנית. כבו אזור כדי לדלג עליו."],"Duration of filtered-water washing for each enabled zone in Water mode. In Detergent + Water mode, the Rinse Times below are used instead.":["Продолжительность мойки фильтрованной водой для каждой зоны в режиме «Вода». В режиме со средством используется время ополаскивания ниже.","משך השטיפה במים מסוננים לכל אזור במצב מים. במצב חומר ניקוי משתמשים בזמני השטיפה החוזרת שלהלן."],"How long detergent flows through each enabled zone before rinsing. Each zone has its own setting.":["Сколько секунд моющее средство подаётся в каждую зону до ополаскивания. Настраивается отдельно для каждой зоны.","משך הזרמת חומר הניקוי לכל אזור לפני שטיפה במים. לכל אזור הגדרה נפרדת."],"How long filtered water rinses each zone after detergent. The zone stays open between detergent and rinse.":["Сколько секунд чистая вода промывает зону после моющего средства. Клапан зоны остаётся открытым при смене жидкости.","משך השטיפה במים מסוננים לאחר חומר הניקוי. שסתום האזור נשאר פתוח בזמן המעבר."],"Zone Overlap: opens the next zone before closing the previous one to reduce pressure shock. Source Delay: pause between detergent and filtered water so both source valves are never open together.":["Перекрытие зон: следующая зона открывается до закрытия предыдущей, чтобы уменьшить гидроудар. Пауза источников: промежуток между средством и водой, когда оба клапана источников закрыты.","חפיפת אזורים: פתיחת האזור הבא לפני סגירת הקודם להפחתת מכות לחץ. השהיית מקור: הפסקה בין חומר ניקוי למים כאשר שני שסתומי המקור סגורים."],"Requires a correctly connected and calibrated flow sensor. When enabled, the controller checks for low flow, excessive flow and unexpected flow while idle. Keep OFF until the sensor is installed and tested.":["Требуется подключённый и проверенный датчик расхода. Защита контролирует недостаточный, чрезмерный и неожиданный расход при простое. Не включайте до проверки датчика.","נדרש חיישן ספיקה מחובר ומכויל. ההגנה בודקת ספיקה נמוכה, גבוהה וזרימה בלתי צפויה במנוחה. השאירו כבוי עד לבדיקת החיישן."],"Wi-Fi shows signal strength in dBm (closer to zero is stronger). Uptime is time since the ESP32 last restarted. Alarm shows whether a fault is latched.":["Wi-Fi — уровень сигнала в dBm (ближе к нулю — сильнее). Время работы — с последней перезагрузки ESP32. Авария показывает сохранённую ошибку.","Wi-Fi מציג עוצמת אות ב-dBm (קרוב יותר לאפס פירושו אות חזק יותר). זמן פעולה נספר מההפעלה האחרונה. התראה מציגה תקלה פעילה."],"Direct relay controls for testing and maintenance. These bypass the normal washing sequence: use carefully and never open detergent and water sources together.":["Прямое управление реле для проверки и обслуживания. Обходит обычную последовательность мойки. Не открывайте одновременно подачу воды и средства.","שליטה ישירה בממסרים לבדיקה ותחזוקה. עוקפת את רצף השטיפה הרגיל. אין לפתוח יחד את מקורות המים וחומר הניקוי."],"Time when two consecutive zone valves are open together during a water transition.":["Время одновременного открытия двух соседних зон при переходе.","משך הזמן שבו שני שסתומי אזורים פתוחים יחד במעבר."],"Pause with both source valves closed when changing between detergent and filtered water.":["Пауза с закрытыми источниками при переходе между средством и водой.","השהיה כששני שסתומי המקור סגורים במעבר בין חומר ניקוי למים."],"If measured flow falls below this value during washing (after Check Delay), protection stops the system.":["Если расход ниже порога после задержки проверки, система аварийно остановится.","אם הספיקה יורדת מתחת לסף לאחר ההשהיה, המערכת נעצרת."],"If measured flow rises above this value during washing (after Check Delay), protection stops the system.":["Если расход выше порога после задержки проверки, система аварийно остановится.","אם הספיקה עולה מעל הסף לאחר ההשהיה, המערכת נעצרת."],"Unexpected flow above this value while washing is idle triggers a leak alarm.":["Расход выше порога при остановленной мойке вызывает сигнал утечки.","זרימה מעל הסף כשהשטיפה כבויה מפעילה התראת דליפה."],"Wait after opening a source valve before checking minimum and maximum flow.":["Задержка после открытия источника перед проверкой минимального и максимального расхода.","השהיה לאחר פתיחת מקור לפני בדיקת ספיקה מינימלית ומקסימלית."],"Enable flow-based alarms only after the flow meter has been installed and tested.":["Включайте защиту только после установки и проверки расходомера.","יש להפעיל הגנה רק לאחר התקנת ובדיקת מד הספיקה."],"Enable flow monitoring and automatic fault shutdown.":["Включить контроль расхода и аварийное отключение.","הפעלת ניטור ספיקה וכיבוי אוטומטי בתקלה."],"Ready":["Готово","מוכן"],"None":["Нет","ללא"],"Running":["Работает","פועל"],"Water - Zone 1":["Вода — зона 1","מים — אזור 1"]};
+    const dict={"Solar Panel Washing":["Мойка солнечных панелей","שטיפת פאנלים סולאריים"],"Automatic multi-zone washing controller":["Автоматическая многозонная система мойки","מערכת שטיפה אוטומטית רב-אזורית"],"Status":["Состояние","מצב"],"Zone":["Зона","אזור"],"Flow":["Расход","ספיקה"],"Total Water":["Всего воды","סך מים"],"Washing Control":["Управление мойкой","בקרת שטיפה"],"Water Consumption":["Расход воды","צריכת מים"],"Current Wash":["Текущая мойка","שטיפה נוכחית"],"Restore counters":["Восстановить счётчики","שחזור מונים"],"Hide restore":["Скрыть восстановление","הסתר שחזור"],"Date and time":["Дата и время","תאריך ושעה"],"Load history":["Загрузить историю","טעינת היסטוריה"],"Confirm restore":["Подтвердить восстановление","אישור שחזור"],"Save now":["Сохранить сейчас","שמירה עכשיו"],"Current":["Сейчас","נוכחי"],"From HA":["Из HA","מההיסטוריה"],"Recorded at":["Записано","נרשם ב"],"History not loaded":["История ещё не загружена","ההיסטוריה טרם נטענה"],"During valve overlap, measured water is divided equally between open zones. Values remain visible until the next wash.":["При перекрытии клапанов объём делится поровну между открытыми зонами. Значения сохраняются до следующей мойки.","בזמן חפיפת שסתומים המים מתחלקים שווה בשווה בין האזורים הפתוחים. הערכים נשמרים עד לשטיפה הבאה."],"Washing in progress":["Мойка выполняется","השטיפה מתבצעת"],"Washing stopped":["Мойка остановлена","השטיפה נעצרה"],"Washing alarm":["Авария мойки","תקלה בשטיפה"],"Water":["Вода","מים"],"Detergent + Water":["Моющее средство + вода","חומר ניקוי + מים"],"START":["СТАРТ","הפעלה"],"EMERGENCY STOP":["АВАРИЙНЫЙ СТОП","עצירת חירום"],"Reset Alarm":["Сброс аварии","איפוס התראה"],"Automatic Schedule":["Автоматическое расписание","לוח זמנים אוטומטי"],"Automatic Start":["Автозапуск","הפעלה אוטומטית"],"Start Time":["Время запуска","שעת התחלה"],"OFF":["ВЫКЛ","כבוי"],"ON":["ВКЛ","פעיל"],"Soap":["Средство","סבון"],"Next:":["Следующий запуск:","ההפעלה הבאה:"],"Disabled":["Отключено","מושבת"],"Active Zones":["Активные зоны","אזורים פעילים"],"Water Times":["Время мойки водой","זמני שטיפה במים"],"Detergent Times":["Время подачи средства","זמני חומר ניקוי"],"Rinse Times":["Время ополаскивания","זמני שטיפה חוזרת"],"Switching":["Переключение","מעברים"],"Zone Overlap":["Перекрытие зон","חפיפת אזורים"],"Source Delay":["Пауза между источниками","השהיית מעבר מקור"],"Flow Protection":["Защита по расходу","הגנת ספיקה"],"Protection":["Защита","הגנה"],"Minimum":["Минимум","מינימום"],"Maximum":["Максимум","מקסימום"],"Leak":["Утечка","דליפה"],"Check Delay":["Задержка проверки","השהיית בדיקה"],"System":["Система","מערכת"],"System Status":["Состояние системы","מצב מערכת"],"Controller":["Контроллер","בקר"],"Connection":["Подключение","חיבור"],"Wi-Fi Signal":["Сигнал Wi-Fi","אות Wi-Fi"],"Uptime":["Время работы","זמן פעולה"],"IP Address":["IP-адрес","כתובת IP"],"Wi-Fi Network":["Сеть Wi-Fi","רשת Wi-Fi"],"MAC Address":["MAC-адрес","כתובת MAC"],"Total Water":["Всего воды","סך מים"],"Alarm":["Авария","התראה"],"ESP32 Date & Time":["Дата и время ESP32","תאריך ושעה ESP32"],"Time Sync":["Синхронизация времени","סנכרון זמן"],"Synchronized":["Синхронизировано","מסונכרן"],"Not synchronized":["Не синхронизировано","לא מסונכרן"],"Unavailable — update ESP32":["Нет данных — обновите ESP32","אין נתונים — עדכנו ESP32"],"Online":["В сети","מחובר"],"Offline":["Не в сети","מנותק"],"Unknown":["Неизвестно","לא ידוע"],"Uptime:":["Время работы:","זמן פעולה:"],"Alarm:":["Авария:","התראה:"],"OK":["Норма","תקין"],"ACTIVE":["АКТИВНА","פעילה"],"Manual Valve Control":["Ручное управление клапанами","בקרה ידנית בשסתומים"],"Zone 1":["Зона 1","אזור 1"],"Zone 2":["Зона 2","אזור 2"],"Zone 3":["Зона 3","אזור 3"],"Zone 4":["Зона 4","אזור 4"],"Zone 5":["Зона 5","אזור 5"],"sec":["сек","שנ׳"],"min":["мин","דק׳"],"Select the mode for manual START. Emergency Stop closes the valves and stops the program. Reset Alarm clears a latched alarm after the cause has been resolved.":["Выберите режим ручного запуска. Аварийный стоп закрывает клапаны и останавливает программу. Сброс аварии разрешён после устранения причины.","בחרו מצב להפעלה ידנית. עצירת חירום סוגרת את השסתומים ועוצרת את התוכנית. יש לאפס התראה רק לאחר טיפול בתקלה."],"Automatic Start enables the weekly schedule. Choose OFF, Water or Soap for each weekday. Start Time is the local time on the ESP32; Soap means detergent followed by rinse.":["Автозапуск включает недельное расписание. Для каждого дня выберите ВЫКЛ, Вода или Средство. Время задаётся по часам ESP32. Средство означает мойку с последующим ополаскиванием.","הפעלה אוטומטית מפעילה לוח שבועי. בחרו לכל יום כבוי, מים או סבון. שעת ההתחלה היא לפי שעון ESP32. סבון כולל שטיפה במים לאחר הניקוי."],"Only enabled zones are included in automatic and manual START washing programs. Disable a zone to skip it.":["В программу входят только включённые зоны. Отключите зону, чтобы пропустить её при мойке.","רק אזורים פעילים נכללים בתוכנית. כבו אזור כדי לדלג עליו."],"Duration of filtered-water washing for each enabled zone in Water mode. In Detergent + Water mode, the Rinse Times below are used instead.":["Продолжительность мойки фильтрованной водой для каждой зоны в режиме «Вода». В режиме со средством используется время ополаскивания ниже.","משך השטיפה במים מסוננים לכל אזור במצב מים. במצב חומר ניקוי משתמשים בזמני השטיפה החוזרת שלהלן."],"How long detergent flows through each enabled zone before rinsing. Each zone has its own setting.":["Сколько секунд моющее средство подаётся в каждую зону до ополаскивания. Настраивается отдельно для каждой зоны.","משך הזרמת חומר הניקוי לכל אזור לפני שטיפה במים. לכל אזור הגדרה נפרדת."],"How long filtered water rinses each zone after detergent. The zone stays open between detergent and rinse.":["Сколько секунд чистая вода промывает зону после моющего средства. Клапан зоны остаётся открытым при смене жидкости.","משך השטיפה במים מסוננים לאחר חומר הניקוי. שסתום האזור נשאר פתוח בזמן המעבר."],"Zone Overlap: opens the next zone before closing the previous one to reduce pressure shock. Source Delay: pause between detergent and filtered water so both source valves are never open together.":["Перекрытие зон: следующая зона открывается до закрытия предыдущей, чтобы уменьшить гидроудар. Пауза источников: промежуток между средством и водой, когда оба клапана источников закрыты.","חפיפת אזורים: פתיחת האזור הבא לפני סגירת הקודם להפחתת מכות לחץ. השהיית מקור: הפסקה בין חומר ניקוי למים כאשר שני שסתומי המקור סגורים."],"Requires a correctly connected and calibrated flow sensor. When enabled, the controller checks for low flow, excessive flow and unexpected flow while idle. Keep OFF until the sensor is installed and tested.":["Требуется подключённый и проверенный датчик расхода. Защита контролирует недостаточный, чрезмерный и неожиданный расход при простое. Не включайте до проверки датчика.","נדרש חיישן ספיקה מחובר ומכויל. ההגנה בודקת ספיקה נמוכה, גבוהה וזרימה בלתי צפויה במנוחה. השאירו כבוי עד לבדיקת החיישן."],"Wi-Fi shows signal strength in dBm (closer to zero is stronger). Uptime is time since the ESP32 last restarted. Alarm shows whether a fault is latched.":["Wi-Fi — уровень сигнала в dBm (ближе к нулю — сильнее). Время работы — с последней перезагрузки ESP32. Авария показывает сохранённую ошибку.","Wi-Fi מציג עוצמת אות ב-dBm (קרוב יותר לאפס פירושו אות חזק יותר). זמן פעולה נספר מההפעלה האחרונה. התראה מציגה תקלה פעילה."],"Direct relay controls for testing and maintenance. These bypass the normal washing sequence: use carefully and never open detergent and water sources together.":["Прямое управление реле для проверки и обслуживания. Обходит обычную последовательность мойки. Не открывайте одновременно подачу воды и средства.","שליטה ישירה בממסרים לבדיקה ותחזוקה. עוקפת את רצף השטיפה הרגיל. אין לפתוח יחד את מקורות המים וחומר הניקוי."],"Time when two consecutive zone valves are open together during a water transition.":["Время одновременного открытия двух соседних зон при переходе.","משך הזמן שבו שני שסתומי אזורים פתוחים יחד במעבר."],"Pause with both source valves closed when changing between detergent and filtered water.":["Пауза с закрытыми источниками при переходе между средством и водой.","השהיה כששני שסתומי המקור סגורים במעבר בין חומר ניקוי למים."],"If measured flow falls below this value during washing (after Check Delay), protection stops the system.":["Если расход ниже порога после задержки проверки, система аварийно остановится.","אם הספיקה יורדת מתחת לסף לאחר ההשהיה, המערכת נעצרת."],"If measured flow rises above this value during washing (after Check Delay), protection stops the system.":["Если расход выше порога после задержки проверки, система аварийно остановится.","אם הספיקה עולה מעל הסף לאחר ההשהיה, המערכת נעצרת."],"Unexpected flow above this value while washing is idle triggers a leak alarm.":["Расход выше порога при остановленной мойке вызывает сигнал утечки.","זרימה מעל הסף כשהשטיפה כבויה מפעילה התראת דליפה."],"Wait after opening a source valve before checking minimum and maximum flow.":["Задержка после открытия источника перед проверкой минимального и максимального расхода.","השהיה לאחר פתיחת מקור לפני בדיקת ספיקה מינימלית ומקסימלית."],"Enable flow-based alarms only after the flow meter has been installed and tested.":["Включайте защиту только после установки и проверки расходомера.","יש להפעיל הגנה רק לאחר התקנת ובדיקת מד הספיקה."],"Enable flow monitoring and automatic fault shutdown.":["Включить контроль расхода и аварийное отключение.","הפעלת ניטור ספיקה וכיבוי אוטומטי בתקלה."],"Ready":["Готово","מוכן"],"None":["Нет","ללא"],"Running":["Работает","פועל"],"Water - Zone 1":["Вода — зона 1","מים — אזור 1"]};
     if(lang==="en")return;
     const index=lang==="ru"?0:1;
     const root=this.querySelector("ha-card");
@@ -168,6 +168,118 @@ class SolarPanelWashingCard extends HTMLElement {
     const on=this.state(id)==="on";
     return `<button class="chip ${on?"on":""}" data-toggle="${id}" title="${label}"><b>${short||label}</b><small>${label}</small></button>`;
   }
+  waterCounterIds(){
+    const p="sensor.solar_panel_washing_";
+    return [p+"total_water",p+"current_wash_water",...Array.from({length:5},(_,i)=>p+"wash_zone_"+(i+1)+"_water")];
+  }
+  waterLabels(){return ["Total Water","Current Wash","Zone 1","Zone 2","Zone 3","Zone 4","Zone 5"];}
+  restoreDefaultDate(){
+    const d=new Date(), pad=n=>String(n).padStart(2,"0");
+    return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  }
+  restorePanel(){
+    const open=!!this._restoreOpen;
+    const preview=this._restorePreview;
+    const msg=this._restoreError;
+    const busy=!!this._restoreLoading;
+    const labels=this.waterLabels(),ids=this.waterCounterIds();
+    const table=preview?`<div class="spw-restore-table">
+      <div class="spw-restore-row"><b></b><b>Current</b><b>From HA</b></div>
+      ${preview.map((item,i)=>`<div class="spw-restore-row"><span>${labels[i]}</span><span>${this.waterNumber(ids[i])} L</span><span><b>${item.value.toFixed(2)} L</b><small>Recorded at ${new Date(item.time).toLocaleString()}</small></span></div>`).join("")}
+    </div>`:"<small>History not loaded</small>";
+    return `<div class="spw-restore">
+      <div class="spw-restore-actions">
+        <button type="button" data-save-counters>Save now</button>
+        <button type="button" data-restore-toggle>${open?"Hide restore":"Restore counters"}</button>
+      </div>
+      ${open?`<div class="spw-restore-expanded">
+        <label>Date and time <input type="datetime-local" data-restore-datetime value="${this._restoreAt||this.restoreDefaultDate()}"></label>
+        <button type="button" data-restore-load ${busy?"disabled":""}>Load history</button>
+        ${busy?"<small>Loading…</small>":""}
+        ${msg?`<p class="spw-restore-error">${String(msg).replace(/[&<>"]/g,x=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[x]))}</p>`:""}
+        ${table}
+        ${preview?`<button type="button" data-restore-confirm ${busy?"disabled":""}>Confirm restore</button>`:""}
+      </div>`:""}
+    </div>`;
+  }
+  async loadWaterHistory(){
+    if(this._restoreLoading)return;
+    const input=this.querySelector("[data-restore-datetime]");
+    this._restoreAt=input?.value||this._restoreAt||this.restoreDefaultDate();
+    this._restorePreview=null;
+    this._restoreError="";
+    const target=new Date(this._restoreAt);
+    if(!Number.isFinite(target.getTime())||target.getTime()>Date.now()){
+      this._restoreError="Choose a valid past date and time";this.render();return;
+    }
+    this._restoreLoading=true;this.render();
+    try{
+      const ids=this.waterCounterIds();
+      // Include state at the beginning of the interval; HA's history API
+      // can return the previous recorded state as its first sample.
+      const result=await this._hass.callWS({
+        type:"history/history_during_period",
+        start_time:new Date(target.getTime()-60000).toISOString(),
+        end_time:new Date(target.getTime()+1000).toISOString(),
+        entity_ids:ids,minimal_response:false,no_attributes:true
+      });
+      const rows=Array.isArray(result)?result:Object.values(result||{});
+      const preview=ids.map((id,i)=>{
+        const group=rows.find(a=>Array.isArray(a)&&a.some(x=>x.entity_id===id))||rows[i]||[];
+        const valid=group.filter(x=>{
+          const time=new Date(x.last_updated||x.last_changed||x.lu||x.lc);
+          const v=Number(x.state??x.s);
+          return Number.isFinite(time.getTime())&&time.getTime()<=target.getTime()&&
+            Number.isFinite(v)&&v>=0;
+        });
+        if(!valid.length)throw Error(`No recorded value for ${id} at this time. Nothing was changed.`);
+        const x=valid[valid.length-1];
+        return {value:Number(x.state??x.s),time:x.last_updated||x.last_changed||x.lu||x.lc};
+      });
+      this._restorePreview=preview;
+    }catch(e){this._restoreError=e?.message||String(e);}
+    finally{this._restoreLoading=false;this.render();}
+  }
+  async restoreWaterHistory(){
+    const values=this._restorePreview;
+    if(!values||values.length!==7||this._restoreLoading)return;
+    const p="solar_panel_washing_";
+    if(this.state(`binary_sensor.${p}washing_active`)==="on"||
+       this.state(`sensor.${p}washing_status`)==="Main Valve Check"||
+       this.state(`sensor.${p}washing_status`)==="Pressure Release"){
+      this._restoreError="Stop washing and close all valves before restoring.";this.render();return;
+    }
+    const switches=["ch8_valve_power","ch1_filtered_water","ch2_detergent",...Array.from({length:5},(_,i)=>`ch${i+3}_zone_${i+1}`)];
+    if(switches.some(x=>this.state(`switch.${p}${x}`)!=="off")){
+      this._restoreError="All eight relays must report OFF before restoring.";this.render();return;
+    }
+    const service="solar_panel_washing_restore_water_counters";
+    if(!this._hass.services?.esphome?.[service]){
+      this._restoreError="ESPHome restore action not available. Update ESP32 firmware and reconnect Home Assistant.";this.render();return;
+    }
+    const valuesText=values.map((v,i)=>`${this.waterLabels()[i]}: ${v.value.toFixed(2)} L`).join("\n");
+    if(!window.confirm(`Restore counters from ${this._restoreAt}?\n\n${valuesText}\n\nThis replaces the current values in ESP32.`))return;
+    this._restoreLoading=true;this.render();
+    try{
+      await this._hass.callService("esphome",service,{
+        total:values[0].value,wash:values[1].value,
+        zone1:values[2].value,zone2:values[3].value,zone3:values[4].value,
+        zone4:values[5].value,zone5:values[6].value
+      });
+      this._restoreError="Restore command sent to ESP32. Check live counter values.";
+      this._restorePreview=null;
+    }catch(e){this._restoreError=e?.message||String(e);}
+    finally{this._restoreLoading=false;this.render();}
+  }
+  async saveWaterCounters(){
+    try{
+      const id="button.solar_panel_washing_save_water_counters";
+      if(!this._hass.states?.[id])throw Error("Save button unavailable. Update ESP32 firmware.");
+      await this._hass.callService("button","press",{entity_id:id});
+      this._restoreError="Save requested on ESP32.";
+    }catch(e){this._restoreError=e?.message||String(e);this._restoreOpen=true;}
+    this.render();
+  }
   waterNumber(entity) { const v=Number(this._hass?.states?.[entity]?.state); return Number.isFinite(v)?v.toFixed(2):"—"; }
   render(){
     if(!this._hass) return;
@@ -228,10 +340,11 @@ class SolarPanelWashingCard extends HTMLElement {
       .spw-history{cursor:pointer;text-decoration:underline;text-decoration-style:dotted;text-underline-offset:3px}.spw-history:hover{color:var(--primary-color)}.spw-history:focus-visible{outline:2px solid var(--primary-color);border-radius:3px}
         .spw-consumption-summary{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin:10px 0 14px}.spw-consumption-summary>div{display:flex;flex-direction:column;gap:5px;padding:12px 9px;border-radius:10px;background:var(--secondary-background-color,#f1f5f9);min-width:0}.spw-consumption-summary small{font-size:11px;color:var(--secondary-text-color)}.spw-consumption-summary strong{font-size:19px;color:var(--primary-text-color);overflow-wrap:anywhere}.spw-consumption-line{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 2px;border-bottom:1px solid var(--divider-color,rgba(127,127,127,.15));font-size:13px}.spw-consumption-line b{font-variant-numeric:tabular-nums}.spw-consumption-total{font-weight:700}.spw-consumption-note{display:block;margin-top:10px;font-size:11px;line-height:1.4;color:var(--secondary-text-color)}
         .spw-stage-count{display:block;text-align:end;color:var(--spw-blue);font-weight:700;font-size:12px;margin:0 4px 8px}.spw-fault{color:var(--spw-red)}.spw-fault-reason{display:block;color:var(--spw-red);font-size:12px;font-weight:700;padding:4px}.spw-fault-highlight{outline:2px solid var(--spw-red);border-radius:8px;animation:spw-flash 1s infinite alternate}@keyframes spw-flash{from{background:transparent}to{background:rgba(239,62,62,.17)}}.spw-flow-progress{margin-top:8px;color:var(--spw-blue);font-size:12px;font-weight:700}
+        .spw-restore{margin-top:12px;padding-top:12px;border-top:1px solid var(--divider-color,#ddd)}.spw-restore-actions{display:flex;flex-wrap:wrap;gap:8px}.spw-restore button{padding:9px 12px;border:1px solid var(--divider-color,#ccc);border-radius:9px;background:var(--secondary-background-color,#eee);color:var(--primary-text-color);cursor:pointer}.spw-restore-expanded{margin-top:12px;display:flex;flex-direction:column;gap:10px}.spw-restore-expanded label{display:flex;flex-direction:column;gap:6px}.spw-restore-expanded input{max-width:100%;width:100%;padding:9px;color:var(--primary-text-color);background:var(--card-background-color);border:1px solid var(--divider-color);border-radius:8px}.spw-restore-table{display:grid;gap:6px}.spw-restore-row{display:grid;grid-template-columns:1fr 1fr 1.5fr;gap:5px;align-items:start;font-size:12px;border-bottom:1px solid var(--divider-color);padding:5px 0}.spw-restore-row small{display:block;opacity:.7}.spw-restore-error{color:var(--error-color,#c62828);font-weight:600;overflow-wrap:anywhere}
         .spw-system .spw-status-row{display:flex;justify-content:space-between;align-items:baseline;gap:12px;padding:7px 0;border-bottom:1px solid var(--divider-color,rgba(127,127,127,.12));font-size:13px}.spw-system .spw-status-row:last-child{border-bottom:0}.spw-system .spw-status-label{color:var(--secondary-text-color);white-space:nowrap}.spw-system .spw-status-row strong{font-weight:600;overflow-wrap:anywhere;text-align:end;min-width:0}
 </style>
       <div class="wrap">
-        <div class="hero"><ha-icon icon="mdi:solar-panel"></ha-icon><div><h1>Solar Panel Washing</h1><p>Automatic multi-zone washing controller</p></div><div class="language-control"><div class="spw-version" aria-label="Dashboard version">v1.3.23</div><button type="button" class="language-trigger" data-language-toggle aria-haspopup="true" aria-expanded="false">🌐 ${({"auto":"Auto","en":"English","ru":"Русский","he":"עברית"})[this.config?.language||"auto"]||"Auto"} ▾</button><div class="language-menu" data-language-menu hidden><button type="button" data-language-choice="auto">🌐 Auto</button><button type="button" data-language-choice="en">🇺🇸 English</button><button type="button" data-language-choice="ru">🇷🇺 Русский</button><button type="button" data-language-choice="he">🇮🇱 עברית</button></div></div></div>
+        <div class="hero"><ha-icon icon="mdi:solar-panel"></ha-icon><div><h1>Solar Panel Washing</h1><p>Automatic multi-zone washing controller</p></div><div class="language-control"><div class="spw-version" aria-label="Dashboard version">v1.3.24</div><button type="button" class="language-trigger" data-language-toggle aria-haspopup="true" aria-expanded="false">🌐 ${({"auto":"Auto","en":"English","ru":"Русский","he":"עברית"})[this.config?.language||"auto"]||"Auto"} ▾</button><div class="language-menu" data-language-menu hidden><button type="button" data-language-choice="auto">🌐 Auto</button><button type="button" data-language-choice="en">🇺🇸 English</button><button type="button" data-language-choice="ru">🇷🇺 Русский</button><button type="button" data-language-choice="he">🇮🇱 עברית</button></div></div></div>
         <div class="stats">
           <div class="stat"><small>Status</small><b class="${this.state(E.alarm)==="on"?"alarm":"ok"}">${this.state(E.status)}</b></div>
           <div class="stat"><small>Zone</small><b>${this.state(E.zone)}</b></div>
@@ -302,6 +415,7 @@ class SolarPanelWashingCard extends HTMLElement {
             </div>
             <div class="spw-consumption-line spw-consumption-total"><span>Total Water</span><b><span class="spw-history" tabindex="0" role="button" title="Open Home Assistant history" data-history="${E.total}">${this.waterNumber(E.total)} L</span></b></div>
             <small class="spw-consumption-note">During valve overlap, measured water is divided equally between open zones. Values remain visible until the next wash.</small>
+            ${this.restorePanel()}
           </div>
           <div class="box wide"><h3>🔧 Manual Valve Control</h3>${this.helpLine("Direct relay controls for testing and maintenance. These bypass the normal washing sequence: use carefully and never open detergent and water sources together.")}<div class="manual">
             ${this.sw(`switch.${p}ch8_valve_power`,"CH8 Valve Power","POWER")}${this.sw(`switch.${p}ch1_filtered_water`,"CH1 Filtered Water","WATER")}${this.sw(`switch.${p}ch2_detergent`,"CH2 Detergent","SOAP")}
@@ -310,6 +424,10 @@ class SolarPanelWashingCard extends HTMLElement {
         </div>
       </div>
     </ha-card>`;
+    this.querySelector("[data-restore-toggle]")?.addEventListener("click",()=>{this._restoreOpen=!this._restoreOpen;this.render();});
+    this.querySelector("[data-save-counters]")?.addEventListener("click",()=>this.saveWaterCounters());
+    this.querySelector("[data-restore-load]")?.addEventListener("click",()=>this.loadWaterHistory());
+    this.querySelector("[data-restore-confirm]")?.addEventListener("click",()=>this.restoreWaterHistory());
     this.querySelectorAll("[data-history]").forEach(el=>{
       const open=()=>this.dispatchEvent(new CustomEvent("hass-more-info",{
         bubbles:true,composed:true,detail:{entityId:el.dataset.history}
@@ -372,7 +490,7 @@ class SolarPanelWashingSectionCard extends SolarPanelWashingCard {
       const host=grid.querySelector(".box");
       const bar=document.createElement("div");
       bar.style.cssText="display:flex;gap:8px;justify-content:flex-end;margin-bottom:10px;align-items:center";
-      const version=document.createElement("small");version.textContent="v1.3.23";
+      const version=document.createElement("small");version.textContent="v1.3.24";
       const picker=document.createElement("div");
       picker.style.cssText="position:relative";
       const trigger=document.createElement("button");
@@ -465,7 +583,7 @@ class SolarPanelWashingOverviewCard extends HTMLElement {
       .spw-head small{margin-left:0}
       @container (max-width:1050px){.spw-layout{grid-template-columns:repeat(2,minmax(0,1fr))}.spw-column{display:contents}.spw-cell{order:var(--tablet-order)}}
       @container (max-width:620px){.spw-layout{grid-template-columns:minmax(0,1fr)}.spw-column{display:contents}.spw-cell{order:var(--mobile-order)}.spw-head{font-size:18px;padding:10px 12px}}
-    </style><div class="spw-overview"><div class="spw-head">☀️ Solar Panel Washing <div class="spw-language"><small>v1.3.23</small><select aria-label="Language" class="spw-language-select"><option value="auto">🌐 Auto</option><option value="en">🇺🇸 English</option><option value="ru">🇷🇺 Русский</option><option value="he">🇮🇱 עברית</option></select></div></div><div class="spw-layout"></div></div>`;
+    </style><div class="spw-overview"><div class="spw-head">☀️ Solar Panel Washing <div class="spw-language"><small>v1.3.24</small><select aria-label="Language" class="spw-language-select"><option value="auto">🌐 Auto</option><option value="en">🇺🇸 English</option><option value="ru">🇷🇺 Русский</option><option value="he">🇮🇱 עברית</option></select></div></div><div class="spw-layout"></div></div>`;
     const langSelect=this.querySelector(".spw-language-select");
     let savedLanguage="auto";
     try { savedLanguage=localStorage.getItem("solar_panel_washing_language") || "auto"; } catch (_) {}
@@ -506,4 +624,4 @@ class SolarPanelWashingOverviewCard extends HTMLElement {
 if(!customElements.get("solar-panel-washing-overview-card"))customElements.define("solar-panel-washing-overview-card",SolarPanelWashingOverviewCard);
 window.customCards.push({type:"solar-panel-washing-overview-card",name:"Solar Washing — Responsive Overview",description:"Desktop 4-column and mobile stacked washing dashboard",preview:true});
 
-console.info("%c SOLAR-PANEL-WASHING-CARD %c v1.3.23 ","color:white;background:#1684d8;font-weight:700","color:#1684d8;background:white");
+console.info("%c SOLAR-PANEL-WASHING-CARD %c v1.3.24 ","color:white;background:#1684d8;font-weight:700","color:#1684d8;background:white");
