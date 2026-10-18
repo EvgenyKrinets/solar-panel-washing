@@ -200,19 +200,9 @@ The current firmware has a **first-install initial value of 30.6237333 L**, take
 - Manual CH1–CH8 controls are for testing and maintenance and may bypass normal automatic protections.
 - Following reboot or power loss, the controller turns outputs off and does not automatically resume an interrupted wash.
 
-## Dashboard gallery — English previews
+## Real dashboard screenshots
 
-The three new images below use **English labels** and follow the current eleven-card feature order. They are **illustrative interface previews**, not live Home Assistant screenshots. For real captures, switch the dashboard language to English and capture the running dashboard.
-
-![English UI preview: control and schedule](assets/screenshots/01-control-and-schedule-english-preview.svg)
-
-![English UI preview: timers and safety](assets/screenshots/02-timers-and-safety-english-preview.svg)
-
-![English UI preview: monitoring and recovery](assets/screenshots/03-monitoring-and-recovery-english-preview.svg)
-
-### Earlier live screenshots (older versions)
-
-The feature overview at the top of this README reflects the **current eleven-card layout**. The images below are existing dashboard captures from earlier builds; they are grouped by function rather than presented as an unordered gallery. Some text or controls may differ from v1.3.30. The gallery images themselves have **not yet been replaced with fresh live captures**.
+The screenshots below are **real captures of Home Assistant**, not generated mockups. They are grouped by function in the order of the eleven cards. Some existing captures show earlier software versions. The newest complete eleven-card screenshot supplied in the conversation is prepared separately for uploading; it is **not yet hosted in this repository**.
 
 ### 1. Washing Control
 Start a wash in Water or Detergent + Water mode; stop it immediately; reset an alarm after investigating the cause.
