@@ -186,6 +186,24 @@ globals:
     restore_value: no
     initial_value: 'false'
 
+  # Actual elapsed seconds for water, detergent and rinse, zones 1..5.
+  # RAM only: reset at accepted wash start and on ESP32 reboot.
+  - id: actual_stage_seconds
+    type: std::array<uint32_t, 15>
+    restore_value: no
+    initial_value: '{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}'
+  - id: actual_stage_started_ms
+    type: uint32_t
+    restore_value: no
+    initial_value: '0'
+  - id: actual_stage_last_kind
+    type: int
+    restore_value: no
+    initial_value: '0'
+  - id: actual_stage_last_zone
+    type: int
+    restore_value: no
+    initial_value: '0'
   - id: stage_kind
     type: int
     initial_value: '0'
@@ -1028,6 +1046,231 @@ sensor:
     lambda: |-
       return id(wash_zone_liters)[4];
 
+  - platform: template
+    name: "Actual Water Zone 1 Time"
+    id: actual_water_z1
+    unit_of_measurement: "s"
+    icon: mdi:timer-outline
+    accuracy_decimals: 0
+    update_interval: 1s
+    lambda: |-
+      const int i = 0;
+      uint32_t elapsed = id(actual_stage_seconds)[i];
+      if (id(wash_running) && id(actual_stage_last_kind) == 1 &&
+          id(actual_stage_last_zone) == 1 && id(actual_stage_started_ms) != 0)
+        elapsed += (millis() - id(actual_stage_started_ms)) / 1000u;
+      return elapsed;
+
+  - platform: template
+    name: "Actual Water Zone 2 Time"
+    id: actual_water_z2
+    unit_of_measurement: "s"
+    icon: mdi:timer-outline
+    accuracy_decimals: 0
+    update_interval: 1s
+    lambda: |-
+      const int i = 1;
+      uint32_t elapsed = id(actual_stage_seconds)[i];
+      if (id(wash_running) && id(actual_stage_last_kind) == 1 &&
+          id(actual_stage_last_zone) == 2 && id(actual_stage_started_ms) != 0)
+        elapsed += (millis() - id(actual_stage_started_ms)) / 1000u;
+      return elapsed;
+
+  - platform: template
+    name: "Actual Water Zone 3 Time"
+    id: actual_water_z3
+    unit_of_measurement: "s"
+    icon: mdi:timer-outline
+    accuracy_decimals: 0
+    update_interval: 1s
+    lambda: |-
+      const int i = 2;
+      uint32_t elapsed = id(actual_stage_seconds)[i];
+      if (id(wash_running) && id(actual_stage_last_kind) == 1 &&
+          id(actual_stage_last_zone) == 3 && id(actual_stage_started_ms) != 0)
+        elapsed += (millis() - id(actual_stage_started_ms)) / 1000u;
+      return elapsed;
+
+  - platform: template
+    name: "Actual Water Zone 4 Time"
+    id: actual_water_z4
+    unit_of_measurement: "s"
+    icon: mdi:timer-outline
+    accuracy_decimals: 0
+    update_interval: 1s
+    lambda: |-
+      const int i = 3;
+      uint32_t elapsed = id(actual_stage_seconds)[i];
+      if (id(wash_running) && id(actual_stage_last_kind) == 1 &&
+          id(actual_stage_last_zone) == 4 && id(actual_stage_started_ms) != 0)
+        elapsed += (millis() - id(actual_stage_started_ms)) / 1000u;
+      return elapsed;
+
+  - platform: template
+    name: "Actual Water Zone 5 Time"
+    id: actual_water_z5
+    unit_of_measurement: "s"
+    icon: mdi:timer-outline
+    accuracy_decimals: 0
+    update_interval: 1s
+    lambda: |-
+      const int i = 4;
+      uint32_t elapsed = id(actual_stage_seconds)[i];
+      if (id(wash_running) && id(actual_stage_last_kind) == 1 &&
+          id(actual_stage_last_zone) == 5 && id(actual_stage_started_ms) != 0)
+        elapsed += (millis() - id(actual_stage_started_ms)) / 1000u;
+      return elapsed;
+
+  - platform: template
+    name: "Actual Detergent Zone 1 Time"
+    id: actual_detergent_z1
+    unit_of_measurement: "s"
+    icon: mdi:timer-outline
+    accuracy_decimals: 0
+    update_interval: 1s
+    lambda: |-
+      const int i = 5;
+      uint32_t elapsed = id(actual_stage_seconds)[i];
+      if (id(wash_running) && id(actual_stage_last_kind) == 2 &&
+          id(actual_stage_last_zone) == 1 && id(actual_stage_started_ms) != 0)
+        elapsed += (millis() - id(actual_stage_started_ms)) / 1000u;
+      return elapsed;
+
+  - platform: template
+    name: "Actual Detergent Zone 2 Time"
+    id: actual_detergent_z2
+    unit_of_measurement: "s"
+    icon: mdi:timer-outline
+    accuracy_decimals: 0
+    update_interval: 1s
+    lambda: |-
+      const int i = 6;
+      uint32_t elapsed = id(actual_stage_seconds)[i];
+      if (id(wash_running) && id(actual_stage_last_kind) == 2 &&
+          id(actual_stage_last_zone) == 2 && id(actual_stage_started_ms) != 0)
+        elapsed += (millis() - id(actual_stage_started_ms)) / 1000u;
+      return elapsed;
+
+  - platform: template
+    name: "Actual Detergent Zone 3 Time"
+    id: actual_detergent_z3
+    unit_of_measurement: "s"
+    icon: mdi:timer-outline
+    accuracy_decimals: 0
+    update_interval: 1s
+    lambda: |-
+      const int i = 7;
+      uint32_t elapsed = id(actual_stage_seconds)[i];
+      if (id(wash_running) && id(actual_stage_last_kind) == 2 &&
+          id(actual_stage_last_zone) == 3 && id(actual_stage_started_ms) != 0)
+        elapsed += (millis() - id(actual_stage_started_ms)) / 1000u;
+      return elapsed;
+
+  - platform: template
+    name: "Actual Detergent Zone 4 Time"
+    id: actual_detergent_z4
+    unit_of_measurement: "s"
+    icon: mdi:timer-outline
+    accuracy_decimals: 0
+    update_interval: 1s
+    lambda: |-
+      const int i = 8;
+      uint32_t elapsed = id(actual_stage_seconds)[i];
+      if (id(wash_running) && id(actual_stage_last_kind) == 2 &&
+          id(actual_stage_last_zone) == 4 && id(actual_stage_started_ms) != 0)
+        elapsed += (millis() - id(actual_stage_started_ms)) / 1000u;
+      return elapsed;
+
+  - platform: template
+    name: "Actual Detergent Zone 5 Time"
+    id: actual_detergent_z5
+    unit_of_measurement: "s"
+    icon: mdi:timer-outline
+    accuracy_decimals: 0
+    update_interval: 1s
+    lambda: |-
+      const int i = 9;
+      uint32_t elapsed = id(actual_stage_seconds)[i];
+      if (id(wash_running) && id(actual_stage_last_kind) == 2 &&
+          id(actual_stage_last_zone) == 5 && id(actual_stage_started_ms) != 0)
+        elapsed += (millis() - id(actual_stage_started_ms)) / 1000u;
+      return elapsed;
+
+  - platform: template
+    name: "Actual Rinse Zone 1 Time"
+    id: actual_rinse_z1
+    unit_of_measurement: "s"
+    icon: mdi:timer-outline
+    accuracy_decimals: 0
+    update_interval: 1s
+    lambda: |-
+      const int i = 10;
+      uint32_t elapsed = id(actual_stage_seconds)[i];
+      if (id(wash_running) && id(actual_stage_last_kind) == 3 &&
+          id(actual_stage_last_zone) == 1 && id(actual_stage_started_ms) != 0)
+        elapsed += (millis() - id(actual_stage_started_ms)) / 1000u;
+      return elapsed;
+
+  - platform: template
+    name: "Actual Rinse Zone 2 Time"
+    id: actual_rinse_z2
+    unit_of_measurement: "s"
+    icon: mdi:timer-outline
+    accuracy_decimals: 0
+    update_interval: 1s
+    lambda: |-
+      const int i = 11;
+      uint32_t elapsed = id(actual_stage_seconds)[i];
+      if (id(wash_running) && id(actual_stage_last_kind) == 3 &&
+          id(actual_stage_last_zone) == 2 && id(actual_stage_started_ms) != 0)
+        elapsed += (millis() - id(actual_stage_started_ms)) / 1000u;
+      return elapsed;
+
+  - platform: template
+    name: "Actual Rinse Zone 3 Time"
+    id: actual_rinse_z3
+    unit_of_measurement: "s"
+    icon: mdi:timer-outline
+    accuracy_decimals: 0
+    update_interval: 1s
+    lambda: |-
+      const int i = 12;
+      uint32_t elapsed = id(actual_stage_seconds)[i];
+      if (id(wash_running) && id(actual_stage_last_kind) == 3 &&
+          id(actual_stage_last_zone) == 3 && id(actual_stage_started_ms) != 0)
+        elapsed += (millis() - id(actual_stage_started_ms)) / 1000u;
+      return elapsed;
+
+  - platform: template
+    name: "Actual Rinse Zone 4 Time"
+    id: actual_rinse_z4
+    unit_of_measurement: "s"
+    icon: mdi:timer-outline
+    accuracy_decimals: 0
+    update_interval: 1s
+    lambda: |-
+      const int i = 13;
+      uint32_t elapsed = id(actual_stage_seconds)[i];
+      if (id(wash_running) && id(actual_stage_last_kind) == 3 &&
+          id(actual_stage_last_zone) == 4 && id(actual_stage_started_ms) != 0)
+        elapsed += (millis() - id(actual_stage_started_ms)) / 1000u;
+      return elapsed;
+
+  - platform: template
+    name: "Actual Rinse Zone 5 Time"
+    id: actual_rinse_z5
+    unit_of_measurement: "s"
+    icon: mdi:timer-outline
+    accuracy_decimals: 0
+    update_interval: 1s
+    lambda: |-
+      const int i = 14;
+      uint32_t elapsed = id(actual_stage_seconds)[i];
+      if (id(wash_running) && id(actual_stage_last_kind) == 3 &&
+          id(actual_stage_last_zone) == 5 && id(actual_stage_started_ms) != 0)
+        elapsed += (millis() - id(actual_stage_started_ms)) / 1000u;
+      return elapsed;
+
   - platform: wifi_signal
     name: "WiFi Signal"
     update_interval: 30s
@@ -1580,6 +1823,10 @@ script:
 
                   - lambda: |-
                       // Reset only on an accepted new wash, never on a blocked START.
+                      id(actual_stage_seconds).fill(0);
+                      id(actual_stage_started_ms) = 0;
+                      id(actual_stage_last_kind) = 0;
+                      id(actual_stage_last_zone) = 0;
                       id(wash_liters) = 0.0f;
                       id(wash_zone_liters).fill(0.0f);
                       if (!isnan(id(water_total).state)) {
@@ -1666,6 +1913,16 @@ script:
                 );
 
             - lambda: |-
+                // Finish previous stage at the exact transition, then start this timer.
+                if (id(actual_stage_last_kind) >= 1 && id(actual_stage_last_kind) <= 3 &&
+                    id(actual_stage_last_zone) >= 1 && id(actual_stage_last_zone) <= 5 &&
+                    id(actual_stage_started_ms) != 0) {
+                  int prev = (id(actual_stage_last_kind) - 1) * 5 + id(actual_stage_last_zone) - 1;
+                  id(actual_stage_seconds)[prev] += (millis() - id(actual_stage_started_ms)) / 1000u;
+                }
+                id(actual_stage_last_kind) = 1;
+                id(actual_stage_last_zone) = 1;
+                id(actual_stage_started_ms) = millis();
                 id(stage_kind) = 1;
                 id(stage_zone) = 1;
                 id(stage_deadline_ms) = millis() + (uint32_t)(id(water_time_z1).state * 1000.0f);
@@ -1703,6 +1960,16 @@ script:
                 );
 
             - lambda: |-
+                // Finish previous stage at the exact transition, then start this timer.
+                if (id(actual_stage_last_kind) >= 1 && id(actual_stage_last_kind) <= 3 &&
+                    id(actual_stage_last_zone) >= 1 && id(actual_stage_last_zone) <= 5 &&
+                    id(actual_stage_started_ms) != 0) {
+                  int prev = (id(actual_stage_last_kind) - 1) * 5 + id(actual_stage_last_zone) - 1;
+                  id(actual_stage_seconds)[prev] += (millis() - id(actual_stage_started_ms)) / 1000u;
+                }
+                id(actual_stage_last_kind) = 1;
+                id(actual_stage_last_zone) = 2;
+                id(actual_stage_started_ms) = millis();
                 id(stage_kind) = 1;
                 id(stage_zone) = 2;
                 id(stage_deadline_ms) = millis() + (uint32_t)(id(water_time_z2).state * 1000.0f);
@@ -1741,6 +2008,16 @@ script:
                 );
 
             - lambda: |-
+                // Finish previous stage at the exact transition, then start this timer.
+                if (id(actual_stage_last_kind) >= 1 && id(actual_stage_last_kind) <= 3 &&
+                    id(actual_stage_last_zone) >= 1 && id(actual_stage_last_zone) <= 5 &&
+                    id(actual_stage_started_ms) != 0) {
+                  int prev = (id(actual_stage_last_kind) - 1) * 5 + id(actual_stage_last_zone) - 1;
+                  id(actual_stage_seconds)[prev] += (millis() - id(actual_stage_started_ms)) / 1000u;
+                }
+                id(actual_stage_last_kind) = 1;
+                id(actual_stage_last_zone) = 3;
+                id(actual_stage_started_ms) = millis();
                 id(stage_kind) = 1;
                 id(stage_zone) = 3;
                 id(stage_deadline_ms) = millis() + (uint32_t)(id(water_time_z3).state * 1000.0f);
@@ -1780,6 +2057,16 @@ script:
                 );
 
             - lambda: |-
+                // Finish previous stage at the exact transition, then start this timer.
+                if (id(actual_stage_last_kind) >= 1 && id(actual_stage_last_kind) <= 3 &&
+                    id(actual_stage_last_zone) >= 1 && id(actual_stage_last_zone) <= 5 &&
+                    id(actual_stage_started_ms) != 0) {
+                  int prev = (id(actual_stage_last_kind) - 1) * 5 + id(actual_stage_last_zone) - 1;
+                  id(actual_stage_seconds)[prev] += (millis() - id(actual_stage_started_ms)) / 1000u;
+                }
+                id(actual_stage_last_kind) = 1;
+                id(actual_stage_last_zone) = 4;
+                id(actual_stage_started_ms) = millis();
                 id(stage_kind) = 1;
                 id(stage_zone) = 4;
                 id(stage_deadline_ms) = millis() + (uint32_t)(id(water_time_z4).state * 1000.0f);
@@ -1820,6 +2107,16 @@ script:
                 );
 
             - lambda: |-
+                // Finish previous stage at the exact transition, then start this timer.
+                if (id(actual_stage_last_kind) >= 1 && id(actual_stage_last_kind) <= 3 &&
+                    id(actual_stage_last_zone) >= 1 && id(actual_stage_last_zone) <= 5 &&
+                    id(actual_stage_started_ms) != 0) {
+                  int prev = (id(actual_stage_last_kind) - 1) * 5 + id(actual_stage_last_zone) - 1;
+                  id(actual_stage_seconds)[prev] += (millis() - id(actual_stage_started_ms)) / 1000u;
+                }
+                id(actual_stage_last_kind) = 1;
+                id(actual_stage_last_zone) = 5;
+                id(actual_stage_started_ms) = millis();
                 id(stage_kind) = 1;
                 id(stage_zone) = 5;
                 id(stage_deadline_ms) = millis() + (uint32_t)(id(water_time_z5).state * 1000.0f);
@@ -1882,6 +2179,16 @@ script:
                 );
 
             - lambda: |-
+                // Finish previous stage at the exact transition, then start this timer.
+                if (id(actual_stage_last_kind) >= 1 && id(actual_stage_last_kind) <= 3 &&
+                    id(actual_stage_last_zone) >= 1 && id(actual_stage_last_zone) <= 5 &&
+                    id(actual_stage_started_ms) != 0) {
+                  int prev = (id(actual_stage_last_kind) - 1) * 5 + id(actual_stage_last_zone) - 1;
+                  id(actual_stage_seconds)[prev] += (millis() - id(actual_stage_started_ms)) / 1000u;
+                }
+                id(actual_stage_last_kind) = 2;
+                id(actual_stage_last_zone) = 1;
+                id(actual_stage_started_ms) = millis();
                 id(stage_kind) = 2;
                 id(stage_zone) = 1;
                 id(stage_deadline_ms) = millis() + (uint32_t)(id(detergent_time_z1).state * 1000.0f);
@@ -1913,6 +2220,16 @@ script:
                 );
 
             - lambda: |-
+                // Finish previous stage at the exact transition, then start this timer.
+                if (id(actual_stage_last_kind) >= 1 && id(actual_stage_last_kind) <= 3 &&
+                    id(actual_stage_last_zone) >= 1 && id(actual_stage_last_zone) <= 5 &&
+                    id(actual_stage_started_ms) != 0) {
+                  int prev = (id(actual_stage_last_kind) - 1) * 5 + id(actual_stage_last_zone) - 1;
+                  id(actual_stage_seconds)[prev] += (millis() - id(actual_stage_started_ms)) / 1000u;
+                }
+                id(actual_stage_last_kind) = 3;
+                id(actual_stage_last_zone) = 1;
+                id(actual_stage_started_ms) = millis();
                 id(stage_kind) = 3;
                 id(stage_zone) = 1;
                 id(stage_deadline_ms) = millis() + (uint32_t)(id(rinse_time_z1).state * 1000.0f);
@@ -1965,6 +2282,16 @@ script:
                 );
 
             - lambda: |-
+                // Finish previous stage at the exact transition, then start this timer.
+                if (id(actual_stage_last_kind) >= 1 && id(actual_stage_last_kind) <= 3 &&
+                    id(actual_stage_last_zone) >= 1 && id(actual_stage_last_zone) <= 5 &&
+                    id(actual_stage_started_ms) != 0) {
+                  int prev = (id(actual_stage_last_kind) - 1) * 5 + id(actual_stage_last_zone) - 1;
+                  id(actual_stage_seconds)[prev] += (millis() - id(actual_stage_started_ms)) / 1000u;
+                }
+                id(actual_stage_last_kind) = 2;
+                id(actual_stage_last_zone) = 2;
+                id(actual_stage_started_ms) = millis();
                 id(stage_kind) = 2;
                 id(stage_zone) = 2;
                 id(stage_deadline_ms) = millis() + (uint32_t)(id(detergent_time_z2).state * 1000.0f);
@@ -1996,6 +2323,16 @@ script:
                 );
 
             - lambda: |-
+                // Finish previous stage at the exact transition, then start this timer.
+                if (id(actual_stage_last_kind) >= 1 && id(actual_stage_last_kind) <= 3 &&
+                    id(actual_stage_last_zone) >= 1 && id(actual_stage_last_zone) <= 5 &&
+                    id(actual_stage_started_ms) != 0) {
+                  int prev = (id(actual_stage_last_kind) - 1) * 5 + id(actual_stage_last_zone) - 1;
+                  id(actual_stage_seconds)[prev] += (millis() - id(actual_stage_started_ms)) / 1000u;
+                }
+                id(actual_stage_last_kind) = 3;
+                id(actual_stage_last_zone) = 2;
+                id(actual_stage_started_ms) = millis();
                 id(stage_kind) = 3;
                 id(stage_zone) = 2;
                 id(stage_deadline_ms) = millis() + (uint32_t)(id(rinse_time_z2).state * 1000.0f);
@@ -2049,6 +2386,16 @@ script:
                 );
 
             - lambda: |-
+                // Finish previous stage at the exact transition, then start this timer.
+                if (id(actual_stage_last_kind) >= 1 && id(actual_stage_last_kind) <= 3 &&
+                    id(actual_stage_last_zone) >= 1 && id(actual_stage_last_zone) <= 5 &&
+                    id(actual_stage_started_ms) != 0) {
+                  int prev = (id(actual_stage_last_kind) - 1) * 5 + id(actual_stage_last_zone) - 1;
+                  id(actual_stage_seconds)[prev] += (millis() - id(actual_stage_started_ms)) / 1000u;
+                }
+                id(actual_stage_last_kind) = 2;
+                id(actual_stage_last_zone) = 3;
+                id(actual_stage_started_ms) = millis();
                 id(stage_kind) = 2;
                 id(stage_zone) = 3;
                 id(stage_deadline_ms) = millis() + (uint32_t)(id(detergent_time_z3).state * 1000.0f);
@@ -2080,6 +2427,16 @@ script:
                 );
 
             - lambda: |-
+                // Finish previous stage at the exact transition, then start this timer.
+                if (id(actual_stage_last_kind) >= 1 && id(actual_stage_last_kind) <= 3 &&
+                    id(actual_stage_last_zone) >= 1 && id(actual_stage_last_zone) <= 5 &&
+                    id(actual_stage_started_ms) != 0) {
+                  int prev = (id(actual_stage_last_kind) - 1) * 5 + id(actual_stage_last_zone) - 1;
+                  id(actual_stage_seconds)[prev] += (millis() - id(actual_stage_started_ms)) / 1000u;
+                }
+                id(actual_stage_last_kind) = 3;
+                id(actual_stage_last_zone) = 3;
+                id(actual_stage_started_ms) = millis();
                 id(stage_kind) = 3;
                 id(stage_zone) = 3;
                 id(stage_deadline_ms) = millis() + (uint32_t)(id(rinse_time_z3).state * 1000.0f);
@@ -2134,6 +2491,16 @@ script:
                 );
 
             - lambda: |-
+                // Finish previous stage at the exact transition, then start this timer.
+                if (id(actual_stage_last_kind) >= 1 && id(actual_stage_last_kind) <= 3 &&
+                    id(actual_stage_last_zone) >= 1 && id(actual_stage_last_zone) <= 5 &&
+                    id(actual_stage_started_ms) != 0) {
+                  int prev = (id(actual_stage_last_kind) - 1) * 5 + id(actual_stage_last_zone) - 1;
+                  id(actual_stage_seconds)[prev] += (millis() - id(actual_stage_started_ms)) / 1000u;
+                }
+                id(actual_stage_last_kind) = 2;
+                id(actual_stage_last_zone) = 4;
+                id(actual_stage_started_ms) = millis();
                 id(stage_kind) = 2;
                 id(stage_zone) = 4;
                 id(stage_deadline_ms) = millis() + (uint32_t)(id(detergent_time_z4).state * 1000.0f);
@@ -2165,6 +2532,16 @@ script:
                 );
 
             - lambda: |-
+                // Finish previous stage at the exact transition, then start this timer.
+                if (id(actual_stage_last_kind) >= 1 && id(actual_stage_last_kind) <= 3 &&
+                    id(actual_stage_last_zone) >= 1 && id(actual_stage_last_zone) <= 5 &&
+                    id(actual_stage_started_ms) != 0) {
+                  int prev = (id(actual_stage_last_kind) - 1) * 5 + id(actual_stage_last_zone) - 1;
+                  id(actual_stage_seconds)[prev] += (millis() - id(actual_stage_started_ms)) / 1000u;
+                }
+                id(actual_stage_last_kind) = 3;
+                id(actual_stage_last_zone) = 4;
+                id(actual_stage_started_ms) = millis();
                 id(stage_kind) = 3;
                 id(stage_zone) = 4;
                 id(stage_deadline_ms) = millis() + (uint32_t)(id(rinse_time_z4).state * 1000.0f);
@@ -2220,6 +2597,16 @@ script:
                 );
 
             - lambda: |-
+                // Finish previous stage at the exact transition, then start this timer.
+                if (id(actual_stage_last_kind) >= 1 && id(actual_stage_last_kind) <= 3 &&
+                    id(actual_stage_last_zone) >= 1 && id(actual_stage_last_zone) <= 5 &&
+                    id(actual_stage_started_ms) != 0) {
+                  int prev = (id(actual_stage_last_kind) - 1) * 5 + id(actual_stage_last_zone) - 1;
+                  id(actual_stage_seconds)[prev] += (millis() - id(actual_stage_started_ms)) / 1000u;
+                }
+                id(actual_stage_last_kind) = 2;
+                id(actual_stage_last_zone) = 5;
+                id(actual_stage_started_ms) = millis();
                 id(stage_kind) = 2;
                 id(stage_zone) = 5;
                 id(stage_deadline_ms) = millis() + (uint32_t)(id(detergent_time_z5).state * 1000.0f);
@@ -2251,6 +2638,16 @@ script:
                 );
 
             - lambda: |-
+                // Finish previous stage at the exact transition, then start this timer.
+                if (id(actual_stage_last_kind) >= 1 && id(actual_stage_last_kind) <= 3 &&
+                    id(actual_stage_last_zone) >= 1 && id(actual_stage_last_zone) <= 5 &&
+                    id(actual_stage_started_ms) != 0) {
+                  int prev = (id(actual_stage_last_kind) - 1) * 5 + id(actual_stage_last_zone) - 1;
+                  id(actual_stage_seconds)[prev] += (millis() - id(actual_stage_started_ms)) / 1000u;
+                }
+                id(actual_stage_last_kind) = 3;
+                id(actual_stage_last_zone) = 5;
+                id(actual_stage_started_ms) = millis();
                 id(stage_kind) = 3;
                 id(stage_zone) = 5;
                 id(stage_deadline_ms) = millis() + (uint32_t)(id(rinse_time_z5).state * 1000.0f);
@@ -2278,6 +2675,15 @@ script:
           id(final_flow_last_good_ms) = 0;
           id(violation_kind) = 0;
           id(violation_elapsed_s) = 0;
+          if (id(actual_stage_last_kind) >= 1 && id(actual_stage_last_kind) <= 3 &&
+              id(actual_stage_last_zone) >= 1 && id(actual_stage_last_zone) <= 5 &&
+              id(actual_stage_started_ms) != 0) {
+            int i = (id(actual_stage_last_kind) - 1) * 5 + id(actual_stage_last_zone) - 1;
+            id(actual_stage_seconds)[i] += (millis() - id(actual_stage_started_ms)) / 1000u;
+          }
+          id(actual_stage_last_kind) = 0;
+          id(actual_stage_last_zone) = 0;
+          id(actual_stage_started_ms) = 0;
           id(stage_kind) = 4;
           id(stage_zone) = id(current_zone_num);
           id(stage_deadline_ms) = millis() + 15000u +
