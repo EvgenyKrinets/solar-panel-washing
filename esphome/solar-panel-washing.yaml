@@ -159,6 +159,9 @@ globals:
   - id: finishing_check
     type: bool
     initial_value: 'false'
+  - id: final_flow_last_good_ms
+    type: uint32_t
+    initial_value: '0'
   - id: finish_fault_pending
     type: bool
     initial_value: 'false'
@@ -1405,6 +1408,7 @@ script:
           if (id(fault_kind) == 0) id(fault_kind) = 5;
           id(wash_state).publish_state("EMERGENCY STOP");
 
+      - script.stop: start_wash
       - script.stop: water_program
       - script.stop: detergent_program
       - script.stop: flow_enable_delay
@@ -2180,6 +2184,7 @@ script:
           id(flow_check_allowed) = false;
           id(finishing_check) = true;
           id(finish_fault_pending) = false;
+          id(final_flow_last_good_ms) = 0;
           id(violation_kind) = 0;
           id(violation_elapsed_s) = 0;
           id(stage_kind) = 4;
@@ -2193,10 +2198,19 @@ script:
       - delay: 15s
       - lambda: |-
           id(wash_state).publish_state("Main Valve Check");
+          id(final_flow_last_good_ms) = millis();
           id(violation_kind) = 0;
           id(violation_elapsed_s) = 0;
       - delay: !lambda |-
           return (uint32_t)(id(flow_start_delay).state * 1000.0f);
+      - lambda: |-
+          // Confirm at the exact end of the full check window. The watchdog
+          // updates last-good time on every normal sample.
+          const float f = id(water_flow).state;
+          const uint32_t window_ms = (uint32_t)(id(flow_start_delay).state * 1000.0f);
+          id(finish_fault_pending) = id(flow_protection).state &&
+              !isnan(f) && f > id(leak_flow).state &&
+              (uint32_t)(millis() - id(final_flow_last_good_ms)) >= window_ms;
       # Zone is always closed, even when a valve failure is detected.
       - switch.turn_off: zone1_relay
       - switch.turn_off: zone2_relay
@@ -2289,6 +2303,9 @@ interval:
           if (id(flow_protection).state && !id(emergency_active) && !isnan(f)) {
             if (id(finishing_check)) {
               if (id(wash_state).state == "Main Valve Check" &&
+                  f <= id(leak_flow).state)
+                id(final_flow_last_good_ms) = millis();
+              if (id(wash_state).state == "Main Valve Check" &&
                   f > id(leak_flow).state) {
                 kind = 4;
                 threshold = id(leak_flow).state;
@@ -2322,8 +2339,7 @@ interval:
           if (id(violation_elapsed_s) < (int)id(flow_start_delay).state)
             return;
           if (kind == 4) {
-            id(finish_fault_pending) = true;
-            return;
+            return; // finish_wash decides at the end of the full window
           }
           id(fault_kind) = kind;
           id(fault_zone) = id(current_zone_num);
