@@ -4,7 +4,7 @@
 
 ### ESP32 / ESPHome automatic five-zone solar-panel washing with Home Assistant
 
-[![Release](https://img.shields.io/badge/Version-1.3.22-blue)](VERSION)
+[![Release](https://img.shields.io/badge/Version-1.3.23-blue)](VERSION)
 [![ESPHome](https://img.shields.io/badge/ESPHome-ESP32--S3-000000?logo=esphome)](https://esphome.io/)
 [![Home Assistant](https://img.shields.io/badge/Home%20Assistant-HACS%20Integration-18BCF2?logo=homeassistant)](https://www.home-assistant.io/)
 [![Languages](https://img.shields.io/badge/Languages-EN%20%7C%20RU%20%7C%20HE-1684d8)](#languages)
@@ -18,7 +18,7 @@
 
 **Solar Panel Washing** controls five rooftop solar-panel washing zones using a Waveshare ESP32-S3-ETH-8DI-8RO, ESPHome, and Home Assistant. The ESP32 executes the washing programs, schedules, valve sequencing and safety logic locally; Home Assistant provides configuration, live readings, controls, history and a responsive dashboard. The automatic program does not require a permanently connected Home Assistant frontend.
 
-**Current release: v1.3.22.** The HACS integration and ESPHome firmware are separate parts of this repository. Updating the integration does **not** flash the ESP32.
+**Current release: v1.3.23.** The HACS integration and ESPHome firmware are separate parts of this repository. Updating the integration does **not** flash the ESP32.
 
 ## Features
 
@@ -131,6 +131,16 @@ Cards adapt to narrow phone screens. The language picker supports **Auto / Engli
 
 The ESP32 owns the execution and safety checks. The dashboard is not required to stay open. Do not treat manual valve operation as an automatic wash: it bypasses the programmed zone sequence.
 
+## v1.3.23 flow safety and stage timers
+
+Flow Check Delay now specifies how long an abnormal reading must persist continuously before triggering a fault. A fixed 3-second grace period follows the opening of a water or detergent source. Brief high-flow spikes during zone overlap reset the confirmation timer when flow returns to normal.
+
+The firmware publishes Stage Kind (1 water, 2 detergent, 3 rinse, 4 final test), Stage Zone, Stage Seconds Remaining, Flow Violation Seconds, Flow Violation Kind, Fault Kind, Fault Zone, Fault Flow, and Fault Threshold. The existing Washing Control card displays the latched fault reason, while the existing Flow Protection card highlights the relevant threshold. The three duration cards show active stage countdowns. Reset Alarm clears the latched fault.
+
+After the last zone finishes, the main source valve closes. The last zone remains open for 15 seconds of pressure release, followed by a continuous-flow verification lasting Flow Check Delay seconds. All zone valves close regardless of the verification result. If flow remains above the leak threshold for the entire verification period and Flow Protection is enabled, the controller latches Main Valve Not Closed. This is not a guarantee of zero leakage below the meter's reliable detection range.
+
+**Commissioning:** Test the new firmware under supervision with Flow Protection disabled initially. Check the 3-second startup grace, zone transitions, Emergency Stop, and final valve closure. Only then enable protection and unattended scheduling. This update has not been hardware-tested on the target ESP32.
+
 ## Flow measurement, water accounting and graphs
 
 | Reading | Entity ID | Behavior |
@@ -189,7 +199,7 @@ The current firmware has a **first-install initial value of 30.6237333 L**, take
 ### System and Manual Valves
 ![System status and manual valves](assets/screenshots/06-system-manual-valves.png)
 
-> The screenshots are reference images and may not show the latest v1.3.22 Water Consumption card. The current interface and entities are documented above.
+> The screenshots are reference images and may not show the latest v1.3.23 Water Consumption card. The current interface and entities are documented above.
 
 ## Repository structure
 
@@ -220,6 +230,7 @@ solar-panel-washing/
 
 | Version | Main changes |
 | --- | --- |
+| **1.3.23** | Flow fault confirmation, live stage countdowns, latched diagnostics, final valve pressure release and verification |
 | **1.3.22** | Instantaneous Flow formatted to two decimals throughout the UI |
 | **1.3.21** | Clickable Flow and Total Water in System Status open native HA history |
 | **1.3.20** | Clickable history for water metrics, rounded litre display, persistent Total Water; firmware preference interval later set to 24h |
@@ -232,12 +243,12 @@ solar-panel-washing/
 
 ## Version consistency
 
-For release **v1.3.22**, the following must agree:
+For release **v1.3.23**, the following must agree:
 
-- [`VERSION`](VERSION): `1.3.22`
-- [Integration manifest](custom_components/solar_panel_washing_dashboard/manifest.json): `1.3.22`
-- Frontend resource version in [`__init__.py`](custom_components/solar_panel_washing_dashboard/__init__.py): `v1.3.22`
-- Frontend version labels in `solar-panel-washing.js`, `solar-panel-washing-card.js` and the bundled integration JavaScript: `v1.3.22`
+- [`VERSION`](VERSION): `1.3.23`
+- [Integration manifest](custom_components/solar_panel_washing_dashboard/manifest.json): `1.3.23`
+- Frontend resource version in [`__init__.py`](custom_components/solar_panel_washing_dashboard/__init__.py): `v1.3.23`
+- Frontend version labels in `solar-panel-washing.js`, `solar-panel-washing-card.js` and the bundled integration JavaScript: `v1.3.23`
 
 These versions were checked against the repository files. They do **not** prove that a particular Home Assistant installation has already updated or that ESPHome firmware has been compiled on the target hardware.
 
