@@ -4,7 +4,7 @@
 
 ### ESP32 / ESPHome automatic five-zone solar-panel washing with Home Assistant
 
-[![Release](https://img.shields.io/badge/Version-1.3.23-blue)](VERSION)
+[![Release](https://img.shields.io/badge/Version-1.3.24-blue)](VERSION)
 [![ESPHome](https://img.shields.io/badge/ESPHome-ESP32--S3-000000?logo=esphome)](https://esphome.io/)
 [![Home Assistant](https://img.shields.io/badge/Home%20Assistant-HACS%20Integration-18BCF2?logo=homeassistant)](https://www.home-assistant.io/)
 [![Languages](https://img.shields.io/badge/Languages-EN%20%7C%20RU%20%7C%20HE-1684d8)](#languages)
@@ -18,7 +18,7 @@
 
 **Solar Panel Washing** controls five rooftop solar-panel washing zones using a Waveshare ESP32-S3-ETH-8DI-8RO, ESPHome, and Home Assistant. The ESP32 executes the washing programs, schedules, valve sequencing and safety logic locally; Home Assistant provides configuration, live readings, controls, history and a responsive dashboard. The automatic program does not require a permanently connected Home Assistant frontend.
 
-**Current release: v1.3.23.** The HACS integration and ESPHome firmware are separate parts of this repository. Updating the integration does **not** flash the ESP32.
+**Current release: v1.3.24.** The HACS integration and ESPHome firmware are separate parts of this repository. Updating the integration does **not** flash the ESP32.
 
 ## Features
 
@@ -29,7 +29,7 @@
 - **Valve overlap**: open the next zone before closing the previous; configurable source-change delay.
 - **Eight relay outputs** for water, detergent, five zones and transformer/valve power.
 - **Flow monitoring** in L/min even outside a washing cycle, including manual valve operation.
-- **Water accounting**: total lifetime volume, current/last wash volume and five per-zone volumes.
+- **Water accounting**: total lifetime volume, current/last wash volume and five per-zone volumes, with daily and manual ESP32 and Home Assistant backups and historical restore.
 - **Flow protection** with configurable minimum, maximum, unexpected/leak flow and startup delay. Keep disabled until the meter and thresholds are verified.
 - **ESP32 system status**: connection, Wi-Fi signal, uptime, time and synchronization, IP, SSID, MAC, alarm and flow.
 - **Native Home Assistant history**: tap flow or water readings to open the built-in More Info graph.
@@ -131,7 +131,7 @@ Cards adapt to narrow phone screens. The language picker supports **Auto / Engli
 
 The ESP32 owns the execution and safety checks. The dashboard is not required to stay open. Do not treat manual valve operation as an automatic wash: it bypasses the programmed zone sequence.
 
-## v1.3.23 flow safety and stage timers
+## v1.3.24 flow safety and stage timers
 
 Flow Check Delay now specifies how long an abnormal reading must persist continuously before triggering a fault. A fixed 3-second grace period follows the opening of a water or detergent source. Brief high-flow spikes during zone overlap reset the confirmation timer when flow returns to normal.
 
@@ -150,13 +150,25 @@ After the last zone finishes, the main source valve closes. The last zone remain
 | Current Wash Water | `sensor.solar_panel_washing_current_wash_water` | Litres during the current or most recent wash |
 | Zone 1–5 Water | `sensor.solar_panel_washing_wash_zone_1_water` … `sensor.solar_panel_washing_wash_zone_5_water` | Litres attributed to each zone during that wash |
 
-The five per-zone counters and the wash counter **reset on an accepted new wash**. They retain the last wash values after completion, but **do not survive an ESP32 restart**. Manual flow outside a wash increases **Total Water**, not **Current Wash Water** or the zone counters.
+The five per-zone counters and the wash counter **reset on an accepted new wash**. They retain the last wash values after completion, and **are restored after ESP32 reboot from the most recent saved ESP32 flash checkpoint**. Manual flow outside a wash increases **Total Water**, not **Current Wash Water** or the zone counters.
 
 During valve overlap, measured water is divided equally between simultaneously open zone valves. This is an **estimate** for individual zones because there is only one shared meter. Water passing during a wash while no zone valve is open contributes to the wash total but cannot be assigned to a zone.
 
 Flow and litre values are **displayed to two decimal places**. Tap the readings in **System Status** or **Water Consumption** to open Home Assistant's native More Info history. History requires the HA **Recorder** integration to be enabled and not to exclude these entities. Data retention is governed by your Home Assistant Recorder configuration, not by ESP32.
 
-### Retaining Total Water across reboot and firmware updates
+### Water counter backup and restore — v1.3.24
+
+All **seven counters** (Total Water, Current Wash Water and Zone 1–5 Water) now use restored ESPHome globals. The controller queues updates in RAM, but saves a flash checkpoint at **06:00 Asia/Jerusalem** every day after SNTP time synchronization. The **Save now** button in the Water Consumption card calls `button.solar_panel_washing_save_water_counters` to flush pending ESP32 preferences before OTA flashing. These checkpoints avoid frequent flash writes, but a power failure before the next save may lose unsaved readings.
+
+The integration also stores a separate **daily Home Assistant backup at 06:00 HA local time**, using `homeassistant.helpers.storage.Store` in HA's `.storage` folder, independently of Recorder retention. Set **Settings → System → General → Time zone** to `Asia/Jerusalem` for matching schedules. The **Backup in HA** button creates an additional on-demand snapshot by calling `solar_panel_washing_dashboard.save_water_snapshot`.
+
+The **Restore counters** button expands the Water Consumption card. Select any date and time (local time, to the minute), then **Load history**. The card queries the Home Assistant Recorder for all seven historical readings at or before that instant and displays each recorded timestamp and its value alongside the current value. If Recorder data has expired, it falls back to the latest stored daily HA snapshot **before** the requested time and clearly labels that fallback. No missing values are invented. Use **Confirm restore** to review a confirmation dialog and send all seven values to ESP32 using the ESPHome native API action `esphome.solar_panel_washing_restore_water_counters`.
+
+**Safety:** the controller rejects restoration during washing, final valve checks, or whenever any relay is energized. Invalid or negative values are rejected. Restoring older total readings can cause a reset/discontinuity in HA long-term energy/water statistics because the total sensor uses `state_class: total_increasing`. The ESPHome action can reject unsafe requests without a synchronous success response; verify the displayed sensor values after restoration. Daily snapshots start only **after** installing this integration; they cannot recover earlier data that Recorder already deleted.
+
+**Important for first upgrade from v1.3.23:** the five zone counters and current-wash counter were volatile in the older firmware. The first v1.3.24 flash cannot recover their previous in-RAM values by itself. Before flashing, use **Developer Tools → States** or screenshots to preserve all seven values. After flashing, use the new restoration panel to load them from HA Recorder history and apply them. Existing total water preference should remain available on normal OTA updates, but any unsaved part may be lost. Avoid erase-flash if you need to preserve ESP32 preferences.
+
+## Retaining Total Water across reboot and firmware updates
 
 The firmware keeps a persistent total in an ESPHome global and accumulates deltas from the raw hardware pulse counter. The preference write interval is:
 
@@ -165,7 +177,7 @@ preferences:
   flash_write_interval: 24h
 ```
 
-This limits flash writes but **does not mean an exact save at midnight**. If power is lost or the device restarts before the pending value is saved, the unsaved part of the total may be lost. **The same global ESPHome preference interval also applies to other restored settings**, including configured durations, schedule modes and flow limits.
+The controller now explicitly flushes preferences at **06:00** and on manual Save, while the 24-hour interval remains as a fallback. If time synchronization is unavailable at 06:00, that daily checkpoint is skipped. If power is lost or the device restarts before the pending value is saved, the unsaved part of the total may be lost. **The same global ESPHome preference interval also applies to other restored settings**, including configured durations, schedule modes and flow limits.
 
 The current firmware has a **first-install initial value of 30.6237333 L**, taken from the meter reading when persistence was introduced. **Before the first firmware installation using this persistent counter, change `persistent_water_liters.initial_value` to your actual total if it has increased.** Once a saved value exists, that saved value takes precedence over `initial_value`. An erase-flash operation can delete persisted preferences. OTA does not intentionally erase them, but cannot guarantee that unsaved changes survive a restart.
 
@@ -199,7 +211,7 @@ The current firmware has a **first-install initial value of 30.6237333 L**, take
 ### System and Manual Valves
 ![System status and manual valves](assets/screenshots/06-system-manual-valves.png)
 
-> The screenshots are reference images and may not show the latest v1.3.23 Water Consumption card. The current interface and entities are documented above.
+> The screenshots are reference images and may not show the latest v1.3.24 Water Consumption card. The current interface and entities are documented above.
 
 ## Repository structure
 
@@ -230,6 +242,7 @@ solar-panel-washing/
 
 | Version | Main changes |
 | --- | --- |
+| **1.3.24** | Daily 06:00 ESP32 flash checkpoint and durable HA snapshots; manual backup; date/time history preview and confirmed restoration of seven water counters |
 | **1.3.23** | Flow fault confirmation, live stage countdowns, latched diagnostics, final valve pressure release and verification |
 | **1.3.22** | Instantaneous Flow formatted to two decimals throughout the UI |
 | **1.3.21** | Clickable Flow and Total Water in System Status open native HA history |
@@ -243,12 +256,12 @@ solar-panel-washing/
 
 ## Version consistency
 
-For release **v1.3.23**, the following must agree:
+For release **v1.3.24**, the following must agree:
 
-- [`VERSION`](VERSION): `1.3.23`
-- [Integration manifest](custom_components/solar_panel_washing_dashboard/manifest.json): `1.3.23`
-- Frontend resource version in [`__init__.py`](custom_components/solar_panel_washing_dashboard/__init__.py): `v1.3.23`
-- Frontend version labels in `solar-panel-washing.js`, `solar-panel-washing-card.js` and the bundled integration JavaScript: `v1.3.23`
+- [`VERSION`](VERSION): `1.3.24`
+- [Integration manifest](custom_components/solar_panel_washing_dashboard/manifest.json): `1.3.24`
+- Frontend resource version in [`__init__.py`](custom_components/solar_panel_washing_dashboard/__init__.py): `v1.3.24`
+- Frontend version labels in `solar-panel-washing.js`, `solar-panel-washing-card.js` and the bundled integration JavaScript: `v1.3.24`
 
 These versions were checked against the repository files. They do **not** prove that a particular Home Assistant installation has already updated or that ESPHome firmware has been compiled on the target hardware.
 
