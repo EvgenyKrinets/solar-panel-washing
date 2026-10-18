@@ -4,7 +4,7 @@
 
 ### ESP32 / ESPHome automatic five-zone solar-panel washing with Home Assistant
 
-[![Release](https://img.shields.io/badge/Version-1.3.27-blue)](VERSION)
+[![Release](https://img.shields.io/badge/Version-1.3.28-blue)](VERSION)
 [![ESPHome](https://img.shields.io/badge/ESPHome-ESP32--S3-000000?logo=esphome)](https://esphome.io/)
 [![Home Assistant](https://img.shields.io/badge/Home%20Assistant-HACS%20Integration-18BCF2?logo=homeassistant)](https://www.home-assistant.io/)
 [![Languages](https://img.shields.io/badge/Languages-EN%20%7C%20RU%20%7C%20HE-1684d8)](#languages)
@@ -18,7 +18,7 @@
 
 **Solar Panel Washing** controls five rooftop solar-panel washing zones using a Waveshare ESP32-S3-ETH-8DI-8RO, ESPHome, and Home Assistant. The ESP32 executes the washing programs, schedules, valve sequencing and safety logic locally; Home Assistant provides configuration, live readings, controls, history and a responsive dashboard. The automatic program does not require a permanently connected Home Assistant frontend.
 
-**Current release: v1.3.27.** The HACS integration and ESPHome firmware are separate parts of this repository. Updating the integration does **not** flash the ESP32.
+**Current release: v1.3.28.** The HACS integration and ESPHome firmware are separate parts of this repository. Updating the integration does **not** flash the ESP32.
 
 ## Features
 
@@ -131,7 +131,7 @@ Cards adapt to narrow phone screens. The language picker supports **Auto / Engli
 
 The ESP32 owns the execution and safety checks. The dashboard is not required to stay open. Do not treat manual valve operation as an automatic wash: it bypasses the programmed zone sequence.
 
-## v1.3.27 flow safety and stage timers
+## v1.3.28 flow safety and stage timers
 
 Flow Check Delay now specifies how long an abnormal reading must persist continuously before triggering a fault. A fixed 3-second grace period follows the opening of a water or detergent source. Brief high-flow spikes during zone overlap reset the confirmation timer when flow returns to normal.
 
@@ -170,7 +170,7 @@ The **Restore counters** button is the only always-visible action in the Water C
 
 **Safety:** the controller rejects restoration during washing, final valve checks, or whenever any relay is energized. Invalid or negative values are rejected. Restoring older total readings can cause a reset/discontinuity in HA long-term energy/water statistics because the total sensor uses `state_class: total_increasing`. The ESPHome action can reject unsafe requests without a synchronous success response; verify the displayed sensor values after restoration. Daily snapshots start only **after** installing this integration; they cannot recover earlier data that Recorder already deleted.
 
-**Important for first upgrade from v1.3.23:** the five zone counters and current-wash counter were volatile in the older firmware. The first v1.3.27 flash cannot recover their previous in-RAM values by itself. Before flashing, use **Developer Tools → States** or screenshots to preserve all seven values. After flashing, use the new restoration panel to load them from HA Recorder history and apply them. Existing total water preference should remain available on normal OTA updates, but any unsaved part may be lost. Avoid erase-flash if you need to preserve ESP32 preferences.
+**Important for first upgrade from v1.3.23:** the five zone counters and current-wash counter were volatile in the older firmware. The first v1.3.28 flash cannot recover their previous in-RAM values by itself. Before flashing, use **Developer Tools → States** or screenshots to preserve all seven values. After flashing, use the new restoration panel to load them from HA Recorder history and apply them. Existing total water preference should remain available on normal OTA updates, but any unsaved part may be lost. Avoid erase-flash if you need to preserve ESP32 preferences.
 
 ## Retaining Total Water across reboot and firmware updates
 
@@ -215,7 +215,7 @@ The current firmware has a **first-install initial value of 30.6237333 L**, take
 ### System and Manual Valves
 ![System status and manual valves](assets/screenshots/06-system-manual-valves.png)
 
-> The screenshots are reference images and may not show the latest v1.3.27 Water Consumption card. The current interface and entities are documented above.
+> The screenshots are reference images and may not show the latest v1.3.28 Water Consumption card. The current interface and entities are documented above.
 
 ## Repository structure
 
@@ -246,6 +246,7 @@ solar-panel-washing/
 
 | Version | Main changes |
 | --- | --- |
+| **1.3.28** | Fixed missing Russian/Hebrew translations in flow protection, status and water restore UI; all future visible UI text must follow the selected language |
 | **1.3.27** | Simplified Water Consumption card to a single Restore Counters toggle; collapse recovery panel after successful restore service call |
 | **1.3.26** | Display translated actual timer values inline next to configured seconds; prevent HA updates from closing the date/time picker in Water Consumption |
 | **1.3.25** | Fifteen live actual elapsed timers (water, detergent, rinse × 5 zones), RAM only; remain visible after washing and reset on next wash/reboot |
@@ -263,15 +264,20 @@ solar-panel-washing/
 
 ## Version consistency
 
-For release **v1.3.27**, the following must agree:
+For release **v1.3.28**, the following must agree:
 
-- [`VERSION`](VERSION): `1.3.27`
-- [Integration manifest](custom_components/solar_panel_washing_dashboard/manifest.json): `1.3.27`
-- Frontend resource version in [`__init__.py`](custom_components/solar_panel_washing_dashboard/__init__.py): `v1.3.27`
-- Frontend version labels in `solar-panel-washing.js`, `solar-panel-washing-card.js` and the bundled integration JavaScript: `v1.3.27`
+- [`VERSION`](VERSION): `1.3.28`
+- [Integration manifest](custom_components/solar_panel_washing_dashboard/manifest.json): `1.3.28`
+- Frontend resource version in [`__init__.py`](custom_components/solar_panel_washing_dashboard/__init__.py): `v1.3.28`
+- Frontend version labels in `solar-panel-washing.js`, `solar-panel-washing-card.js` and the bundled integration JavaScript: `v1.3.28`
 
 These versions were checked against the repository files. They do **not** prove that a particular Home Assistant installation has already updated or that ESPHome firmware has been compiled on the target hardware.
 
 ## License
 
 MIT — see [LICENSE](LICENSE).
+
+
+### Localization policy
+
+Every new or modified UI string, button, tooltip, state, validation message, and error message must be provided in **Russian, English and Hebrew**, following the dashboard language selector. Hebrew layout must remain RTL. Avoid shipping new hard-coded English-only strings.
