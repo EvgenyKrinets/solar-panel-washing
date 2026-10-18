@@ -10,7 +10,9 @@
 [![Languages](https://img.shields.io/badge/Languages-EN%20%7C%20RU%20%7C%20HE-1684d8)](#languages)
 [![License](https://img.shields.io/badge/License-MIT-green)](LICENSE)
 
-![Solar Panel Washing system](assets/ChatGPT%20Image%20Oct%2011%2C%202026%2C%2009_53_43%20PM.png)
+![Solar Panel Washing — current 11-card feature overview](assets/dashboard-overview-v1.3.28.svg)
+
+*Overview of all eleven independent cards in v1.3.28. This is a feature illustration, not a live dashboard capture.*
 
 </div>
 
@@ -20,22 +22,25 @@
 
 **Current release: v1.3.28.** The HACS integration and ESPHome firmware are separate parts of this repository. Updating the integration does **not** flash the ESP32.
 
-## Features
+## Features — in the order you use them
 
-- **Five independently enabled zones** with separate water, detergent and rinse durations.
-- **Water-only** and **Detergent + Water** programs; selectable mode for each weekday.
-- **Automatic weekly schedule** with weekday switches, hour/minute start time, and next-run display.
-- **Manual START**, **Emergency Stop**, alarm reset, and a visible washing-active status indicator.
-- **Valve overlap**: open the next zone before closing the previous; configurable source-change delay.
-- **Eight relay outputs** for water, detergent, five zones and transformer/valve power.
-- **Flow monitoring** in L/min even outside a washing cycle, including manual valve operation.
-- **Water accounting**: total lifetime volume, current/last wash volume and five per-zone volumes, with daily and manual ESP32 and Home Assistant backups and historical restore.
-- **Flow protection** with configurable minimum, maximum, unexpected/leak flow and startup delay. Keep disabled until the meter and thresholds are verified.
-- **ESP32 system status**: connection, Wi-Fi signal, uptime, time and synchronization, IP, SSID, MAC, alarm and flow.
-- **Native Home Assistant history**: tap flow or water readings to open the built-in More Info graph.
-- **Eleven independent Lovelace cards**, automatically provisioned in a dedicated dashboard, or usable in other dashboards.
-- **English, Russian and Hebrew** interface, with Hebrew RTL and responsive mobile layout.
-- **Locally controlled relays**: outputs are turned off on reboot and a wash does not automatically resume.
+The dashboard is split into **11 independent Home Assistant cards**. A normal workflow starts with control and scheduling, then zone setup and timers, followed by valve/safety configuration and monitoring.
+
+| Order | Card | What you can do |
+| :--: | --- | --- |
+| 1 | **Washing Control** | Select Water or Detergent + Water; START, Emergency Stop and alarm reset; see current washing state |
+| 2 | **Automatic Schedule** | Set local start time; choose OFF / Water / Detergent separately for every weekday |
+| 3 | **Active Zones** | Enable or skip any of five washing zones |
+| 4 | **Water Times** | Set filtered-water washing duration for each zone; see actual elapsed seconds and remaining time |
+| 5 | **Detergent Times** | Set detergent application duration per zone; see actual elapsed seconds |
+| 6 | **Rinse Times** | Set filtered-water rinse duration after detergent per zone; see actual elapsed seconds |
+| 7 | **Switching** | Set the overlap between consecutive zone valves and the delay between water sources |
+| 8 | **Flow Protection** | Configure minimum/maximum flow, unexpected flow threshold and continuous-fault confirmation; view alarms |
+| 9 | **Manual Valve Control** | Control CH1–CH8 relays directly for testing and maintenance |
+| 10 | **Water Consumption** | Monitor live L/min, last-wash litres, five zone volumes and total water; restore counters from HA history |
+| 11 | **System Status** | Monitor controller connectivity, Wi-Fi, uptime, ESP32 time, IP, MAC, flow and alarm status |
+
+**Operational rules:** All washing and safety logic runs locally on ESP32. The dashboard is not required to remain open during an automatic wash. All 15 *actual elapsed* timers are RAM-only and reset after ESP32 restart; the seven *water volume* counters have their own backup and recovery logic. Interface languages: English, Russian and Hebrew (RTL).
 
 ## Hardware and wiring
 
@@ -83,38 +88,38 @@ This project is a **HACS Integration**, not a Dashboard/Frontend repository. Its
 
 **Firmware and integration updates are independent.** New UI features that use new ESPHome sensors require updating **both**.
 
-## Dashboard: all 11 cards
+## Dashboard cards and how to add them
 
-In **Edit dashboard → Add card**, search for **Solar Washing**, or add a card using the types below. Cards can be rearranged independently in Home Assistant.
+The integration automatically provisions a dedicated **Solar Panel Washing** dashboard with 11 independent cards. In **Edit dashboard → Add card**, search for **Solar Washing** to add any card to your own dashboard.
 
-| Section | Custom card type suffix | What it controls or displays |
-| --- | --- | --- |
-| Washing Control | `control` | Wash mode, START, Emergency Stop, alarm reset, active status |
-| Automatic Schedule | `schedule` | Weekdays, scheduled mode per day, start time, next run |
-| Active Zones | `zones` | Enable/disable each of five zones |
-| Water Times | `water-times` | Water duration for each zone |
-| Detergent Times | `detergent-times` | Detergent duration for each zone |
-| Rinse Times | `rinse-times` | Rinse duration for each zone |
-| Switching | `switching` | Zone overlap and source-change delay |
-| Flow Protection | `flow-protection` | Minimum/maximum flow, leak threshold and startup delay |
-| System | `system` | Controller/network status, date/time, flow, total water, alarm |
-| Water Consumption | `water-consumption` | Flow, current wash volume, per-zone litres, total litres |
-| Manual Valve Control | `manual-valves` | Direct relay controls for CH1–CH8 |
+| Card | Custom card suffix |
+| --- | --- |
+| 1. Washing Control | `control` |
+| 2. Automatic Schedule | `schedule` |
+| 3. Active Zones | `zones` |
+| 4. Water Times | `water-times` |
+| 5. Detergent Times | `detergent-times` |
+| 6. Rinse Times | `rinse-times` |
+| 7. Switching | `switching` |
+| 8. Flow Protection | `flow-protection` |
+| 9. Manual Valve Control | `manual-valves` |
+| 10. Water Consumption | `water-consumption` |
+| 11. System Status | `system` |
 
-The full custom type is `custom:solar-panel-washing-<suffix>-card`. Example:
+The full type is `custom:solar-panel-washing-<suffix>-card`. For example:
 
 ```yaml
 type: custom:solar-panel-washing-water-consumption-card
 ```
 
-A configurable section card is also available:
+Alternatively, use the configurable section card:
 
 ```yaml
 type: custom:solar-panel-washing-section-card
 section: water-consumption
 ```
 
-The complete card is `custom:solar-panel-washing-card`. A legacy standalone dashboard example is provided at [`home-assistant/modular-dashboard.yaml`](home-assistant/modular-dashboard.yaml), and a standard-card alternative at [`home-assistant/dashboard.yaml`](home-assistant/dashboard.yaml).
+The combined card is `custom:solar-panel-washing-card`. Legacy examples are in [`home-assistant/modular-dashboard.yaml`](home-assistant/modular-dashboard.yaml) and [`home-assistant/dashboard.yaml`](home-assistant/dashboard.yaml).
 
 ### Responsive layout and languages
 
@@ -131,7 +136,7 @@ Cards adapt to narrow phone screens. The language picker supports **Auto / Engli
 
 The ESP32 owns the execution and safety checks. The dashboard is not required to stay open. Do not treat manual valve operation as an automatic wash: it bypasses the programmed zone sequence.
 
-## v1.3.28 flow safety and stage timers
+## Flow safety and stage timers (introduced in v1.3.23–1.3.25)
 
 Flow Check Delay now specifies how long an abnormal reading must persist continuously before triggering a fault. A fixed 3-second grace period follows the opening of a water or detergent source. Brief high-flow spikes during zone overlap reset the confirmation timer when flow returns to normal.
 
@@ -195,27 +200,47 @@ The current firmware has a **first-install initial value of 30.6237333 L**, take
 - Manual CH1–CH8 controls are for testing and maintenance and may bypass normal automatic protections.
 - Following reboot or power loss, the controller turns outputs off and does not automatically resume an interrupted wash.
 
-## Screenshots
+## Dashboard gallery
 
-### Washing Control
-![Washing controls](assets/screenshots/01-washing-control-clean.png)
+The feature overview at the top of this README reflects the **current eleven-card layout**. The images below are existing dashboard captures from earlier builds; they are grouped by function rather than presented as an unordered gallery. Some text or controls may differ from v1.3.28. The gallery images themselves have **not yet been replaced with fresh live captures**.
 
-### Schedule and Active Zones
-![Schedule and zones](assets/screenshots/02-schedule-zones.png)
+### 1. Washing Control
+Start a wash in Water or Detergent + Water mode; stop it immediately; reset an alarm after investigating the cause.
 
-### Water Times
-![Water durations](assets/screenshots/03-water-times.png)
+![Washing Control — existing capture](assets/screenshots/01-washing-control-clean.png)
 
-### Detergent and Rinse
-![Detergent and rinse durations](assets/screenshots/04-detergent-rinse-times.png)
+### 2–3. Automatic Schedule and Active Zones
+Configure weekday modes and start time, then choose which of the five zones are included.
 
-### Switching and Flow Protection
-![Switching and flow protection](assets/screenshots/05-switching-flow-protection.png)
+![Schedule and Active Zones — existing capture](assets/screenshots/02-schedule-zones.png)
 
-### System and Manual Valves
-![System status and manual valves](assets/screenshots/06-system-manual-valves.png)
+### 4. Water Times
+Set each zone's water-only washing duration; read the actual elapsed time next to the setpoint.
 
-> The screenshots are reference images and may not show the latest v1.3.28 Water Consumption card. The current interface and entities are documented above.
+![Water Times — existing capture](assets/screenshots/03-water-times.png)
+
+### 5–6. Detergent Times and Rinse Times
+Set detergent application and subsequent water rinsing separately for each zone. Actual timers remain visible after the wash, until the next wash or reboot.
+
+![Detergent and Rinse Times — existing capture](assets/screenshots/04-detergent-rinse-times.png)
+
+### 7–8. Switching and Flow Protection
+Tune valve overlap and source delay; configure flow thresholds and fault confirmation. Enable flow protection only after checking the flow meter.
+
+![Switching and Flow Protection — existing capture](assets/screenshots/05-switching-flow-protection.png)
+
+### 9. Manual Valve Control
+Operate CH1–CH8 directly for commissioning. This bypasses the programmed washing sequence; use carefully.
+
+### 10. Water Consumption and historical restore
+Read instantaneous flow, current/last wash litres, five zone counters and lifetime total. The **Restore Counters** button expands a date/time selector. Load HA Recorder values for a selected moment, preview all seven readings and confirm before restoring them to ESP32. If Recorder data is unavailable, the card can use the latest stored daily HA snapshot before that moment. After the restore service call is accepted, the panel closes.
+
+### 11. System Status
+Check Wi-Fi, IP address, uptime, ESP32 clock synchronization, flow and fault status.
+
+![System Status and Manual Valve Control — existing capture](assets/screenshots/06-system-manual-valves.png)
+
+**New live screenshots needed:** to replace the six legacy images and show cards 9–11 individually, capture the latest dashboard after updating HACS, ideally at desktop and mobile widths. Do not use simulated screenshots as evidence of a live controller.
 
 ## Repository structure
 
@@ -278,6 +303,6 @@ These versions were checked against the repository files. They do **not** prove 
 MIT — see [LICENSE](LICENSE).
 
 
-### Localization policy
+## Localization policy
 
 Every new or modified UI string, button, tooltip, state, validation message, and error message must be provided in **Russian, English and Hebrew**, following the dashboard language selector. Hebrew layout must remain RTL. Avoid shipping new hard-coded English-only strings.
