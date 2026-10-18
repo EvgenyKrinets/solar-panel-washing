@@ -217,25 +217,39 @@ class SolarPanelWashingCard extends HTMLElement {
       const ids=this.waterCounterIds();
       // Include state at the beginning of the interval; HA's history API
       // can return the previous recorded state as its first sample.
-      const result=await this._hass.callWS({
-        type:"history/history_during_period",
-        start_time:new Date(target.getTime()-60000).toISOString(),
-        end_time:new Date(target.getTime()+1000).toISOString(),
-        entity_ids:ids,minimal_response:false,no_attributes:true
-      });
-      const rows=Array.isArray(result)?result:Object.values(result||{});
-      const preview=ids.map((id,i)=>{
-        const group=rows.find(a=>Array.isArray(a)&&a.some(x=>x.entity_id===id))||rows[i]||[];
-        const valid=group.filter(x=>{
-          const time=new Date(x.last_updated||x.last_changed||x.lu||x.lc);
-          const v=Number(x.state??x.s);
-          return Number.isFinite(time.getTime())&&time.getTime()<=target.getTime()&&
-            Number.isFinite(v)&&v>=0;
+      let preview=null;
+      try{
+        const result=await this._hass.callWS({
+          type:"history/history_during_period",
+          start_time:new Date(target.getTime()-60000).toISOString(),
+          end_time:new Date(target.getTime()+1000).toISOString(),
+          entity_ids:ids,minimal_response:false,no_attributes:true
         });
-        if(!valid.length)throw Error(`No recorded value for ${id} at this time. Nothing was changed.`);
-        const x=valid[valid.length-1];
-        return {value:Number(x.state??x.s),time:x.last_updated||x.last_changed||x.lu||x.lc};
-      });
+        const rows=Array.isArray(result)?result:Object.values(result||{});
+        preview=ids.map((id,i)=>{
+          const group=rows.find(a=>Array.isArray(a)&&a.some(x=>x.entity_id===id))||rows[i]||[];
+          const valid=group.filter(x=>{
+            const time=new Date(x.last_updated||x.last_changed||x.lu||x.lc);
+            const v=Number(x.state??x.s);
+            return Number.isFinite(time.getTime())&&time.getTime()<=target.getTime()&&
+              Number.isFinite(v)&&v>=0;
+          });
+          if(!valid.length)throw Error(`No recorded value for ${id} at this time.`);
+          const x=valid[valid.length-1];
+          return {value:Number(x.state??x.s),time:x.last_updated||x.last_changed||x.lu||x.lc};
+        });
+      }catch(historyError){
+        // Recorder may have purged the requested date. Use the latest
+        // available durable 06:00 HA snapshot, never invent missing data.
+        const snapshots=await this._hass.callWS({type:"solar_panel_washing_dashboard/water_snapshots"});
+        const available=(snapshots||[]).filter(x=>
+          Array.isArray(x.values)&&x.values.length===7&&new Date(x.time).getTime()<=target.getTime()
+        );
+        if(!available.length)throw historyError;
+        const snap=available[available.length-1];
+        preview=snap.values.map(value=>({value:Number(value),time:snap.time}));
+        this._restoreError="Recorder history unavailable. Showing the last daily 06:00 backup; check its recorded time.";
+      }
       this._restorePreview=preview;
     }catch(e){this._restoreError=e?.message||String(e);}
     finally{this._restoreLoading=false;this.render();}
