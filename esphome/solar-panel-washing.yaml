@@ -54,7 +54,7 @@ api:
                     id(zone5_relay).state || id(valve_power).state)
                   return false;
                 const float vals[7] = {total, wash, zone1, zone2, zone3, zone4, zone5};
-                for (float v : vals) if (!isfinite(v) || v < 0.0f || v > 100000000.0f) return false;
+                for (float v : vals) if (!std::isfinite(v) || v < 0.0f || v > 100000000.0f) return false;
                 return true;
             then:
               - lambda: |-
@@ -64,8 +64,8 @@ api:
                   id(wash_zone_liters) = {zone1, zone2, zone3, zone4, zone5};
                   // Reset the pulse baseline to prevent counting earlier pulses twice.
                   const float raw = id(water_total_raw).state;
-                  id(last_raw_pulses_liters) = isfinite(raw) ? raw : 0.0f;
-                  id(raw_meter_initialized) = isfinite(raw);
+                  id(last_raw_pulses_liters) = std::isfinite(raw) ? raw : 0.0f;
+                  id(raw_meter_initialized) = std::isfinite(raw);
                   id(last_meter_liters) = total;
                   id(meter_initialized) = true;
                   id(water_total).publish_state(total);
