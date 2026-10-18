@@ -40,7 +40,7 @@ async def _setup_water_snapshots(hass: HomeAssistant) -> None:
     snapshots = await store.async_load() or []
     hass.data[_SNAPSHOT_KEY] = {"snapshots": snapshots, "store": store}
 
-    async def save_snapshot(force: bool = False) -> None:
+    async def save_snapshot(force: bool = False) -> bool:
         values = []
         for entity_id in _WATER_ENTITIES:
             state = hass.states.get(entity_id)
@@ -50,19 +50,21 @@ async def _setup_water_snapshots(hass: HomeAssistant) -> None:
                 value = float("nan")
             if not math.isfinite(value) or value < 0:
                 _LOGGER.warning("Skipping incomplete water snapshot: %s", entity_id)
-                return
+                return False
             values.append(value)
         timestamp = dt_util.now().isoformat()
         day = dt_util.now().date().isoformat()
         records = hass.data[_SNAPSHOT_KEY]["snapshots"]
         if not force and any(x.get("date") == day and x.get("source") == "daily" for x in records):
-            return
+            return True
         records.append({"date": day, "time": timestamp, "values": values, "source": "manual" if force else "daily"})
         await store.async_save(records)
         _LOGGER.info("Saved daily water snapshot for %s", day)
+        return True
 
     async def snapshot_service(call) -> None:
-        await save_snapshot(force=True)
+        if not await save_snapshot(force=True):
+            raise HomeAssistantError("Cannot save water snapshot: one or more counters are unavailable")
 
     @websocket_api.websocket_command({vol.Required("type"): f"{DOMAIN}/water_snapshots"})
     @websocket_api.async_response
