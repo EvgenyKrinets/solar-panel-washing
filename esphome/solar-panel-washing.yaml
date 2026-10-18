@@ -24,12 +24,67 @@ esp32:
 logger:
 
 preferences:
+  # Dirty preferences are explicitly flushed at 06:00 or by the save button.
+  # The long automatic interval prevents frequent flash writes.
   flash_write_interval: 24h
 
 
 api:
   encryption:
     key: !secret solar_panel_washing__encryption_key
+  actions:
+    - action: restore_water_counters
+      variables:
+        total: float
+        wash: float
+        zone1: float
+        zone2: float
+        zone3: float
+        zone4: float
+        zone5: float
+      then:
+        - if:
+            condition:
+              lambda: |-
+                if (id(wash_running) || id(finishing_check) || id(restore_pending))
+                  return false;
+                if (id(valve_water).state || id(valve_detergent).state ||
+                    id(zone1_relay).state || id(zone2_relay).state ||
+                    id(zone3_relay).state || id(zone4_relay).state ||
+                    id(zone5_relay).state || id(valve_power).state)
+                  return false;
+                const float vals[7] = {total, wash, zone1, zone2, zone3, zone4, zone5};
+                for (float v : vals) if (!isfinite(v) || v < 0.0f || v > 100000000.0f) return false;
+                return true;
+            then:
+              - lambda: |-
+                  id(restore_pending) = true;
+                  id(persistent_water_liters) = total;
+                  id(wash_liters) = wash;
+                  id(wash_zone_liters) = {zone1, zone2, zone3, zone4, zone5};
+                  // Reset the pulse baseline to prevent counting earlier pulses twice.
+                  const float raw = id(water_total_raw).state;
+                  id(last_raw_pulses_liters) = isfinite(raw) ? raw : 0.0f;
+                  id(raw_meter_initialized) = isfinite(raw);
+                  id(last_meter_liters) = total;
+                  id(meter_initialized) = true;
+                  id(water_total).publish_state(total);
+                  id(current_wash_water).publish_state(wash);
+                  id(wash_zone_1_water).publish_state(zone1);
+                  id(wash_zone_2_water).publish_state(zone2);
+                  id(wash_zone_3_water).publish_state(zone3);
+                  id(wash_zone_4_water).publish_state(zone4);
+                  id(wash_zone_5_water).publish_state(zone5);
+              - delay: 1s
+              - lambda: |-
+                  // Persist all restored globals after their loop has queued changes.
+                  global_preferences->sync();
+                  id(restore_pending) = false;
+            else:
+              - logger.log:
+                  level: WARN
+                  format: "Restore rejected: active valves/wash, busy, or invalid values"
+
 
 
 ota:
@@ -93,12 +148,20 @@ globals:
   # Per-cycle water accounting (litres). The flow meter remains the source of truth.
   - id: wash_liters
     type: float
-    restore_value: no
+    restore_value: yes
     initial_value: '0.0'
   - id: wash_zone_liters
     type: std::array<float, 5>
-    restore_value: no
+    restore_value: yes
     initial_value: '{0.0f, 0.0f, 0.0f, 0.0f, 0.0f}'
+  - id: last_daily_save_date
+    type: int
+    restore_value: yes
+    initial_value: '0'
+  - id: restore_pending
+    type: bool
+    restore_value: no
+    initial_value: 'false'
   - id: last_meter_liters
     type: float
     restore_value: no
@@ -1151,6 +1214,15 @@ text_sensor:
 button:
 
   - platform: template
+    name: "Save Water Counters"
+    icon: mdi:content-save
+    on_press:
+      - delay: 1s
+      - lambda: |-
+          global_preferences->sync();
+          ESP_LOGI("water", "Water counters saved to ESP32 flash");
+
+  - platform: template
     name: "Start Washing"
     icon: mdi:play
 
@@ -1209,7 +1281,25 @@ time:
       - 2.pool.ntp.org
 
     on_time:
-
+      # Fixed local daily checkpoint, with DST handled by Asia/Jerusalem.
+      - seconds: 0
+        minutes: 0
+        hours: 6
+        then:
+          - if:
+              condition:
+                lambda: |-
+                  auto now = id(system_time).now();
+                  if (!now.is_valid()) return false;
+                  int day = now.year * 10000 + now.month * 100 + now.day_of_month;
+                  if (id(last_daily_save_date) == day) return false;
+                  id(last_daily_save_date) = day;
+                  return true;
+              then:
+                - delay: 1s
+                - lambda: |-
+                    global_preferences->sync();
+                    ESP_LOGI("water", "Daily 06:00 water checkpoint saved");
       - seconds: 0
         minutes: '*'
         hours: '*'
