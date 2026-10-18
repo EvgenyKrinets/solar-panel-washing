@@ -5,6 +5,13 @@ Never edits an existing dashboard. Uses Home Assistant's Lovelace storage API.
 from __future__ import annotations
 
 import logging
+import math
+from datetime import datetime
+import voluptuous as vol
+from homeassistant.components import websocket_api
+from homeassistant.helpers.event import async_track_time_change
+from homeassistant.helpers.storage import Store
+from homeassistant.util import dt as dt_util
 from pathlib import Path
 from homeassistant.components import frontend
 from homeassistant.components.http import StaticPathConfig
@@ -17,6 +24,63 @@ from homeassistant.exceptions import HomeAssistantError
 from .const import DOMAIN, DASHBOARD_PATH, DASHBOARD_TITLE
 
 _LOGGER = logging.getLogger(__name__)
+_WATER_ENTITIES = (
+    "sensor.solar_panel_washing_total_water",
+    "sensor.solar_panel_washing_current_wash_water",
+    *(f"sensor.solar_panel_washing_wash_zone_{i}_water" for i in range(1, 6)),
+)
+_SNAPSHOT_KEY = f"{DOMAIN}_water_snapshots"
+
+
+async def _setup_water_snapshots(hass: HomeAssistant) -> None:
+    """Store a daily 06:00 local backup independent of Recorder retention."""
+    if hass.data.get(_SNAPSHOT_KEY):
+        return
+    store = Store(hass, 1, _SNAPSHOT_KEY)
+    snapshots = await store.async_load() or []
+    hass.data[_SNAPSHOT_KEY] = {"snapshots": snapshots, "store": store}
+
+    async def save_snapshot() -> None:
+        values = []
+        for entity_id in _WATER_ENTITIES:
+            state = hass.states.get(entity_id)
+            try:
+                value = float(state.state) if state else float("nan")
+            except (ValueError, TypeError):
+                value = float("nan")
+            if not math.isfinite(value) or value < 0:
+                _LOGGER.warning("Skipping incomplete water snapshot: %s", entity_id)
+                return
+            values.append(value)
+        timestamp = dt_util.now().isoformat()
+        day = dt_util.now().date().isoformat()
+        records = hass.data[_SNAPSHOT_KEY]["snapshots"]
+        if records and records[-1].get("date") == day:
+            return
+        records.append({"date": day, "time": timestamp, "values": values})
+        await store.async_save(records)
+        _LOGGER.info("Saved daily water snapshot for %s", day)
+
+    async def snapshot_service(call) -> None:
+        await save_snapshot()
+
+    async def handle_snapshots(hass, connection, msg) -> None:
+        connection.send_result(msg["id"], hass.data[_SNAPSHOT_KEY]["snapshots"])
+
+    websocket_api.async_register_command(
+        hass,
+        websocket_api.async_response(handle_snapshots),
+        {vol.Required("type"): f"{DOMAIN}/water_snapshots"},
+    )
+    hass.services.async_register(DOMAIN, "save_water_snapshot", snapshot_service)
+
+    def scheduled_snapshot(now: datetime) -> None:
+        hass.async_create_task(save_snapshot())
+
+    hass.data[_SNAPSHOT_KEY]["unsub"] = async_track_time_change(
+        hass, scheduled_snapshot, hour=6, minute=0, second=0
+    )
+
 
 SECTIONS = (
     "control", "schedule", "zones", "water-times", "detergent-times",
@@ -90,17 +154,18 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Install dashboard once; never overwrite an existing user's dashboard."""
     await hass.http.async_register_static_paths([
         StaticPathConfig(
-            "/solar-panel-washing/v1.3.23/solar-panel-washing.js",
+            "/solar-panel-washing/v1.3.24/solar-panel-washing.js",
             str(Path(__file__).parent / "solar-panel-washing.js"),
             False,
         )
     ])
+    await _setup_water_snapshots(hass)
     lovelace = hass.data.get(LOVELACE_DATA)
     if lovelace is None:
         _LOGGER.error("Lovelace has not been initialized")
         return False
 
-    resource_url = "/solar-panel-washing/v1.3.23/solar-panel-washing.js"
+    resource_url = "/solar-panel-washing/v1.3.24/solar-panel-washing.js"
     resources = lovelace.resources
     if hasattr(resources, "async_create_item"):
         await resources._async_ensure_loaded()
