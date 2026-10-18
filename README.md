@@ -10,9 +10,9 @@
 [![Languages](https://img.shields.io/badge/Languages-EN%20%7C%20RU%20%7C%20HE-1684d8)](#languages)
 [![License](https://img.shields.io/badge/License-MIT-green)](LICENSE)
 
-![Solar Panel Washing — current 11-card feature overview](assets/dashboard-overview-v1.3.28.svg)
+![Solar Panel Washing — illustrated dashboard](assets/ChatGPT%20Image%20Oct%2011%2C%202026%2C%2009_53_43%20PM.png)
 
-*Overview of all eleven independent cards in v1.3.30. This is a feature illustration, not a live dashboard capture.*
+*Illustration of the Solar Panel Washing dashboard. The current v1.3.30 features are documented below.*
 
 </div>
 
