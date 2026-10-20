@@ -4,7 +4,7 @@
 
 ### ESP32 / ESPHome automatic five-zone solar-panel washing with Home Assistant
 
-[![Release](https://img.shields.io/badge/Version-1.3.31-blue)](VERSION)
+[![Release](https://img.shields.io/badge/Version-1.3.32-blue)](VERSION)
 [![ESPHome](https://img.shields.io/badge/ESPHome-ESP32--S3-000000?logo=esphome)](https://esphome.io/)
 [![Home Assistant](https://img.shields.io/badge/Home%20Assistant-HACS%20Integration-18BCF2?logo=homeassistant)](https://www.home-assistant.io/)
 [![Languages](https://img.shields.io/badge/Languages-EN%20%7C%20RU%20%7C%20HE-1684d8)](#languages)
@@ -16,9 +16,9 @@
 
 </div>
 
-## v1.3.31 — HA-owned controller settings (migration required)
+## v1.3.32 — HA-owned controller settings (migration required)
 
-**Install in this exact order:** first update the Home Assistant integration and restart HA while the old v1.3.30 ESP32 firmware is still online. Wait for all **45 configuration entities and seven water counters** to load, call `solar_panel_washing_dashboard.save_settings`, and verify that `/config/.storage/solar_panel_washing_dashboard_controller_state` contains valid `settings` and `counters`. Make a separate backup of this file. **Only then flash v1.3.31 to the ESP32.**
+**Install in this exact order:** first update the Home Assistant integration and restart HA while the old v1.3.30 ESP32 firmware is still online. Wait for all **45 configuration entities and seven water counters** to load, call `solar_panel_washing_dashboard.save_settings`, and verify that `/config/.storage/solar_panel_washing_dashboard_controller_state` contains valid `settings` and `counters`. Make a separate backup of this file. **Only then flash v1.3.32 to the ESP32.**
 
 The new ESP firmware does not persist controller settings or counters to Flash. HA holds a periodic durable snapshot and attempts to restore all enabled zones, weekday modes, duration settings, flow protection thresholds, and seven water counters on every boot. All eight physical relays start OFF. Until the ESP32 confirms `Settings Synchronized = on`, both automatic and manual washing are inhibited. An interrupted wash or manual valve state is never resumed.
 
@@ -31,7 +31,7 @@ New HA services are `solar_panel_washing_dashboard.save_settings` for manual sna
 
 **Solar Panel Washing** controls five rooftop solar-panel washing zones using a Waveshare ESP32-S3-ETH-8DI-8RO, ESPHome, and Home Assistant. The ESP32 executes the washing programs, schedules, valve sequencing and safety logic locally; Home Assistant provides configuration, live readings, controls, history and a responsive dashboard. The automatic program does not require a permanently connected Home Assistant frontend.
 
-**Production release: v1.3.30; v1.3.31 is under validation.** The HACS integration and ESPHome firmware are separate parts of this repository. Updating the integration does **not** flash the ESP32.
+**Production release: v1.3.30; v1.3.32 is under validation.** The HACS integration and ESPHome firmware are separate parts of this repository. Updating the integration does **not** flash the ESP32.
 
 ## Features — in the order you use them
 
@@ -184,22 +184,22 @@ In the older v1.3.24–v1.3.30 firmware, all **seven counters** (Total Water, Cu
 
 The integration also stores a separate **daily Home Assistant backup at 06:00 HA local time**, using `homeassistant.helpers.storage.Store` in HA's `.storage` folder, independently of Recorder retention. Set **Settings → System → General → Time zone** to `Asia/Jerusalem` for matching schedules. The **Backup in HA** button creates an additional on-demand snapshot by calling `solar_panel_washing_dashboard.save_water_snapshot`.
 
-The **Restore settings** button is the always-visible action in the Water Consumption card; it expands the recovery panel. After the user confirms and Home Assistant accepts the restore service call, the recovery panel automatically collapses. The legacy Save to ESP32 service is removed in v1.3.31; HA snapshot services remain available through Developer Tools but their buttons are hidden from this card. Select any date and time (local time, to the minute), then **Load history**. The card queries the Home Assistant Recorder for all seven historical readings at or before that instant and displays each recorded timestamp and its value alongside the current value. If Recorder data has expired, it falls back to the latest stored daily HA snapshot **before** the requested time and clearly labels that fallback. No missing values are invented. Use **Confirm restore** to review a confirmation dialog and send all seven values to ESP32 using the ESPHome native API action `esphome.solar_panel_washing_restore_water_counters`.
+The **Restore settings** button is the always-visible action in the Water Consumption card; it expands the recovery panel. After the user confirms and Home Assistant accepts the restore service call, the recovery panel automatically collapses. The legacy Save to ESP32 service is removed in v1.3.32; HA snapshot services remain available through Developer Tools but their buttons are hidden from this card. Select any date and time (local time, to the minute), then **Load history**. The card queries the Home Assistant Recorder for all seven historical readings at or before that instant and displays each recorded timestamp and its value alongside the current value. If Recorder data has expired, it falls back to the latest stored daily HA snapshot **before** the requested time and clearly labels that fallback. No missing values are invented. Use **Confirm restore** to review a confirmation dialog and send all seven values to ESP32 using the ESPHome native API action `esphome.solar_panel_washing_restore_water_counters`.
 
 **Safety:** the controller rejects restoration during washing, final valve checks, or whenever any relay is energized. Invalid or negative values are rejected. Restoring older total readings can cause a reset/discontinuity in HA long-term energy/water statistics because the total sensor uses `state_class: total_increasing`. The ESPHome action can reject unsafe requests without a synchronous success response; verify the displayed sensor values after restoration. Daily snapshots start only **after** installing this integration; they cannot recover earlier data that Recorder already deleted.
 
 **Important for first upgrade from v1.3.23:** the five zone counters and current-wash counter were volatile in the older firmware. The first v1.3.30 flash cannot recover their previous in-RAM values by itself. Before flashing, use **Developer Tools → States** or screenshots to preserve all seven values. After flashing, use the new restoration panel to load them from HA Recorder history and apply them. Existing total water preference should remain available on normal OTA updates, but any unsaved part may be lost. Avoid erase-flash if you need to preserve ESP32 preferences.
 
-## Durable water totals and settings in v1.3.31
+## Durable water totals and settings in v1.3.32
 
-In v1.3.31, water totals and all editable controller settings are stored in Home Assistant's `.storage/solar_panel_washing_dashboard_controller_state`. After every ESP32 reboot, the integrated HA sync automatically reapplies those values; **ESP32 Flash is not used for daily checkpoints or settings persistence**.
+In v1.3.32, water totals and all editable controller settings are stored in Home Assistant's `.storage/solar_panel_washing_dashboard_controller_state`. After every ESP32 reboot, the integrated HA sync automatically reapplies those values; **ESP32 Flash is not used for daily checkpoints or settings persistence**.
 
 ```yaml
 preferences:
   flash_write_interval: never
 ```
 
-Water totals, zone counters, schedule, weekday modes, duration and safety thresholds live in the HA snapshot. A missing snapshot blocks wash startup until it is restored. Do not flash the new firmware before creating and verifying the snapshot while v1.3.30 is still connected. The earlier 06:00 ESP32 Flash checkpoint and Save button described in historical release notes below apply **only to older firmware versions**; they were removed in v1.3.31.
+Water totals, zone counters, schedule, weekday modes, duration and safety thresholds live in the HA snapshot. A missing snapshot blocks wash startup until it is restored. Do not flash the new firmware before creating and verifying the snapshot while v1.3.30 is still connected. The earlier 06:00 ESP32 Flash checkpoint and Save button described in historical release notes below apply **only to older firmware versions**; they were removed in v1.3.32.
 
 ## Safety and commissioning
 
