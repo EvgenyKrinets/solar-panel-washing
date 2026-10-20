@@ -25,9 +25,8 @@ esp32:
 logger:
 
 preferences:
-  # Dirty preferences are explicitly flushed at 06:00 or by the save button.
-  # The long automatic interval prevents frequent flash writes.
-  flash_write_interval: 24h
+  # Home Assistant owns all durable settings and counters.
+  flash_write_interval: never
 
 
 api:
