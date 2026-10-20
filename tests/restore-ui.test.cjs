@@ -13,6 +13,7 @@ function loadCard() {
     },
     window: { customCards: [], confirm: () => true },
     console: { info() {} },
+    clearTimeout, setTimeout,
   };
   const code = fs.readFileSync("custom_components/solar_panel_washing_dashboard/solar-panel-washing.js", "utf8");
   vm.runInNewContext(code, context, { filename: "solar-panel-washing.js" });
