@@ -2,6 +2,8 @@ name: Publish versioned release
 
 on:
   push:
+    branches:
+      - main
     paths:
       - VERSION
   workflow_dispatch:
