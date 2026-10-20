@@ -114,3 +114,38 @@ test("Selected date restores all 45 settings and seven counters with one HA serv
   assert.equal(requests[0].payload.counters.length,7);
   assert.equal(requests[0].payload.recorded_at,"2026-10-18T09:25:00Z");
 });
+
+test("Date picker stays mounted while HA reports new meter values and native popup moves focus", () => {
+  const card=loadCard();
+  const handlers=new Map();
+  const input={
+    value:"2026-10-20T17:30",
+    matches:selector=>selector==="[data-restore-datetime]",
+    closest:selector=>selector==="[data-restore-datetime]"?input:null
+  };
+  card.addEventListener=(type,handler)=>{
+    const listeners=handlers.get(type)||[];
+    listeners.push(handler);
+    handlers.set(type,listeners);
+  };
+  card.querySelector=selector=>selector==="[data-restore-datetime]"?input:null;
+  card.contains=()=>true;
+  card.innerHTML="picker still mounted";
+  card.connectedCallback();
+  handlers.get("pointerdown")[0]({target:input});
+  assert.equal(card._restoreDatePickerEngaged,true);
+  assert.equal(card.isEditing(),true);
+  // Native date/time popups may blur the HTML input. HA pushes another
+  // sensor reading while the popup remains open.
+  card.hass={states:{"sensor.solar_panel_washing_total_water":{state:"808.25",attributes:{}}},language:"ru"};
+  card.render();
+  assert.equal(card.innerHTML,"picker still mounted");
+  assert.equal(card._restoreOpen,true);
+  assert.equal(card._restoreAt,"2026-10-20T17:30");
+  assert.equal(card._pendingRender,true);
+  // Clicking Load History exits the native picker and allows an update.
+  handlers.get("pointerdown")[0]({target:{closest:()=>null}});
+  assert.equal(card._restoreDatePickerEngaged,false);
+  assert.equal(card._restoreAt,"2026-10-20T17:30");
+  assert.equal(card.isEditing(),false);
+});
