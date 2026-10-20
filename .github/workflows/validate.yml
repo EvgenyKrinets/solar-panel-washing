@@ -2,9 +2,6 @@ name: Validate Solar Panel Washing
 
 on:
   pull_request:
-  push:
-    branches:
-      - feature/ha-state-storage-1.3.31
 
 jobs:
   validate:
