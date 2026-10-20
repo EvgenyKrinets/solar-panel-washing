@@ -7,6 +7,7 @@ esphome:
     then:
       - script.execute: all_off
       - lambda: |-
+          id(settings_synchronized) = false;
           id(wash_running) = false;
           id(emergency_active) = false;
           id(current_zone_num) = 0;
@@ -24,15 +25,21 @@ esp32:
 logger:
 
 preferences:
-  # Dirty preferences are explicitly flushed at 06:00 or by the save button.
-  # The long automatic interval prevents frequent flash writes.
-  flash_write_interval: 24h
+  # HA owns configuration and counter persistence; never write preferences automatically.
+  flash_write_interval: never
 
 
 api:
   encryption:
     key: !secret solar_panel_washing__encryption_key
   actions:
+    - action: confirm_settings_synchronized
+      then:
+        - lambda: |-
+            if (!id(wash_running) && !id(emergency_active)) {
+              id(settings_synchronized) = true;
+              ESP_LOGI("sync", "Home Assistant settings synchronized; scheduler enabled");
+            }
     - action: restore_water_counters
       variables:
         total: float
@@ -77,8 +84,7 @@ api:
                   id(wash_zone_5_water).publish_state(zone5);
               - delay: 1s
               - lambda: |-
-                  // Persist all restored globals after their loop has queued changes.
-                  global_preferences->sync();
+                  // Values remain in RAM; HA stores the durable copy.
                   id(restore_pending) = false;
             else:
               - logger.log:
@@ -125,12 +131,11 @@ pca9554:
 
 globals:
 
-  # Persisted total water. Initial seed from the user's existing reading.
-  # This initial_value is only used when no saved preference exists.
+  # HA is authoritative. Start at zero until synchronization.
   - id: persistent_water_liters
     type: float
-    restore_value: yes
-    initial_value: '30.6237333'
+    restore_value: false
+    initial_value: '0.0'
   - id: last_raw_pulses_liters
     type: float
     restore_value: no
@@ -148,16 +153,20 @@ globals:
   # Per-cycle water accounting (litres). The flow meter remains the source of truth.
   - id: wash_liters
     type: float
-    restore_value: yes
+    restore_value: false
     initial_value: '0.0'
   - id: wash_zone_liters
     type: std::array<float, 5>
-    restore_value: yes
+    restore_value: false
     initial_value: '{0.0f, 0.0f, 0.0f, 0.0f, 0.0f}'
   - id: last_daily_save_date
     type: int
-    restore_value: yes
+    restore_value: false
     initial_value: '0'
+  - id: settings_synchronized
+    type: bool
+    restore_value: no
+    initial_value: 'false'
   - id: restore_pending
     type: bool
     restore_value: no
@@ -436,35 +445,35 @@ switch:
     id: zone1_enabled
     icon: mdi:checkbox-marked-circle
     optimistic: true
-    restore_mode: RESTORE_DEFAULT_ON
+    restore_mode: ALWAYS_ON
 
   - platform: template
     name: "Zone 2 Enabled"
     id: zone2_enabled
     icon: mdi:checkbox-marked-circle
     optimistic: true
-    restore_mode: RESTORE_DEFAULT_ON
+    restore_mode: ALWAYS_ON
 
   - platform: template
     name: "Zone 3 Enabled"
     id: zone3_enabled
     icon: mdi:checkbox-marked-circle
     optimistic: true
-    restore_mode: RESTORE_DEFAULT_ON
+    restore_mode: ALWAYS_ON
 
   - platform: template
     name: "Zone 4 Enabled"
     id: zone4_enabled
     icon: mdi:checkbox-marked-circle
     optimistic: true
-    restore_mode: RESTORE_DEFAULT_ON
+    restore_mode: ALWAYS_ON
 
   - platform: template
     name: "Zone 5 Enabled"
     id: zone5_enabled
     icon: mdi:checkbox-marked-circle
     optimistic: true
-    restore_mode: RESTORE_DEFAULT_ON
+    restore_mode: ALWAYS_ON
 
 
   # ==========================================================
@@ -477,7 +486,7 @@ switch:
     id: flow_protection
     icon: mdi:shield-water
     optimistic: true
-    restore_mode: RESTORE_DEFAULT_OFF
+    restore_mode: ALWAYS_OFF
 
 
   # ==========================================================
@@ -489,7 +498,7 @@ switch:
     id: auto_start_enabled
     icon: mdi:clock-start
     optimistic: true
-    restore_mode: RESTORE_DEFAULT_OFF
+    restore_mode: ALWAYS_OFF
 
 
   # ==========================================================
@@ -501,49 +510,49 @@ switch:
     id: auto_monday
     icon: mdi:calendar
     optimistic: true
-    restore_mode: RESTORE_DEFAULT_OFF
+    restore_mode: ALWAYS_OFF
 
   - platform: template
     name: "Auto Start Tuesday"
     id: auto_tuesday
     icon: mdi:calendar
     optimistic: true
-    restore_mode: RESTORE_DEFAULT_OFF
+    restore_mode: ALWAYS_OFF
 
   - platform: template
     name: "Auto Start Wednesday"
     id: auto_wednesday
     icon: mdi:calendar
     optimistic: true
-    restore_mode: RESTORE_DEFAULT_OFF
+    restore_mode: ALWAYS_OFF
 
   - platform: template
     name: "Auto Start Thursday"
     id: auto_thursday
     icon: mdi:calendar
     optimistic: true
-    restore_mode: RESTORE_DEFAULT_OFF
+    restore_mode: ALWAYS_OFF
 
   - platform: template
     name: "Auto Start Friday"
     id: auto_friday
     icon: mdi:calendar
     optimistic: true
-    restore_mode: RESTORE_DEFAULT_OFF
+    restore_mode: ALWAYS_OFF
 
   - platform: template
     name: "Auto Start Saturday"
     id: auto_saturday
     icon: mdi:calendar
     optimistic: true
-    restore_mode: RESTORE_DEFAULT_OFF
+    restore_mode: ALWAYS_OFF
 
   - platform: template
     name: "Auto Start Sunday"
     id: auto_sunday
     icon: mdi:calendar
     optimistic: true
-    restore_mode: RESTORE_DEFAULT_OFF
+    restore_mode: ALWAYS_OFF
 
 
 # ============================================================
@@ -557,7 +566,7 @@ select:
     id: wash_mode
     icon: mdi:washing-machine
     optimistic: true
-    restore_value: true
+    restore_value: false
     initial_option: "Water"
 
     options:
@@ -570,7 +579,7 @@ select:
     id: auto_mode_monday
     icon: mdi:water-check
     optimistic: true
-    restore_value: true
+    restore_value: false
     initial_option: "Water"
     options:
       - "Water"
@@ -581,7 +590,7 @@ select:
     id: auto_mode_tuesday
     icon: mdi:water-check
     optimistic: true
-    restore_value: true
+    restore_value: false
     initial_option: "Water"
     options:
       - "Water"
@@ -592,7 +601,7 @@ select:
     id: auto_mode_wednesday
     icon: mdi:water-check
     optimistic: true
-    restore_value: true
+    restore_value: false
     initial_option: "Water"
     options:
       - "Water"
@@ -603,7 +612,7 @@ select:
     id: auto_mode_thursday
     icon: mdi:water-check
     optimistic: true
-    restore_value: true
+    restore_value: false
     initial_option: "Water"
     options:
       - "Water"
@@ -614,7 +623,7 @@ select:
     id: auto_mode_friday
     icon: mdi:water-check
     optimistic: true
-    restore_value: true
+    restore_value: false
     initial_option: "Water"
     options:
       - "Water"
@@ -625,7 +634,7 @@ select:
     id: auto_mode_saturday
     icon: mdi:water-check
     optimistic: true
-    restore_value: true
+    restore_value: false
     initial_option: "Water"
     options:
       - "Water"
@@ -636,7 +645,7 @@ select:
     id: auto_mode_sunday
     icon: mdi:water-check
     optimistic: true
-    restore_value: true
+    restore_value: false
     initial_option: "Water"
     options:
       - "Water"
@@ -660,7 +669,7 @@ number:
     max_value: 3600
     step: 5
     initial_value: 180
-    restore_value: true
+    restore_value: false
     optimistic: true
 
   - platform: template
@@ -671,7 +680,7 @@ number:
     max_value: 3600
     step: 5
     initial_value: 180
-    restore_value: true
+    restore_value: false
     optimistic: true
 
   - platform: template
@@ -682,7 +691,7 @@ number:
     max_value: 3600
     step: 5
     initial_value: 180
-    restore_value: true
+    restore_value: false
     optimistic: true
 
   - platform: template
@@ -693,7 +702,7 @@ number:
     max_value: 3600
     step: 5
     initial_value: 180
-    restore_value: true
+    restore_value: false
     optimistic: true
 
   - platform: template
@@ -704,7 +713,7 @@ number:
     max_value: 3600
     step: 5
     initial_value: 180
-    restore_value: true
+    restore_value: false
     optimistic: true
 
 
@@ -720,7 +729,7 @@ number:
     max_value: 1800
     step: 5
     initial_value: 60
-    restore_value: true
+    restore_value: false
     optimistic: true
 
   - platform: template
@@ -731,7 +740,7 @@ number:
     max_value: 1800
     step: 5
     initial_value: 60
-    restore_value: true
+    restore_value: false
     optimistic: true
 
   - platform: template
@@ -742,7 +751,7 @@ number:
     max_value: 1800
     step: 5
     initial_value: 60
-    restore_value: true
+    restore_value: false
     optimistic: true
 
   - platform: template
@@ -753,7 +762,7 @@ number:
     max_value: 1800
     step: 5
     initial_value: 60
-    restore_value: true
+    restore_value: false
     optimistic: true
 
   - platform: template
@@ -764,7 +773,7 @@ number:
     max_value: 1800
     step: 5
     initial_value: 60
-    restore_value: true
+    restore_value: false
     optimistic: true
 
 
@@ -780,7 +789,7 @@ number:
     max_value: 3600
     step: 5
     initial_value: 180
-    restore_value: true
+    restore_value: false
     optimistic: true
 
   - platform: template
@@ -791,7 +800,7 @@ number:
     max_value: 3600
     step: 5
     initial_value: 180
-    restore_value: true
+    restore_value: false
     optimistic: true
 
   - platform: template
@@ -802,7 +811,7 @@ number:
     max_value: 3600
     step: 5
     initial_value: 180
-    restore_value: true
+    restore_value: false
     optimistic: true
 
   - platform: template
@@ -813,7 +822,7 @@ number:
     max_value: 3600
     step: 5
     initial_value: 180
-    restore_value: true
+    restore_value: false
     optimistic: true
 
   - platform: template
@@ -824,7 +833,7 @@ number:
     max_value: 3600
     step: 5
     initial_value: 180
-    restore_value: true
+    restore_value: false
     optimistic: true
 
 
@@ -841,7 +850,7 @@ number:
     max_value: 15
     step: 1
     initial_value: 2
-    restore_value: true
+    restore_value: false
     optimistic: true
 
   - platform: template
@@ -853,7 +862,7 @@ number:
     max_value: 30
     step: 1
     initial_value: 3
-    restore_value: true
+    restore_value: false
     optimistic: true
 
 
@@ -869,7 +878,7 @@ number:
     max_value: 30
     step: 0.1
     initial_value: 1
-    restore_value: true
+    restore_value: false
     optimistic: true
 
   - platform: template
@@ -880,7 +889,7 @@ number:
     max_value: 40
     step: 0.1
     initial_value: 30
-    restore_value: true
+    restore_value: false
     optimistic: true
 
   - platform: template
@@ -891,7 +900,7 @@ number:
     max_value: 10
     step: 0.1
     initial_value: 0.5
-    restore_value: true
+    restore_value: false
     optimistic: true
 
   - platform: template
@@ -903,7 +912,7 @@ number:
     max_value: 60
     step: 1
     initial_value: 5
-    restore_value: true
+    restore_value: false
     optimistic: true
 
 
@@ -919,7 +928,7 @@ number:
     max_value: 23
     step: 1
     initial_value: 5
-    restore_value: true
+    restore_value: false
     optimistic: true
 
   - platform: template
@@ -930,7 +939,7 @@ number:
     max_value: 59
     step: 1
     initial_value: 0
-    restore_value: true
+    restore_value: false
     optimistic: true
 
 
@@ -973,7 +982,7 @@ sensor:
         - multiply: 0.0025252525
 
 
-  # Public total survives reboot/OTA through ESPHome preferences.
+  # Total is restored from Home Assistant after each boot.
   - platform: template
     id: water_total
     name: "Total Water"
@@ -1345,6 +1354,12 @@ binary_sensor:
     name: "Washing Controller Online"
 
   - platform: template
+    name: "Settings Synchronized"
+    update_interval: 2s
+    lambda: |-
+      return id(settings_synchronized);
+
+  - platform: template
     name: "ESP32 Time Synchronized"
     device_class: connectivity
     lambda: |-
@@ -1457,15 +1472,6 @@ text_sensor:
 button:
 
   - platform: template
-    name: "Save Water Counters"
-    icon: mdi:content-save
-    on_press:
-      - delay: 1s
-      - lambda: |-
-          global_preferences->sync();
-          ESP_LOGI("water", "Water counters saved to ESP32 flash");
-
-  - platform: template
     name: "Start Washing"
     icon: mdi:play
 
@@ -1524,25 +1530,6 @@ time:
       - 2.pool.ntp.org
 
     on_time:
-      # Fixed local daily checkpoint, with DST handled by Asia/Jerusalem.
-      - seconds: 0
-        minutes: 0
-        hours: 6
-        then:
-          - if:
-              condition:
-                lambda: |-
-                  auto now = id(system_time).now();
-                  if (!now.is_valid()) return false;
-                  int day = now.year * 10000 + now.month * 100 + now.day_of_month;
-                  if (id(last_daily_save_date) == day) return false;
-                  id(last_daily_save_date) = day;
-                  return true;
-              then:
-                - delay: 1s
-                - lambda: |-
-                    global_preferences->sync();
-                    ESP_LOGI("water", "Daily 06:00 water checkpoint saved");
       - seconds: 0
         minutes: '*'
         hours: '*'
@@ -1555,7 +1542,7 @@ time:
                 lambda: |-
 
                   // Scheduler disabled
-                  if (!id(auto_start_enabled).state)
+                  if (!id(settings_synchronized) || !id(auto_start_enabled).state)
                     return false;
 
                   // Get current local time
@@ -1797,6 +1784,7 @@ script:
               return
                 id(wash_running) ||
                 id(emergency_active) ||
+                !id(settings_synchronized) ||
                 id(restore_pending);
 
           then:

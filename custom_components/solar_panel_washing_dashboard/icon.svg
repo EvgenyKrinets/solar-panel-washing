@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256" role="img" aria-label="Solar panel washing">
+<defs><linearGradient id="sky" x2="0" y2="1"><stop stop-color="#1a74b6"/><stop offset="1" stop-color="#093a72"/></linearGradient><linearGradient id="panel" x2="0" y2="1"><stop stop-color="#43b5f0"/><stop offset="1" stop-color="#0c548a"/></linearGradient></defs>
+<rect width="256" height="256" rx="52" fill="url(#sky)"/>
+<circle cx="193" cy="65" r="27" fill="#ffdb70"/>
+<path d="M58 106h147l24 98H31z" fill="#082e54" stroke="#e6f7ff" stroke-width="8" stroke-linejoin="round"/>
+<path d="M62 114h137l20 82H42z" fill="url(#panel)"/>
+<path d="M105 113l-8 84m53-84 8 84M50 154h160" stroke="#d8f4ff" stroke-width="5" opacity=".85"/>
+<path d="M52 69c26-34 53-35 79-7" fill="none" stroke="#e4f9ff" stroke-width="11" stroke-linecap="round"/>
+<path d="M120 55l18 12-20 9" fill="none" stroke="#e4f9ff" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M75 88l-8 15m32-25-8 17m32-24-7 14" stroke="#a8f2ff" stroke-width="7" stroke-linecap="round"/>
+</svg>

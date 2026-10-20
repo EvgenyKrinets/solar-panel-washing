@@ -1,3 +1,13 @@
+## HA-owned settings history (development branch)
+
+> **Not released:** This functionality is under integration testing. Keep the current firmware and integration installed until a tested release is published.
+
+The planned architecture moves persistent washing configuration and all seven water counters from ESP32 preferences into Home Assistant storage. The ESP32 runs with `preferences.flash_write_interval: never` and `restore_value: false` for mutable globals, numbers and selects. Relay outputs remain off after boot. The washing schedule remains locked until Home Assistant replays the latest complete settings snapshot and confirms synchronization.
+
+Home Assistant keeps timestamped snapshots of the wash mode, weekday modes, enabled zones, all 15 configurable stage durations, switching delays, flow protection, schedule and water counters. A dashboard **Restore settings** control previews the saved state alongside current values before asking for confirmation. A restore requires the washing cycle to be stopped and all eight relays to be off.
+
+**Important:** The first complete HA snapshot must be saved while the old ESP32 firmware still holds the correct settings, *before* installing firmware that disables flash persistence. Restoring an older point in time is possible only if HA captured a complete snapshot for that time. Actual elapsed stage timers and emergency/relay states are deliberately excluded from persistence.
+
 <div align="center">
 
 # Solar Panel Washing
