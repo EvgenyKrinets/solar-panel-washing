@@ -128,10 +128,17 @@ async def async_setup_settings_sync(hass: HomeAssistant) -> None:
         service_domain = "esphome"
         water_action = "solar_panel_washing_restore_water_counters"
         finish_action = "solar_panel_washing_finish_restore"
-        if not hass.services.has_service(service_domain, water_action) or not hass.services.has_service(service_domain, finish_action):
+        prepare_action = "solar_panel_washing_prepare_restore"
+        if not hass.services.has_service(service_domain, water_action) or not hass.services.has_service(service_domain, finish_action) or not hass.services.has_service(service_domain, prepare_action):
             return False
         data["busy"] = True
         try:
+            # Only the ESP32 can authorize a safe restore: lock starts first.
+            await hass.services.async_call(service_domain, prepare_action, {}, blocking=True)
+            await asyncio.sleep(0.5)
+            ready_now = hass.states.get(_READY)
+            if ready_now is None or ready_now.state != "off":
+                raise HomeAssistantError("ESP32 rejected restore: active wash or energized output")
             # Keep scheduled starts disabled while applying configuration.
             for entity_id, kind in _SETTINGS.items():
                 value = settings[entity_id]
