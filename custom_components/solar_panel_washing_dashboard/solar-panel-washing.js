@@ -99,6 +99,11 @@ class SolarPanelWashingCard extends HTMLElement {
   t(key,...args){
     const messages={
       "Restore settings":["Восстановить настройки","שחזור הגדרות"],
+      "Using the last complete HA backup available before the selected date.":["Использована последняя полная копия HA до выбранной даты.","נעשה שימוש בגיבוי המלא האחרון של HA לפני התאריך שנבחר."],
+      "Incomplete water counter history":["В истории найдены не все 7 счётчиков воды.","חסרה היסטוריה של חלק משבעת מוני המים."],
+      "Restore service unavailable. Update and restart Home Assistant.":["Служба восстановления недоступна. Обновите и перезапустите Home Assistant.","שירות השחזור אינו זמין. עדכנו והפעילו מחדש את Home Assistant."],
+      "Restore all settings and seven water counters?":["Восстановить все настройки и 7 счётчиков воды?","לשחזר את כל ההגדרות ושבעת מוני המים?"],
+      "This replaces the current settings and counters in ESP32.":["Текущие настройки и счётчики ESP32 будут заменены.","ההגדרות ומוני המים הנוכחיים של ESP32 יוחלפו."],
       "Restores all settings and seven water counters from the selected date.":["На выбранную дату будут восстановлены все настройки и 7 счётчиков воды.","כל ההגדרות ושבעת מוני המים ישוחזרו לתאריך הנבחר."],
       "Restore all settings and counters":["Восстановить всё","שחזור הכל"],
       "No complete backup for the selected date. No settings were changed.":["На выбранную дату нет полной копии настроек и счётчиков. Ничего не изменено.","אין גיבוי מלא לתאריך הנבחר. לא בוצעו שינויים."],
@@ -402,36 +407,34 @@ class SolarPanelWashingCard extends HTMLElement {
     }finally{this._restoreLoading=false;this.render();}
   }
   async restoreWaterHistory(){
-    const values=this._restorePreview;
-    if(!values||values.length!==7||this._restoreLoading)return;
+    const preview=this._restorePreview,settings=this._restoreSettings;
+    if(!preview||preview.length!==7||!settings||Object.keys(settings).length!==45||
+       !this._restoreStamp||this._restoreLoading)return;
     const p="solar_panel_washing_";
-    if(this.state(`binary_sensor.${p}washing_active`)==="on"||
-       this.state(`sensor.${p}washing_status`)==="Main Valve Check"||
-       this.state(`sensor.${p}washing_status`)==="Pressure Release"){
+    if(this.state("binary_sensor."+p+"washing_active")==="on"||
+       this.state("sensor."+p+"washing_status")==="Main Valve Check"||
+       this.state("sensor."+p+"washing_status")==="Pressure Release"){
       this._restoreError=this.t("Stop washing and close all valves before restoring.");this.render();return;
     }
-    const switches=["ch8_valve_power","ch1_filtered_water","ch2_detergent",...Array.from({length:5},(_,i)=>`ch${i+3}_zone_${i+1}`)];
-    if(switches.some(x=>this.state(`switch.${p}${x}`)!=="off")){
+    const switches=["ch8_valve_power","ch1_filtered_water","ch2_detergent",
+      ...Array.from({length:5},(_,i)=>"ch"+(i+3)+"_zone_"+(i+1))];
+    if(switches.some(x=>this.state("switch."+p+x)!=="off")){
       this._restoreError=this.t("All eight relays must report OFF before restoring.");this.render();return;
     }
-    const service="solar_panel_washing_restore_water_counters";
-    if(!this._hass.services?.esphome?.[service]){
-      this._restoreError=this.t("ESPHome restore action not available. Update ESP32 firmware and reconnect Home Assistant.");this.render();return;
+    if(!this._hass.services?.solar_panel_washing_dashboard?.restore_historical_state){
+      this._restoreError=this.t("Restore service unavailable. Update and restart Home Assistant.");this.render();return;
     }
-    const valuesText=values.map((v,i)=>`${this.waterLabels()[i].startsWith("Zone ")?this.t("Zone")+" "+(i-1):this.t(this.waterLabels()[i])}: ${v.value.toFixed(2)} L`).join("\n");
-    if(!window.confirm(`${this.t("Restore water counters from")} ${this._restoreAt}?\n\n${valuesText}\n\n${this.t("This replaces the current values in ESP32.")}`))return;
+    const date=this.historyTimeText(this._restoreStamp);
+    if(!window.confirm(this.t("Restore all settings and seven water counters?")+"\n"+
+      this.t("Recorded at")+" "+date+"\n"+
+      this.t("This replaces the current settings and counters in ESP32.")))return;
     this._restoreLoading=true;this.render();
     try{
-      await this._hass.callService("esphome",service,{
-        total:values[0].value,wash:values[1].value,
-        zone1:values[2].value,zone2:values[3].value,zone3:values[4].value,
-        zone4:values[5].value,zone5:values[6].value
+      await this._hass.callService("solar_panel_washing_dashboard","restore_historical_state",{
+        settings,counters:preview.map(x=>x.value),recorded_at:this._restoreStamp
       });
-      this._restoreError="";
-      this._restorePreview=null;
-      this._restoreOpen=false;
-      this._restoreMode="latest";
-      this._restoreAt="";
+      this._restoreError="";this._restorePreview=null;this._restoreSettings=null;
+      this._restoreStamp=null;this._restoreOpen=false;this._restoreAt="";
       this._restoreRenderDeferred=false;
     }catch(e){this._restoreError=e?.message||String(e);}
     finally{this._restoreLoading=false;this.render();}
@@ -608,8 +611,8 @@ class SolarPanelWashingCard extends HTMLElement {
     this.querySelector("[data-save-counters]")?.addEventListener("click",()=>this.saveWaterCounters());
     this.querySelector("[data-backup-ha]")?.addEventListener("click",()=>this.backupWaterInHA());
     const dateInput=this.querySelector("[data-restore-datetime]");
-    dateInput?.addEventListener("input",()=>{this._restoreAt=dateInput.value;this._restorePreview=null;});
-    dateInput?.addEventListener("change",()=>{this._restoreAt=dateInput.value;this._restorePreview=null;});
+    dateInput?.addEventListener("input",()=>{this._restoreAt=dateInput.value;this._restorePreview=null;this._restoreSettings=null;this._restoreStamp=null;});
+    dateInput?.addEventListener("change",()=>{this._restoreAt=dateInput.value;this._restorePreview=null;this._restoreSettings=null;this._restoreStamp=null;});
     dateInput?.addEventListener("blur",()=>{
       this._restoreAt=dateInput.value;
       if(this._restoreRenderDeferred){
