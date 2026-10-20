@@ -28,3 +28,5 @@ jobs:
           cp esphome/secrets.example.yaml esphome/secrets.yaml
           sed -i 's|solar_panel_washing__encryption_key:.*|solar_panel_washing__encryption_key: "AQIDBAUGBwgJCgsMDQ4PEBESExQVFhcYGRobHB0eHyA="|' esphome/secrets.yaml
           esphome config esphome/solar-panel-washing.yaml
+      - name: Compile ESP32 firmware
+        run: esphome compile esphome/solar-panel-washing.yaml
