@@ -89,6 +89,9 @@ class SettingsHistory:
     async def capture(self):
         if self._restoring:
             return False
+        synced = self.hass.states.get(SYNC_ENTITY)
+        if synced is not None and synced.state != 'on':
+            return False
         values = {}
         for entity_id in ENTITIES:
             state = self.hass.states.get(entity_id)
