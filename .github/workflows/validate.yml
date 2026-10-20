@@ -1,0 +1,29 @@
+name: Validate Solar Panel Washing
+
+on:
+  pull_request:
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Check Home Assistant Python sources
+        run: python -m compileall -q custom_components
+      - name: Check dashboard JavaScript syntax
+        run: |
+          node --check solar-panel-washing.js
+          node --check solar-panel-washing-card.js
+          node --check custom_components/solar_panel_washing_dashboard/solar-panel-washing.js
+      - name: Install ESPHome
+        run: pip install 'esphome>=2026.9,<2027'
+      - name: Verify ESPHome configuration
+        run: |
+          cp esphome/secrets.example.yaml esphome/secrets.yaml
+          sed -i 's|solar_panel_washing__encryption_key:.*|solar_panel_washing__encryption_key: "AQIDBAUGBwgJCgsMDQ4PEBESExQVFhcYGRobHB0eHyA="|' esphome/secrets.yaml
+          esphome config esphome/solar-panel-washing.yaml
+      - name: Compile ESP32 firmware
+        run: esphome compile esphome/solar-panel-washing.yaml

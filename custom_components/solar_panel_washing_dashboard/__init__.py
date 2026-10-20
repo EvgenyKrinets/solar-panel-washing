@@ -22,6 +22,7 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.exceptions import HomeAssistantError
 
 from .const import DOMAIN, DASHBOARD_PATH, DASHBOARD_TITLE
+from .settings_storage import async_setup_settings_sync
 
 _LOGGER = logging.getLogger(__name__)
 _WATER_ENTITIES = (
@@ -154,18 +155,19 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Install dashboard once; never overwrite an existing user's dashboard."""
     await hass.http.async_register_static_paths([
         StaticPathConfig(
-            "/solar-panel-washing/v1.3.30/solar-panel-washing.js",
+            "/solar-panel-washing/v1.3.32/solar-panel-washing.js",
             str(Path(__file__).parent / "solar-panel-washing.js"),
             False,
         )
     ])
     await _setup_water_snapshots(hass)
+    await async_setup_settings_sync(hass)
     lovelace = hass.data.get(LOVELACE_DATA)
     if lovelace is None:
         _LOGGER.error("Lovelace has not been initialized")
         return False
 
-    resource_url = "/solar-panel-washing/v1.3.30/solar-panel-washing.js"
+    resource_url = "/solar-panel-washing/v1.3.32/solar-panel-washing.js"
     resources = lovelace.resources
     if hasattr(resources, "async_create_item"):
         await resources._async_ensure_loaded()
