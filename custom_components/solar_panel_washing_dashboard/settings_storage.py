@@ -71,8 +71,8 @@ async def async_setup_settings_sync(hass: HomeAssistant) -> None:
         if ready is not None and ready.state != "on":
             return False
         if ready is None and data["snapshot"] is not None and not force:
-            # Legacy firmware is allowed to update an existing snapshot.
-            pass
+            # Never replace a durable snapshot with stale state at HA startup.
+            return False
         values = {}
         for entity_id, kind in _SETTINGS.items():
             state = hass.states.get(entity_id)
@@ -187,6 +187,6 @@ async def async_setup_settings_sync(hass: HomeAssistant) -> None:
 
     hass.services.async_register(DOMAIN, "save_settings", manual_backup)
     hass.services.async_register(DOMAIN, "restore_settings", manual_restore)
-    data["unsub"].append(async_track_time_interval(hass, poll, timedelta(seconds=10)))
+    data["unsub"].append(async_track_time_interval(hass, poll, timedelta(seconds=30)))
     # Starting capture now supports migration from legacy 1.3.30 before OTA.
     hass.async_create_task(poll())
