@@ -11,7 +11,7 @@ function loadCard() {
       get: name => classes.get(name),
       define: (name, klass) => classes.set(name, klass),
     },
-    window: { customCards: [] },
+    window: { customCards: [], confirm: () => true },
     console: { info() {} },
   };
   const code = fs.readFileSync("custom_components/solar_panel_washing_dashboard/solar-panel-washing.js", "utf8");
@@ -106,10 +106,11 @@ test("Selected date restores all 45 settings and seven counters with one HA serv
   const requests=[];
   card._hass.services={solar_panel_washing_dashboard:{restore_historical_state:{}}};
   card._hass.callService=async(domain,service,payload)=>{requests.push({domain,service,payload});};
-  global.window=global.window||{};
-  const originalWindow=global.window;
-  // window.confirm resolves in the isolated VM context; no interaction needed here.
   await card.restoreWaterHistory();
-  // A missing confirmation in the VM leaves requests empty; assert no accidental restore.
-  assert.equal(requests.length,0);
+  assert.equal(requests.length,1);
+  assert.equal(requests[0].domain,"solar_panel_washing_dashboard");
+  assert.equal(requests[0].service,"restore_historical_state");
+  assert.equal(Object.keys(requests[0].payload.settings).length,45);
+  assert.equal(requests[0].payload.counters.length,7);
+  assert.equal(requests[0].payload.recorded_at,"2026-10-18T09:25:00Z");
 });
