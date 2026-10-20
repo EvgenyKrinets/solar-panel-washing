@@ -108,7 +108,7 @@ class SolarPanelWashingCard extends HTMLElement {
   // One localization entry point for dynamic messages and controls.
   t(key,...args){
     const messages={
-      "Restore settings":["Восстановить настройки","שחזור הגדרות"],"Restore counters":["Восстановить счётчики","שחזור מונים"],
+      "Restore settings":["Восстановить настройки","שחזור הגדרות"],"Setting":["Настройка","הגדרה"],"Restore counters":["Восстановить счётчики","שחזור מונים"],
       "Date and time":["Дата и время","תאריך ושעה"],
       "Load history":["Загрузить историю","טעינת היסטוריה"],
       "Confirm restore":["Подтвердить восстановление","אישור שחזור"],
@@ -240,26 +240,24 @@ class SolarPanelWashingCard extends HTMLElement {
     return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
   }
   restorePanel(){
-    const open=!!this._restoreOpen;
-    const preview=this._restorePreview;
-    const msg=this._restoreError;
+    const open=!!this._restoreOpen, preview=this._restorePreview;
     const busy=!!this._restoreLoading;
-    const labels=this.waterLabels().map(x=>x.startsWith("Zone ")?this.t("Zone")+" "+x.slice(5):this.t(x)),ids=this.waterCounterIds();
-    const table=preview?`<div class="spw-restore-table">
-      <div class="spw-restore-row"><b></b><b>${this.t("Current")}</b><b>${this.t("From HA")}</b></div>
-      ${preview.map((item,i)=>`<div class="spw-restore-row"><span>${labels[i]}</span><span>${this.waterNumber(ids[i])} L</span><span><b>${item.value.toFixed(2)} L</b><small>${this.t("Recorded at")} ${new Date(item.time).toLocaleString(this.language()==="ru"?"ru-RU":this.language()==="he"?"he-IL":"en-US")}</small></span></div>`).join("")}
-    </div>`:`<small>${this.t("History not loaded")}</small>`;
+    const escape=s=>String(s).replace(/[&<>"]/g,x=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[x]));
+    const rows=preview?.values?Object.entries(preview.values).map(([id,value])=>{
+      const current=this._hass?.states?.[id]?.state??"—";
+      const label=id.replace(/^(switch|number|select|sensor)\.solar_panel_washing_/,"").replace(/_/g," ");
+      return `<div class="spw-restore-row"><span>${escape(label)}</span><span>${escape(current)}</span><b>${escape(value)}</b></div>`;
+    }).join(""):"";
     return `<div class="spw-restore">
-      <div class="spw-restore-actions">
-        <button type="button" data-restore-toggle style="width:100%;border-color:var(--primary-color,#1684d8);color:var(--primary-color,#1684d8);font-weight:600">${this.t("Restore settings")} ${open?"▴":"▾"}</button>
-      </div>
+      <div class="spw-restore-actions"><button type="button" data-restore-toggle style="width:100%;border-color:var(--primary-color,#1684d8);color:var(--primary-color,#1684d8);font-weight:600">${this.t("Restore settings")} ${open?"▴":"▾"}</button></div>
       ${open?`<div class="spw-restore-expanded">
         <label>${this.t("Date and time")} <input type="datetime-local" data-restore-datetime value="${this._restoreAt||this.restoreDefaultDate()}"></label>
         <button type="button" data-restore-load ${busy?"disabled":""}>${this.t("Load history")}</button>
         ${busy?`<small>${this.t("Loading…")}</small>`:""}
-        ${msg?`<p class="spw-restore-error">${String(msg).replace(/[&<>"]/g,x=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[x]))}</p>`:""}
-        ${table}
-        ${preview?`<button type="button" data-restore-confirm ${busy?"disabled":""}>${this.t("Confirm restore")}</button>`:""}
+        ${this._restoreError?`<p class="spw-restore-error">${escape(this._restoreError)}</p>`:""}
+        ${preview?`<small>${this.t("Recorded at")} ${escape(new Date(preview.time).toLocaleString())}</small>
+          <div class="spw-restore-table"><div class="spw-restore-row"><b>${this.t("Setting")}</b><b>${this.t("Current")}</b><b>${this.t("From HA")}</b></div>${rows}</div>
+          <button type="button" data-restore-confirm ${busy?"disabled":""}>${this.t("Confirm restore")}</button>`:`<small>${this.t("History not loaded")}</small>`}
       </div>`:""}
     </div>`;
   }
@@ -267,85 +265,27 @@ class SolarPanelWashingCard extends HTMLElement {
     if(this._restoreLoading)return;
     const input=this.querySelector("[data-restore-datetime]");
     this._restoreAt=input?.value||this._restoreAt||this.restoreDefaultDate();
-    this._restorePreview=null;
-    this._restoreError="";
+    this._restorePreview=null;this._restoreError="";
     const target=new Date(this._restoreAt);
     if(!Number.isFinite(target.getTime())||target.getTime()>Date.now()){
       this._restoreError=this.t("Choose a valid past date and time");this.render();return;
     }
     this._restoreLoading=true;this.render();
     try{
-      const ids=this.waterCounterIds();
-      // Include state at the beginning of the interval; HA's history API
-      // can return the previous recorded state as its first sample.
-      let preview=null;
-      try{
-        const result=await this._hass.callWS({
-          type:"history/history_during_period",
-          start_time:new Date(target.getTime()-60000).toISOString(),
-          end_time:new Date(target.getTime()+1000).toISOString(),
-          entity_ids:ids,minimal_response:false,no_attributes:true
-        });
-        const rows=Array.isArray(result)?result:Object.values(result||{});
-        preview=ids.map((id,i)=>{
-          const group=rows.find(a=>Array.isArray(a)&&a.some(x=>x.entity_id===id))||rows[i]||[];
-          const valid=group.filter(x=>{
-            const time=new Date(x.last_updated||x.last_changed||x.lu||x.lc);
-            const v=Number(x.state??x.s);
-            return Number.isFinite(time.getTime())&&time.getTime()<=target.getTime()&&
-              Number.isFinite(v)&&v>=0;
-          });
-          if(!valid.length)throw Error(`${this.t("No recorded value for")} ${id}.`);
-          const x=valid[valid.length-1];
-          return {value:Number(x.state??x.s),time:x.last_updated||x.last_changed||x.lu||x.lc};
-        });
-      }catch(historyError){
-        // Recorder may have purged the requested date. Use the latest
-        // available durable 06:00 HA snapshot, never invent missing data.
-        const snapshots=await this._hass.callWS({type:"solar_panel_washing_dashboard/water_snapshots"});
-        const available=(snapshots||[]).filter(x=>
-          Array.isArray(x.values)&&x.values.length===7&&new Date(x.time).getTime()<=target.getTime()
-        );
-        if(!available.length)throw historyError;
-        const snap=available[available.length-1];
-        preview=snap.values.map(value=>({value:Number(value),time:snap.time}));
-        this._restoreError=this.t("Recorder history unavailable. Showing the last daily 06:00 backup; check its recorded time.");
-      }
-      this._restorePreview=preview;
+      this._restorePreview=await this._hass.callWS({
+        type:"solar_panel_washing_dashboard/settings_preview",at:target.toISOString()
+      });
     }catch(e){this._restoreError=e?.message||String(e);}
     finally{this._restoreLoading=false;this.render();}
   }
   async restoreWaterHistory(){
-    const values=this._restorePreview;
-    if(!values||values.length!==7||this._restoreLoading)return;
-    const p="solar_panel_washing_";
-    if(this.state(`binary_sensor.${p}washing_active`)==="on"||
-       this.state(`sensor.${p}washing_status`)==="Main Valve Check"||
-       this.state(`sensor.${p}washing_status`)==="Pressure Release"){
-      this._restoreError=this.t("Stop washing and close all valves before restoring.");this.render();return;
-    }
-    const switches=["ch8_valve_power","ch1_filtered_water","ch2_detergent",...Array.from({length:5},(_,i)=>`ch${i+3}_zone_${i+1}`)];
-    if(switches.some(x=>this.state(`switch.${p}${x}`)!=="off")){
-      this._restoreError=this.t("All eight relays must report OFF before restoring.");this.render();return;
-    }
-    const service="solar_panel_washing_restore_water_counters";
-    if(!this._hass.services?.esphome?.[service]){
-      this._restoreError=this.t("ESPHome restore action not available. Update ESP32 firmware and reconnect Home Assistant.");this.render();return;
-    }
-    const valuesText=values.map((v,i)=>`${this.waterLabels()[i].startsWith("Zone ")?this.t("Zone")+" "+(i-1):this.t(this.waterLabels()[i])}: ${v.value.toFixed(2)} L`).join("\n");
-    if(!window.confirm(`${this.t("Restore counters from")} ${this._restoreAt}?\n\n${valuesText}\n\n${this.t("This replaces the current values in ESP32.")}`))return;
+    if(!this._restorePreview||this._restoreLoading)return;
+    if(!window.confirm(this.t("Restore settings")+" "+this._restoreAt+"?"))return;
     this._restoreLoading=true;this.render();
     try{
-      await this._hass.callService("esphome",service,{
-        total:values[0].value,wash:values[1].value,
-        zone1:values[2].value,zone2:values[3].value,zone3:values[4].value,
-        zone4:values[5].value,zone5:values[6].value
-      });
-      this._restoreError="";
-      this._restorePreview=null;
-      this._restoreOpen=false;
-      this._restoreAt="";
-      this._restoreRenderDeferred=false;
+      await this._hass.callService("solar_panel_washing_dashboard","restore_settings_snapshot",
+        {at:new Date(this._restoreAt).toISOString()});
+      this._restoreOpen=false;this._restorePreview=null;this._restoreAt="";this._restoreError="";
     }catch(e){this._restoreError=e?.message||String(e);}
     finally{this._restoreLoading=false;this.render();}
   }
