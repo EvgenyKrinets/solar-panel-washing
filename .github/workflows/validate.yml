@@ -18,6 +18,8 @@ jobs:
           node --check solar-panel-washing.js
           node --check solar-panel-washing-card.js
           node --check custom_components/solar_panel_washing_dashboard/solar-panel-washing.js
+      - name: Test restore menu and time conversion
+        run: node --test tests/restore-ui.test.cjs
       - name: Install ESPHome
         run: pip install 'esphome>=2026.9,<2027'
       - name: Verify ESPHome configuration
