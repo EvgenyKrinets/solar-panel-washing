@@ -1364,7 +1364,6 @@ binary_sensor:
     icon: mdi:cloud-check
     lambda: |-
       return id(settings_synchronized);
-    update_interval: 2s
 
 
   - platform: status
