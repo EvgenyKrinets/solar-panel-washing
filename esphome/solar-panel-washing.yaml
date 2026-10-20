@@ -33,6 +33,24 @@ api:
   encryption:
     key: !secret solar_panel_washing__encryption_key
   actions:
+    - action: prepare_restore
+      then:
+        - if:
+            condition:
+              lambda: |-
+                return !id(wash_running) && !id(finishing_check) && !id(restore_pending) &&
+                       !id(valve_water).state && !id(valve_detergent).state &&
+                       !id(zone1_relay).state && !id(zone2_relay).state &&
+                       !id(zone3_relay).state && !id(zone4_relay).state &&
+                       !id(zone5_relay).state && !id(valve_power).state;
+            then:
+              - lambda: |-
+                  id(settings_synchronized) = false;
+                  id(settings_sync_status).publish_state(false);
+            else:
+              - logger.log:
+                  level: WARN
+                  format: "Restore prepare rejected: washing or output active"
     - action: finish_restore
       then:
         - if:
