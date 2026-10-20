@@ -1355,6 +1355,7 @@ binary_sensor:
 
   - platform: template
     name: "Settings Synchronized"
+    update_interval: 2s
     lambda: |-
       return id(settings_synchronized);
 
