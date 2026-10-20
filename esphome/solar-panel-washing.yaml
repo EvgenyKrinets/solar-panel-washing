@@ -121,15 +121,6 @@ wifi:
 captive_portal:
 
 
-binary_sensor:
-  - platform: template
-    name: "Settings Synchronized"
-    id: settings_sync_status
-    icon: mdi:cloud-check
-    lambda: |-
-      return id(settings_synchronized);
-    update_interval: 2s
-
 # ============================================================
 # I2C / WAVESHARE RELAY EXPANDER
 # ============================================================
@@ -1367,6 +1358,14 @@ sensor:
 # ============================================================
 
 binary_sensor:
+  - platform: template
+    name: "Settings Synchronized"
+    id: settings_sync_status
+    icon: mdi:cloud-check
+    lambda: |-
+      return id(settings_synchronized);
+    update_interval: 2s
+
 
   - platform: status
     name: "Washing Controller Online"
@@ -1798,7 +1797,8 @@ script:
               return
                 id(wash_running) ||
                 id(emergency_active) ||
-                id(restore_pending);
+                id(restore_pending) ||
+                !id(settings_synchronized);
 
           then:
 
