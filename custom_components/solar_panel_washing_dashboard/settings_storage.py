@@ -153,6 +153,8 @@ async def async_setup_settings_sync(hass: HomeAssistant) -> None:
                 dict(zip(("total", "wash", "zone1", "zone2", "zone3", "zone4", "zone5"), counters)),
                 blocking=True,
             )
+            # API action performs a delayed restore on the ESP32 side.
+            await asyncio.sleep(2)
             auto_id = f"switch.{_PREFIX}automatic_wash_start"
             await hass.services.async_call(
                 "switch", "turn_on" if settings[auto_id] == "on" else "turn_off",
