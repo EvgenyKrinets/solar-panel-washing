@@ -348,10 +348,8 @@ class SolarPanelWashingCard extends HTMLElement {
   }
   async saveWaterCounters(){
     try{
-      const id="button.solar_panel_washing_save_water_counters";
-      if(!this._hass.states?.[id])throw Error(this.t("Save button unavailable. Update ESP32 firmware."));
-      await this._hass.callService("button","press",{entity_id:id});
-      this._restoreError=this.t("Save requested on ESP32.");
+      await this._hass.callService("solar_panel_washing_dashboard","save_settings",{});
+      this._restoreError=this.t("Saved in Home Assistant.");
     }catch(e){this._restoreError=e?.message||String(e);this._restoreOpen=true;}
     this.render();
   }
