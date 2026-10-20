@@ -99,6 +99,9 @@ class SolarPanelWashingCard extends HTMLElement {
   t(key,...args){
     const messages={
       "Restore settings":["Восстановить настройки","שחזור הגדרות"],
+      "Restores all settings and seven water counters from the selected date.":["На выбранную дату будут восстановлены все настройки и 7 счётчиков воды.","כל ההגדרות ושבעת מוני המים ישוחזרו לתאריך הנבחר."],
+      "Restore all settings and counters":["Восстановить всё","שחזור הכל"],
+      "No complete backup for the selected date. No settings were changed.":["На выбранную дату нет полной копии настроек и счётчиков. Ничего не изменено.","אין גיבוי מלא לתאריך הנבחר. לא בוצעו שינויים."],
       "Restore method":["Что восстановить","מה לשחזר"],
       "Latest saved copy (settings and counters)":["Последняя копия — настройки и счётчики","גיבוי אחרון — הגדרות ומונים"],
       "Choose date (water counters only)":["Выбрать дату — только счётчики воды","בחירת תאריך — מוני מים בלבד"],
@@ -259,7 +262,7 @@ class SolarPanelWashingCard extends HTMLElement {
   }
   restorePanel(){
     const open=!!this._restoreOpen;
-    const mode=this._restoreMode||"latest";
+    const mode="history";
     const preview=this._restorePreview;
     const msg=this._restoreError;
     const busy=!!this._restoreLoading;
@@ -271,22 +274,16 @@ class SolarPanelWashingCard extends HTMLElement {
     const action=mode==="latest"?`
       <p class="spw-restore-help">${this.t("The latest HA copy restores all settings and seven water counters.")}</p>
       <button type="button" data-restore-confirm-latest ${busy?"disabled":""}>${this.t("Confirm restore")}</button>`:`
-      <p class="spw-restore-help">${this.t("Restore only seven water counters for the selected date. Washing settings will not change.")}</p>
+      <p class="spw-restore-help">${this.t("Restores all settings and seven water counters from the selected date.")}</p>
       <label>${this.t("Date and time")} <input type="datetime-local" data-restore-datetime value="${this._restoreAt||this.restoreDefaultDate()}"></label>
       <button type="button" data-restore-load ${busy?"disabled":""}>${this.t("Load history")}</button>
       ${table}
-      ${preview?`<button type="button" data-restore-confirm-history ${busy?"disabled":""}>${this.t("Confirm restore")}</button>`:""}`;
+      ${preview?`<button type="button" data-restore-confirm-history ${busy?"disabled":""}>${this.t("Restore all settings and counters")}</button>`:""}`;
     return `<div class="spw-restore">
       <div class="spw-restore-actions">
         <button type="button" data-restore-toggle style="width:100%;border-color:var(--primary-color,#1684d8);color:var(--primary-color,#1684d8);font-weight:600">${this.t("Restore settings")} ${open?"▴":"▾"}</button>
       </div>
       ${open?`<div class="spw-restore-expanded">
-        <label>${this.t("Restore method")}
-          <select data-restore-method style="display:block;width:100%;max-width:100%;margin-top:6px;padding:9px;border:1px solid var(--divider-color,#bbb);border-radius:8px;background:var(--card-background-color,#fff);color:var(--primary-text-color,#222)">
-            <option value="latest" ${mode==="latest"?"selected":""}>${this.t("Latest saved copy (settings and counters)")}</option>
-            <option value="history" ${mode==="history"?"selected":""}>${this.t("Choose date (water counters only)")}</option>
-          </select>
-        </label>
         ${busy?`<small>${this.t("Loading…")}</small>`:""}
         ${msg?`<p class="spw-restore-error">${String(msg).replace(/[&<>"]/g,x=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[x]))}</p>`:""}
         ${action}
@@ -476,7 +473,7 @@ class SolarPanelWashingCard extends HTMLElement {
         .spw-system .spw-status-row{display:flex;justify-content:space-between;align-items:baseline;gap:12px;padding:7px 0;border-bottom:1px solid var(--divider-color,rgba(127,127,127,.12));font-size:13px}.spw-system .spw-status-row:last-child{border-bottom:0}.spw-system .spw-status-label{color:var(--secondary-text-color);white-space:nowrap}.spw-system .spw-status-row strong{font-weight:600;overflow-wrap:anywhere;text-align:end;min-width:0}
 </style>
       <div class="wrap">
-        <div class="hero"><ha-icon icon="mdi:solar-panel"></ha-icon><div><h1>Solar Panel Washing</h1><p>Automatic multi-zone washing controller</p></div><div class="language-control"><div class="spw-version" aria-label="Dashboard version">v1.3.33</div><button type="button" class="language-trigger" data-language-toggle aria-haspopup="true" aria-expanded="false">🌐 ${({"auto":"Auto","en":"English","ru":"Русский","he":"עברית"})[this.config?.language||"auto"]||"Auto"} ▾</button><div class="language-menu" data-language-menu hidden><button type="button" data-language-choice="auto">🌐 Auto</button><button type="button" data-language-choice="en">🇺🇸 English</button><button type="button" data-language-choice="ru">🇷🇺 Русский</button><button type="button" data-language-choice="he">🇮🇱 עברית</button></div></div></div>
+        <div class="hero"><ha-icon icon="mdi:solar-panel"></ha-icon><div><h1>Solar Panel Washing</h1><p>Automatic multi-zone washing controller</p></div><div class="language-control"><div class="spw-version" aria-label="Dashboard version">v1.3.34</div><button type="button" class="language-trigger" data-language-toggle aria-haspopup="true" aria-expanded="false">🌐 ${({"auto":"Auto","en":"English","ru":"Русский","he":"עברית"})[this.config?.language||"auto"]||"Auto"} ▾</button><div class="language-menu" data-language-menu hidden><button type="button" data-language-choice="auto">🌐 Auto</button><button type="button" data-language-choice="en">🇺🇸 English</button><button type="button" data-language-choice="ru">🇷🇺 Русский</button><button type="button" data-language-choice="he">🇮🇱 עברית</button></div></div></div>
         <div class="stats">
           <div class="stat"><small>Status</small><b class="${this.state(E.alarm)==="on"?"alarm":"ok"}">${this.state(E.status)}</b></div>
           <div class="stat"><small>Zone</small><b>${this.state(E.zone)}</b></div>
@@ -643,7 +640,7 @@ class SolarPanelWashingSectionCard extends SolarPanelWashingCard {
       const host=grid.querySelector(".box");
       const bar=document.createElement("div");
       bar.style.cssText="display:flex;gap:8px;justify-content:flex-end;margin-bottom:10px;align-items:center";
-      const version=document.createElement("small");version.textContent="v1.3.33";
+      const version=document.createElement("small");version.textContent="v1.3.34";
       const picker=document.createElement("div");
       picker.style.cssText="position:relative";
       const trigger=document.createElement("button");
@@ -736,7 +733,7 @@ class SolarPanelWashingOverviewCard extends HTMLElement {
       .spw-head small{margin-left:0}
       @container (max-width:1050px){.spw-layout{grid-template-columns:repeat(2,minmax(0,1fr))}.spw-column{display:contents}.spw-cell{order:var(--tablet-order)}}
       @container (max-width:620px){.spw-layout{grid-template-columns:minmax(0,1fr)}.spw-column{display:contents}.spw-cell{order:var(--mobile-order)}.spw-head{font-size:18px;padding:10px 12px}}
-    </style><div class="spw-overview"><div class="spw-head">☀️ Solar Panel Washing <div class="spw-language"><small>v1.3.33</small><select aria-label="Language" class="spw-language-select"><option value="auto">🌐 Auto</option><option value="en">🇺🇸 English</option><option value="ru">🇷🇺 Русский</option><option value="he">🇮🇱 עברית</option></select></div></div><div class="spw-layout"></div></div>`;
+    </style><div class="spw-overview"><div class="spw-head">☀️ Solar Panel Washing <div class="spw-language"><small>v1.3.34</small><select aria-label="Language" class="spw-language-select"><option value="auto">🌐 Auto</option><option value="en">🇺🇸 English</option><option value="ru">🇷🇺 Русский</option><option value="he">🇮🇱 עברית</option></select></div></div><div class="spw-layout"></div></div>`;
     const langSelect=this.querySelector(".spw-language-select");
     let savedLanguage="auto";
     try { savedLanguage=localStorage.getItem("solar_panel_washing_language") || "auto"; } catch (_) {}
@@ -777,4 +774,4 @@ class SolarPanelWashingOverviewCard extends HTMLElement {
 if(!customElements.get("solar-panel-washing-overview-card"))customElements.define("solar-panel-washing-overview-card",SolarPanelWashingOverviewCard);
 window.customCards.push({type:"solar-panel-washing-overview-card",name:"Solar Washing — Responsive Overview",description:"Desktop 4-column and mobile stacked washing dashboard",preview:true});
 
-console.info("%c SOLAR-PANEL-WASHING-CARD %c v1.3.33 ","color:white;background:#1684d8;font-weight:700","color:#1684d8;background:white");
+console.info("%c SOLAR-PANEL-WASHING-CARD %c v1.3.34 ","color:white;background:#1684d8;font-weight:700","color:#1684d8;background:white");
