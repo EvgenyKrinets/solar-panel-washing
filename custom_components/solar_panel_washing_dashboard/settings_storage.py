@@ -112,12 +112,12 @@ async def async_setup_settings_sync(hass: HomeAssistant) -> None:
             await store.async_save(snapshot)
         return True
 
-    async def restore() -> bool:
+    async def restore(force: bool = False) -> bool:
         snapshot = data["snapshot"]
         if not snapshot or data["busy"]:
             return False
         ready = hass.states.get(_READY)
-        if ready is None or ready.state != "off":
+        if ready is None or (ready.state != "off" and not (force and ready.state == "on")):
             return False
         settings = snapshot.get("settings")
         counters = snapshot.get("counters")
@@ -182,7 +182,7 @@ async def async_setup_settings_sync(hass: HomeAssistant) -> None:
             raise HomeAssistantError("Could not capture complete online controller settings")
 
     async def manual_restore(call) -> None:
-        if not await restore():
+        if not await restore(force=True):
             raise HomeAssistantError("Restore unavailable: ESP32 not idle, offline or HA snapshot missing")
 
     hass.services.async_register(DOMAIN, "save_settings", manual_backup)
