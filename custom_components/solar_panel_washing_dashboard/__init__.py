@@ -22,6 +22,7 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.exceptions import HomeAssistantError
 
 from .const import DOMAIN, DASHBOARD_PATH, DASHBOARD_TITLE
+from .settings_history import SettingsHistory
 
 _LOGGER = logging.getLogger(__name__)
 _WATER_ENTITIES = (
@@ -159,7 +160,38 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             False,
         )
     ])
+
     await _setup_water_snapshots(hass)
+    if f"{DOMAIN}_settings_coordinator" not in hass.data:
+        coordinator = SettingsHistory(hass)
+        hass.data[f"{DOMAIN}_settings_coordinator"] = coordinator
+        await coordinator.setup()
+
+        async def save_settings(call):
+            if not await coordinator.capture():
+                raise HomeAssistantError("Cannot save settings: one or more entities unavailable")
+
+        async def restore_settings(call):
+            record = coordinator.preview(call.data["at"])
+            await coordinator.apply(record)
+
+        hass.services.async_register(DOMAIN, "save_settings_snapshot", save_settings)
+        hass.services.async_register(DOMAIN, "restore_settings_snapshot", restore_settings,
+                                     schema=vol.Schema({vol.Required("at"): str}))
+
+        @websocket_api.websocket_command({
+            vol.Required("type"): f"{DOMAIN}/settings_preview",
+            vol.Required("at"): str,
+        })
+        @websocket_api.async_response
+        async def settings_preview(hass, connection, msg):
+            try:
+                record = coordinator.preview(msg["at"])
+                connection.send_result(msg["id"], record)
+            except HomeAssistantError as exc:
+                connection.send_error(msg["id"], "snapshot_unavailable", str(exc))
+
+        websocket_api.async_register_command(hass, settings_preview)
     lovelace = hass.data.get(LOVELACE_DATA)
     if lovelace is None:
         _LOGGER.error("Lovelace has not been initialized")
