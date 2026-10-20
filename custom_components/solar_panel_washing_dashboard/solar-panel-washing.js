@@ -99,6 +99,14 @@ class SolarPanelWashingCard extends HTMLElement {
   t(key,...args){
     const messages={
       "Restore settings":["Восстановить настройки","שחזור הגדרות"],
+      "Using the last complete HA backup available before the selected date.":["Использована последняя полная копия HA до выбранной даты.","נעשה שימוש בגיבוי המלא האחרון של HA לפני התאריך שנבחר."],
+      "Incomplete water counter history":["В истории найдены не все 7 счётчиков воды.","חסרה היסטוריה של חלק משבעת מוני המים."],
+      "Restore service unavailable. Update and restart Home Assistant.":["Служба восстановления недоступна. Обновите и перезапустите Home Assistant.","שירות השחזור אינו זמין. עדכנו והפעילו מחדש את Home Assistant."],
+      "Restore all settings and seven water counters?":["Восстановить все настройки и 7 счётчиков воды?","לשחזר את כל ההגדרות ושבעת מוני המים?"],
+      "This replaces the current settings and counters in ESP32.":["Текущие настройки и счётчики ESP32 будут заменены.","ההגדרות ומוני המים הנוכחיים של ESP32 יוחלפו."],
+      "Restores all settings and seven water counters from the selected date.":["На выбранную дату будут восстановлены все настройки и 7 счётчиков воды.","כל ההגדרות ושבעת מוני המים ישוחזרו לתאריך הנבחר."],
+      "Restore all settings and counters":["Восстановить всё","שחזור הכל"],
+      "No complete backup for the selected date. No settings were changed.":["На выбранную дату нет полной копии настроек и счётчиков. Ничего не изменено.","אין גיבוי מלא לתאריך הנבחר. לא בוצעו שינויים."],
       "Restore method":["Что восстановить","מה לשחזר"],
       "Latest saved copy (settings and counters)":["Последняя копия — настройки и счётчики","גיבוי אחרון — הגדרות ומונים"],
       "Choose date (water counters only)":["Выбрать дату — только счётчики воды","בחירת תאריך — מוני מים בלבד"],
@@ -257,9 +265,20 @@ class SolarPanelWashingCard extends HTMLElement {
     const date=this.historyDate(value);
     return date?date.toLocaleString(this.language()==="ru"?"ru-RU":this.language()==="he"?"he-IL":"en-US"):"—";
   }
+  fullHistorySettings(){
+    const p="solar_panel_washing_";
+    const days=["monday","tuesday","wednesday","thursday","friday","saturday","sunday"];
+    const sw=[...Array.from({length:5},(_,i)=>"zone_"+(i+1)+"_enabled"),"flow_protection","automatic_wash_start",...days.map(d=>"auto_start_"+d)];
+    const sel=["wash_mode",...days.map(d=>"auto_mode_"+d)];
+    const num=[
+      ...["water","detergent","rinse"].flatMap(k=>Array.from({length:5},(_,i)=>k+"_time_zone_"+(i+1))),
+      "zone_overlap","source_change_delay","minimum_flow_setpoint","maximum_flow_setpoint",
+      "leak_flow_setpoint","flow_check_delay","auto_start_hour","auto_start_minute"
+    ];
+    return [...sw.map(x=>"switch."+p+x),...sel.map(x=>"select."+p+x),...num.map(x=>"number."+p+x)];
+  }
   restorePanel(){
     const open=!!this._restoreOpen;
-    const mode=this._restoreMode||"latest";
     const preview=this._restorePreview;
     const msg=this._restoreError;
     const busy=!!this._restoreLoading;
@@ -267,55 +286,29 @@ class SolarPanelWashingCard extends HTMLElement {
     const table=preview?`<div class="spw-restore-table">
       <div class="spw-restore-row"><b></b><b>${this.t("Current")}</b><b>${this.t("From HA")}</b></div>
       ${preview.map((item,i)=>`<div class="spw-restore-row"><span>${labels[i]}</span><span>${this.waterNumber(ids[i])} L</span><span><b>${item.value.toFixed(2)} L</b><small>${this.t("Recorded at")} ${this.historyTimeText(item.time)}</small></span></div>`).join("")}
-    </div>`:`<small>${this.t("History not loaded")}</small>`;
-    const action=mode==="latest"?`
-      <p class="spw-restore-help">${this.t("The latest HA copy restores all settings and seven water counters.")}</p>
-      <button type="button" data-restore-confirm-latest ${busy?"disabled":""}>${this.t("Confirm restore")}</button>`:`
-      <p class="spw-restore-help">${this.t("Restore only seven water counters for the selected date. Washing settings will not change.")}</p>
+    </div>`:"";
+    const action=`
+      <p class="spw-restore-help">${this.t("Restores all settings and seven water counters from the selected date.")}</p>
       <label>${this.t("Date and time")} <input type="datetime-local" data-restore-datetime value="${this._restoreAt||this.restoreDefaultDate()}"></label>
       <button type="button" data-restore-load ${busy?"disabled":""}>${this.t("Load history")}</button>
       ${table}
-      ${preview?`<button type="button" data-restore-confirm-history ${busy?"disabled":""}>${this.t("Confirm restore")}</button>`:""}`;
+      ${preview?`<button type="button" data-restore-confirm-history ${busy?"disabled":""}>${this.t("Restore all settings and counters")}</button>`:""}`;
     return `<div class="spw-restore">
       <div class="spw-restore-actions">
         <button type="button" data-restore-toggle style="width:100%;border-color:var(--primary-color,#1684d8);color:var(--primary-color,#1684d8);font-weight:600">${this.t("Restore settings")} ${open?"▴":"▾"}</button>
       </div>
       ${open?`<div class="spw-restore-expanded">
-        <label>${this.t("Restore method")}
-          <select data-restore-method style="display:block;width:100%;max-width:100%;margin-top:6px;padding:9px;border:1px solid var(--divider-color,#bbb);border-radius:8px;background:var(--card-background-color,#fff);color:var(--primary-text-color,#222)">
-            <option value="latest" ${mode==="latest"?"selected":""}>${this.t("Latest saved copy (settings and counters)")}</option>
-            <option value="history" ${mode==="history"?"selected":""}>${this.t("Choose date (water counters only)")}</option>
-          </select>
-        </label>
         ${busy?`<small>${this.t("Loading…")}</small>`:""}
         ${msg?`<p class="spw-restore-error">${String(msg).replace(/[&<>"]/g,x=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[x]))}</p>`:""}
         ${action}
       </div>`:""}
     </div>`;
   }
-  async restoreLatestSettings(){
-    if(this._restoreLoading)return;
-    const ready=this.state("binary_sensor.solar_panel_washing_settings_synchronized");
-    if(ready!=="on"&&ready!=="off"){
-      this._restoreError=this.t("The ESP32 settings sync sensor is unavailable. Update the controller firmware.");this.render();return;
-    }
-    if(!window.confirm(this.t("Restore all saved settings and seven water counters from HA?")))return;
-    this._restoreError="";
-    this._restoreLoading=true;this.render();
-    try{
-      await this._hass.callService("solar_panel_washing_dashboard","restore_settings",{});
-      this._restoreOpen=false;
-      this._restoreMode="latest";
-      this._restorePreview=null;
-      this._restoreAt="";
-    }catch(e){this._restoreError=e?.message||String(e);}
-    finally{this._restoreLoading=false;this.render();}
-  }
   async loadWaterHistory(){
     if(this._restoreLoading)return;
     const input=this.querySelector("[data-restore-datetime]");
     this._restoreAt=input?.value||this._restoreAt||this.restoreDefaultDate();
-    this._restorePreview=null;
+    this._restorePreview=null;this._restoreSettings=null;this._restoreStamp=null;
     this._restoreError="";
     const target=new Date(this._restoreAt);
     if(!Number.isFinite(target.getTime())||target.getTime()>Date.now()){
@@ -323,77 +316,104 @@ class SolarPanelWashingCard extends HTMLElement {
     }
     this._restoreLoading=true;this.render();
     try{
-      const ids=this.waterCounterIds();
-      // Include state at the beginning of the interval; HA's history API
-      // can return the previous recorded state as its first sample.
-      let preview=null;
+      const settingsIds=this.fullHistorySettings(),counterIds=this.waterCounterIds();
+      const allIds=[...settingsIds,...counterIds];
+      let settings=null,preview=null,stamp=null;
       try{
         const result=await this._hass.callWS({
           type:"history/history_during_period",
           start_time:new Date(target.getTime()-60000).toISOString(),
           end_time:new Date(target.getTime()+1000).toISOString(),
-          entity_ids:ids,minimal_response:false,no_attributes:true
+          entity_ids:allIds,minimal_response:false,no_attributes:true
         });
         const rows=Array.isArray(result)?result:Object.values(result||{});
-        preview=ids.map((id,i)=>{
+        const vals=allIds.map((id,i)=>{
           const group=rows.find(a=>Array.isArray(a)&&a.some(x=>x.entity_id===id))||rows[i]||[];
           const valid=group.map(x=>{
             const date=this.historyDate(x.last_updated??x.last_changed??x.lu??x.lc);
-            const v=Number(x.state??x.s);
-            if(!date||date.getTime()>target.getTime()||!Number.isFinite(v)||v<0)return null;
-            return {value:v,time:date.toISOString(),timestamp:date.getTime()};
-          }).filter(Boolean).sort((a,b)=>a.timestamp-b.timestamp);
-          if(!valid.length)throw Error(`${this.t("No recorded value for")} ${id}.`);
-          const x=valid[valid.length-1];
-          return {value:x.value,time:x.time};
+            if(!date||date.getTime()>target.getTime())return null;
+            const value=x.state??x.s;
+            if(value===undefined||value===null||value===""||value==="unknown"||value==="unavailable")return null;
+            return {value,time:date.toISOString(),stamp:date.getTime()};
+          }).filter(Boolean).sort((a,b)=>a.stamp-b.stamp);
+          if(!valid.length)throw Error(this.t("No recorded value for")+" "+id);
+          return valid[valid.length-1];
         });
+        settings={};
+        for(let i=0;i<settingsIds.length;i++){
+          const id=settingsIds[i],v=vals[i].value;
+          if(id.startsWith("switch.")){
+            if(v!=="on"&&v!=="off")throw Error("Invalid historical switch: "+id);
+            settings[id]=v;
+          }else if(id.startsWith("select.")){
+            if(v!=="Water"&&v!=="Detergent + Water")throw Error("Invalid historical option: "+id);
+            settings[id]=v;
+          }else{
+            const number=Number(v);
+            if(!Number.isFinite(number))throw Error("Invalid historical number: "+id);
+            settings[id]=number;
+          }
+        }
+        preview=vals.slice(settingsIds.length).map(item=>({value:Number(item.value),time:item.time}));
+        if(preview.length!==7||preview.some(item=>!Number.isFinite(item.value)||item.value<0||item.value>1e8))
+          throw Error(this.t("Incomplete water counter history"));
+        stamp=target.toISOString();
       }catch(historyError){
-        // Recorder may have purged the requested date. Use the latest
-        // available durable 06:00 HA snapshot, never invent missing data.
-        const snapshots=await this._hass.callWS({type:"solar_panel_washing_dashboard/water_snapshots"});
-        const available=(snapshots||[]).filter(x=>
-          Array.isArray(x.values)&&x.values.length===7&&this.historyDate(x.time)&&this.historyDate(x.time).getTime()<=target.getTime()
-        );
-        if(!available.length)throw historyError;
-        const snap=available[available.length-1];
-        preview=snap.values.map(value=>({value:Number(value),time:snap.time}));
-        this._restoreError=this.t("Recorder history unavailable. Showing the last daily 06:00 backup; check its recorded time.");
+        const snap=await this._hass.callWS({
+          type:"solar_panel_washing_dashboard/controller_snapshot_at",
+          at:target.toISOString()
+        });
+        if(!snap||!snap.settings||!Array.isArray(snap.counters)||snap.counters.length!==7)
+          throw Error(this.t("No complete backup for the selected date. No settings were changed."));
+        settings=snap.settings;
+        preview=snap.counters.map(v=>({value:Number(v),time:snap.saved_at}));
+        stamp=snap.saved_at;
+        this._restoreError=this.t("Using the last complete HA backup available before the selected date.");
       }
+      if(!settings||settingsIds.length!==45||
+         Object.keys(settings).length!==45||
+         settingsIds.some(id=>!(id in settings))||
+         !preview||preview.length!==7||
+         preview.some(x=>!Number.isFinite(x.value)||x.value<0||x.value>1e8)||
+         !this.historyDate(stamp))
+        throw Error(this.t("No complete backup for the selected date. No settings were changed."));
       this._restorePreview=preview;
-    }catch(e){this._restoreError=e?.message||String(e);}
-    finally{this._restoreLoading=false;this.render();}
+      this._restoreSettings=settings;
+      this._restoreStamp=stamp;
+    }catch(e){
+      this._restorePreview=null;this._restoreSettings=null;this._restoreStamp=null;
+      this._restoreError=e?.message||String(e);
+    }finally{this._restoreLoading=false;this.render();}
   }
   async restoreWaterHistory(){
-    const values=this._restorePreview;
-    if(!values||values.length!==7||this._restoreLoading)return;
+    const preview=this._restorePreview,settings=this._restoreSettings;
+    if(!preview||preview.length!==7||!settings||Object.keys(settings).length!==45||
+       !this._restoreStamp||this._restoreLoading)return;
     const p="solar_panel_washing_";
-    if(this.state(`binary_sensor.${p}washing_active`)==="on"||
-       this.state(`sensor.${p}washing_status`)==="Main Valve Check"||
-       this.state(`sensor.${p}washing_status`)==="Pressure Release"){
+    if(this.state("binary_sensor."+p+"washing_active")==="on"||
+       this.state("sensor."+p+"washing_status")==="Main Valve Check"||
+       this.state("sensor."+p+"washing_status")==="Pressure Release"){
       this._restoreError=this.t("Stop washing and close all valves before restoring.");this.render();return;
     }
-    const switches=["ch8_valve_power","ch1_filtered_water","ch2_detergent",...Array.from({length:5},(_,i)=>`ch${i+3}_zone_${i+1}`)];
-    if(switches.some(x=>this.state(`switch.${p}${x}`)!=="off")){
+    const switches=["ch8_valve_power","ch1_filtered_water","ch2_detergent",
+      ...Array.from({length:5},(_,i)=>"ch"+(i+3)+"_zone_"+(i+1))];
+    if(switches.some(x=>this.state("switch."+p+x)!=="off")){
       this._restoreError=this.t("All eight relays must report OFF before restoring.");this.render();return;
     }
-    const service="solar_panel_washing_restore_water_counters";
-    if(!this._hass.services?.esphome?.[service]){
-      this._restoreError=this.t("ESPHome restore action not available. Update ESP32 firmware and reconnect Home Assistant.");this.render();return;
+    if(!this._hass.services?.solar_panel_washing_dashboard?.restore_historical_state){
+      this._restoreError=this.t("Restore service unavailable. Update and restart Home Assistant.");this.render();return;
     }
-    const valuesText=values.map((v,i)=>`${this.waterLabels()[i].startsWith("Zone ")?this.t("Zone")+" "+(i-1):this.t(this.waterLabels()[i])}: ${v.value.toFixed(2)} L`).join("\n");
-    if(!window.confirm(`${this.t("Restore water counters from")} ${this._restoreAt}?\n\n${valuesText}\n\n${this.t("This replaces the current values in ESP32.")}`))return;
+    const date=this.historyTimeText(this._restoreStamp);
+    if(!window.confirm(this.t("Restore all settings and seven water counters?")+"\n"+
+      this.t("Recorded at")+" "+date+"\n"+
+      this.t("This replaces the current settings and counters in ESP32.")))return;
     this._restoreLoading=true;this.render();
     try{
-      await this._hass.callService("esphome",service,{
-        total:values[0].value,wash:values[1].value,
-        zone1:values[2].value,zone2:values[3].value,zone3:values[4].value,
-        zone4:values[5].value,zone5:values[6].value
+      await this._hass.callService("solar_panel_washing_dashboard","restore_historical_state",{
+        settings,counters:preview.map(x=>x.value),recorded_at:this._restoreStamp
       });
-      this._restoreError="";
-      this._restorePreview=null;
-      this._restoreOpen=false;
-      this._restoreMode="latest";
-      this._restoreAt="";
+      this._restoreError="";this._restorePreview=null;this._restoreSettings=null;
+      this._restoreStamp=null;this._restoreOpen=false;this._restoreAt="";
       this._restoreRenderDeferred=false;
     }catch(e){this._restoreError=e?.message||String(e);}
     finally{this._restoreLoading=false;this.render();}
@@ -476,7 +496,7 @@ class SolarPanelWashingCard extends HTMLElement {
         .spw-system .spw-status-row{display:flex;justify-content:space-between;align-items:baseline;gap:12px;padding:7px 0;border-bottom:1px solid var(--divider-color,rgba(127,127,127,.12));font-size:13px}.spw-system .spw-status-row:last-child{border-bottom:0}.spw-system .spw-status-label{color:var(--secondary-text-color);white-space:nowrap}.spw-system .spw-status-row strong{font-weight:600;overflow-wrap:anywhere;text-align:end;min-width:0}
 </style>
       <div class="wrap">
-        <div class="hero"><ha-icon icon="mdi:solar-panel"></ha-icon><div><h1>Solar Panel Washing</h1><p>Automatic multi-zone washing controller</p></div><div class="language-control"><div class="spw-version" aria-label="Dashboard version">v1.3.33</div><button type="button" class="language-trigger" data-language-toggle aria-haspopup="true" aria-expanded="false">🌐 ${({"auto":"Auto","en":"English","ru":"Русский","he":"עברית"})[this.config?.language||"auto"]||"Auto"} ▾</button><div class="language-menu" data-language-menu hidden><button type="button" data-language-choice="auto">🌐 Auto</button><button type="button" data-language-choice="en">🇺🇸 English</button><button type="button" data-language-choice="ru">🇷🇺 Русский</button><button type="button" data-language-choice="he">🇮🇱 עברית</button></div></div></div>
+        <div class="hero"><ha-icon icon="mdi:solar-panel"></ha-icon><div><h1>Solar Panel Washing</h1><p>Automatic multi-zone washing controller</p></div><div class="language-control"><div class="spw-version" aria-label="Dashboard version">v1.3.34</div><button type="button" class="language-trigger" data-language-toggle aria-haspopup="true" aria-expanded="false">🌐 ${({"auto":"Auto","en":"English","ru":"Русский","he":"עברית"})[this.config?.language||"auto"]||"Auto"} ▾</button><div class="language-menu" data-language-menu hidden><button type="button" data-language-choice="auto">🌐 Auto</button><button type="button" data-language-choice="en">🇺🇸 English</button><button type="button" data-language-choice="ru">🇷🇺 Русский</button><button type="button" data-language-choice="he">🇮🇱 עברית</button></div></div></div>
         <div class="stats">
           <div class="stat"><small>Status</small><b class="${this.state(E.alarm)==="on"?"alarm":"ok"}">${this.state(E.status)}</b></div>
           <div class="stat"><small>Zone</small><b>${this.state(E.zone)}</b></div>
@@ -561,17 +581,11 @@ class SolarPanelWashingCard extends HTMLElement {
       if(!this._restoreOpen){this._restorePreview=null;this._restoreError="";}
       this.render();
     });
-    this.querySelector("[data-restore-method]")?.addEventListener("change",e=>{
-      this._restoreMode=e.target.value==="history"?"history":"latest";
-      this._restorePreview=null;this._restoreError="";
-      this.render();
-    });
-    this.querySelector("[data-restore-confirm-latest]")?.addEventListener("click",()=>this.restoreLatestSettings());
     this.querySelector("[data-save-counters]")?.addEventListener("click",()=>this.saveWaterCounters());
     this.querySelector("[data-backup-ha]")?.addEventListener("click",()=>this.backupWaterInHA());
     const dateInput=this.querySelector("[data-restore-datetime]");
-    dateInput?.addEventListener("input",()=>{this._restoreAt=dateInput.value;this._restorePreview=null;});
-    dateInput?.addEventListener("change",()=>{this._restoreAt=dateInput.value;this._restorePreview=null;});
+    dateInput?.addEventListener("input",()=>{this._restoreAt=dateInput.value;this._restorePreview=null;this._restoreSettings=null;this._restoreStamp=null;});
+    dateInput?.addEventListener("change",()=>{this._restoreAt=dateInput.value;this._restorePreview=null;this._restoreSettings=null;this._restoreStamp=null;});
     dateInput?.addEventListener("blur",()=>{
       this._restoreAt=dateInput.value;
       if(this._restoreRenderDeferred){
@@ -643,7 +657,7 @@ class SolarPanelWashingSectionCard extends SolarPanelWashingCard {
       const host=grid.querySelector(".box");
       const bar=document.createElement("div");
       bar.style.cssText="display:flex;gap:8px;justify-content:flex-end;margin-bottom:10px;align-items:center";
-      const version=document.createElement("small");version.textContent="v1.3.33";
+      const version=document.createElement("small");version.textContent="v1.3.34";
       const picker=document.createElement("div");
       picker.style.cssText="position:relative";
       const trigger=document.createElement("button");
@@ -736,7 +750,7 @@ class SolarPanelWashingOverviewCard extends HTMLElement {
       .spw-head small{margin-left:0}
       @container (max-width:1050px){.spw-layout{grid-template-columns:repeat(2,minmax(0,1fr))}.spw-column{display:contents}.spw-cell{order:var(--tablet-order)}}
       @container (max-width:620px){.spw-layout{grid-template-columns:minmax(0,1fr)}.spw-column{display:contents}.spw-cell{order:var(--mobile-order)}.spw-head{font-size:18px;padding:10px 12px}}
-    </style><div class="spw-overview"><div class="spw-head">☀️ Solar Panel Washing <div class="spw-language"><small>v1.3.33</small><select aria-label="Language" class="spw-language-select"><option value="auto">🌐 Auto</option><option value="en">🇺🇸 English</option><option value="ru">🇷🇺 Русский</option><option value="he">🇮🇱 עברית</option></select></div></div><div class="spw-layout"></div></div>`;
+    </style><div class="spw-overview"><div class="spw-head">☀️ Solar Panel Washing <div class="spw-language"><small>v1.3.34</small><select aria-label="Language" class="spw-language-select"><option value="auto">🌐 Auto</option><option value="en">🇺🇸 English</option><option value="ru">🇷🇺 Русский</option><option value="he">🇮🇱 עברית</option></select></div></div><div class="spw-layout"></div></div>`;
     const langSelect=this.querySelector(".spw-language-select");
     let savedLanguage="auto";
     try { savedLanguage=localStorage.getItem("solar_panel_washing_language") || "auto"; } catch (_) {}
@@ -777,4 +791,4 @@ class SolarPanelWashingOverviewCard extends HTMLElement {
 if(!customElements.get("solar-panel-washing-overview-card"))customElements.define("solar-panel-washing-overview-card",SolarPanelWashingOverviewCard);
 window.customCards.push({type:"solar-panel-washing-overview-card",name:"Solar Washing — Responsive Overview",description:"Desktop 4-column and mobile stacked washing dashboard",preview:true});
 
-console.info("%c SOLAR-PANEL-WASHING-CARD %c v1.3.33 ","color:white;background:#1684d8;font-weight:700","color:#1684d8;background:white");
+console.info("%c SOLAR-PANEL-WASHING-CARD %c v1.3.34 ","color:white;background:#1684d8;font-weight:700","color:#1684d8;background:white");

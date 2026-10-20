@@ -11,7 +11,7 @@ function loadCard() {
       get: name => classes.get(name),
       define: (name, klass) => classes.set(name, klass),
     },
-    window: { customCards: [] },
+    window: { customCards: [], confirm: () => true },
     console: { info() {} },
   };
   const code = fs.readFileSync("custom_components/solar_panel_washing_dashboard/solar-panel-washing.js", "utf8");
@@ -39,31 +39,78 @@ test("Unix seconds, numeric string, milliseconds, and ISO time all display as 20
   }
 });
 
-test("Latest saved settings shows only its own confirmation", () => {
-  const card = loadCard();
-  card._restoreMode = "latest";
-  const html = card.restorePanel();
-  assert.match(html, /data-restore-toggle/);
-  assert.match(html, /data-restore-method/);
-  assert.match(html, /data-restore-confirm-latest/);
-  assert.doesNotMatch(html, /data-restore-confirm-history|data-restore-datetime|data-restore-load/);
-  assert.match(html, /настройки и счётчики/);
+test("One restoration menu exposes only date/time and historical load", () => {
+  const card=loadCard();
+  card._restoreMode="latest"; // Former mode must be ignored.
+  const html=card.restorePanel();
+  assert.match(html,/data-restore-datetime/);
+  assert.match(html,/data-restore-load/);
+  assert.doesNotMatch(html,/data-restore-method|data-restore-confirm-latest|data-restore-settings-now/);
+  assert.match(html,/все настройки и 7 счётчиков/);
+  const settings=card.fullHistorySettings();
+  assert.equal(settings.length,45);
+  assert.equal(new Set(settings).size,45);
+  assert.equal(settings.filter(id=>id.startsWith("switch.")).length,14);
+  assert.equal(settings.filter(id=>id.startsWith("select.")).length,8);
+  assert.equal(settings.filter(id=>id.startsWith("number.")).length,23);
 });
 
-test("Dated history shows only counter recovery, not full settings recovery", () => {
-  const card = loadCard();
-  card._restoreMode = "history";
-  const html = card.restorePanel();
-  assert.match(html, /data-restore-method/);
-  assert.match(html, /data-restore-datetime/);
-  assert.match(html, /data-restore-load/);
-  assert.doesNotMatch(html, /data-restore-confirm-latest/);
-  assert.match(html, /только 7 счётчиков воды/);
-  card._restorePreview = Array.from({ length: 7 }, (_, i) => ({
-    value: i + 1, time: Date.parse("2026-10-18T09:25:00Z") / 1000,
-  }));
-  const withPreview = card.restorePanel();
-  assert.match(withPreview, /data-restore-confirm-history/);
-  assert.doesNotMatch(withPreview, /1970/);
-  assert.match(withPreview, /2026/);
+test("Recorder loads all settings and counters at the same selected time",async()=>{
+  const card=loadCard();
+  card._restoreAt="2026-10-18T09:25";
+  card.querySelector=()=>null;
+  card.render=()=>{};
+  card._hass.callWS=async msg=>{
+    assert.equal(msg.type,"history/history_during_period");
+    assert.equal(msg.entity_ids.length,52);
+    return msg.entity_ids.map((id,i)=>[{
+      entity_id:id,
+      state:id.startsWith("switch.")?"on":id.startsWith("select.")?"Water":String(i+1),
+      last_updated:"2026-10-18T09:24:59Z"
+    }]);
+  };
+  await card.loadWaterHistory();
+  assert.equal(Object.keys(card._restoreSettings).length,45);
+  assert.equal(card._restorePreview.length,7);
+  assert.equal(card._restorePreview[0].value,46);
+  assert.match(card.restorePanel(),/data-restore-confirm-history/);
+  assert.doesNotMatch(card.restorePanel(),/1970/);
+});
+
+test("Incomplete Recorder plus no durable complete HA snapshot cannot restore",async()=>{
+  const card=loadCard();
+  card._restoreAt="2026-10-18T09:25";
+  card.querySelector=()=>null;
+  card.render=()=>{};
+  let count=0;
+  card._hass.callWS=async msg=>{
+    count++;
+    if(msg.type==="solar_panel_washing_dashboard/controller_snapshot_at")return null;
+    return [[]];
+  };
+  await card.loadWaterHistory();
+  assert.equal(count,2);
+  assert.equal(card._restorePreview,null);
+  assert.equal(card._restoreSettings,null);
+  assert.match(card._restoreError,/полной копии/);
+});
+
+test("Selected date restores all 45 settings and seven counters with one HA service",async()=>{
+  const card=loadCard();
+  card._restorePreview=Array.from({length:7},(_,i)=>({value:i+1,time:"2026-10-18T09:25:00Z"}));
+  card._restoreSettings=Object.fromEntries(card.fullHistorySettings().map(id=>[id,id.startsWith("switch.")?"off":id.startsWith("select.")?"Water":10]));
+  card._restoreStamp="2026-10-18T09:25:00Z";
+  card._restoreAt="2026-10-18T09:25";
+  card.state=()=> "off";
+  card.render=()=>{};
+  const requests=[];
+  card._hass.services={solar_panel_washing_dashboard:{restore_historical_state:{}}};
+  card._hass.callService=async(domain,service,payload)=>{requests.push({domain,service,payload});};
+  await card.restoreWaterHistory();
+  assert.equal(requests.length,1);
+  assert.equal(requests[0].domain,"solar_panel_washing_dashboard");
+  assert.equal(requests[0].service,"restore_historical_state");
+  assert.equal(Object.keys(requests[0].payload.settings).length,45);
+  assert.equal(requests[0].payload.counters.length,7);
+  assert.equal(requests[0].payload.recorded_at,"2026-10-18T09:25:00Z");
 });

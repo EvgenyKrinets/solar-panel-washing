@@ -4,7 +4,7 @@
 
 ### ESP32 / ESPHome automatic five-zone solar-panel washing with Home Assistant
 
-[![Release](https://img.shields.io/badge/Version-1.3.33-blue)](VERSION)
+[![Release](https://img.shields.io/badge/Version-1.3.34-blue)](VERSION)
 [![ESPHome](https://img.shields.io/badge/ESPHome-ESP32--S3-000000?logo=esphome)](https://esphome.io/)
 [![Home Assistant](https://img.shields.io/badge/Home%20Assistant-HACS%20Integration-18BCF2?logo=homeassistant)](https://www.home-assistant.io/)
 [![Languages](https://img.shields.io/badge/Languages-EN%20%7C%20RU%20%7C%20HE-1684d8)](#languages)
@@ -15,6 +15,16 @@
 *Illustration of the Solar Panel Washing dashboard.*
 
 </div>
+
+## v1.3.34 — Restore full controller state by date
+
+**One Restore settings menu:** choose a date/time, click **Load history**, review the seven water counters and their original recorded timestamps, then choose **Restore all settings and counters**. There is no longer a distinction between restoring counters and restoring settings. The selected state always contains **all 45 editable settings plus all seven water counters**.
+
+Home Assistant first reconstructs the entire controller state at that moment from Recorder, including schedules, weekdays, modes, zone switches, durations, and flow safety thresholds. If Recorder lacks any required entity, it uses the most recent **complete** HA historical snapshot at or before the selected date. If neither source has a complete state, it refuses restoration without changing any setting or counter. It never mixes current settings with historical counters.
+
+The integration now keeps dated full backups in `.storage/solar_panel_washing_dashboard_controller_history` for up to **30 days** (maximum 3,500 backups), taking new snapshots when settings change, when manually saved, and at most every 15 minutes when readings have changed. Existing latest backups are preserved and serve as a starting historical snapshot on first upgrade; **older dated full backups cannot be fabricated**, so old dates depend on Recorder retention. The latest backup in `.storage/solar_panel_washing_dashboard_controller_state` still supports automatic recovery after an ESP32 restart.
+
+Historical restoration runs through the Home Assistant `solar_panel_washing_dashboard.restore_historical_state` service. The ESP32 must be idle, with every relay OFF, and must acknowledge the safe restore before washing can resume. A failed or incomplete load does not trigger a partial restore. No ESP32 firmware changes are required beyond the existing 1.3.32 firmware.
 
 ## v1.3.33 — unified restore menu and corrected history timestamps
 
@@ -39,7 +49,7 @@ New HA services are `solar_panel_washing_dashboard.save_settings` for manual sna
 
 **Solar Panel Washing** controls five rooftop solar-panel washing zones using a Waveshare ESP32-S3-ETH-8DI-8RO, ESPHome, and Home Assistant. The ESP32 executes the washing programs, schedules, valve sequencing and safety logic locally; Home Assistant provides configuration, live readings, controls, history and a responsive dashboard. The automatic program does not require a permanently connected Home Assistant frontend.
 
-**Current release: v1.3.33.** The HACS integration and ESPHome firmware are separate parts of this repository. Updating the integration does **not** flash the ESP32.
+**Current release: v1.3.34.** The HACS integration and ESPHome firmware are separate parts of this repository. Updating the integration does **not** flash the ESP32.
 
 ## Features — in the order you use them
 
