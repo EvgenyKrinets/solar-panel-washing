@@ -324,7 +324,7 @@ class SolarPanelWashingCard extends HTMLElement {
     if(this._restoreLoading)return;
     const input=this.querySelector("[data-restore-datetime]");
     this._restoreAt=input?.value||this._restoreAt||this.restoreDefaultDate();
-    this._restorePreview=null;
+    this._restorePreview=null;this._restoreSettings=null;this._restoreStamp=null;
     this._restoreError="";
     const target=new Date(this._restoreAt);
     if(!Number.isFinite(target.getTime())||target.getTime()>Date.now()){
@@ -332,45 +332,74 @@ class SolarPanelWashingCard extends HTMLElement {
     }
     this._restoreLoading=true;this.render();
     try{
-      const ids=this.waterCounterIds();
-      // Include state at the beginning of the interval; HA's history API
-      // can return the previous recorded state as its first sample.
-      let preview=null;
+      const settingsIds=this.fullHistorySettings(),counterIds=this.waterCounterIds();
+      const allIds=[...settingsIds,...counterIds];
+      let settings=null,preview=null,stamp=null;
       try{
         const result=await this._hass.callWS({
           type:"history/history_during_period",
           start_time:new Date(target.getTime()-60000).toISOString(),
           end_time:new Date(target.getTime()+1000).toISOString(),
-          entity_ids:ids,minimal_response:false,no_attributes:true
+          entity_ids:allIds,minimal_response:false,no_attributes:true
         });
         const rows=Array.isArray(result)?result:Object.values(result||{});
-        preview=ids.map((id,i)=>{
+        const vals=allIds.map((id,i)=>{
           const group=rows.find(a=>Array.isArray(a)&&a.some(x=>x.entity_id===id))||rows[i]||[];
           const valid=group.map(x=>{
             const date=this.historyDate(x.last_updated??x.last_changed??x.lu??x.lc);
-            const v=Number(x.state??x.s);
-            if(!date||date.getTime()>target.getTime()||!Number.isFinite(v)||v<0)return null;
-            return {value:v,time:date.toISOString(),timestamp:date.getTime()};
-          }).filter(Boolean).sort((a,b)=>a.timestamp-b.timestamp);
-          if(!valid.length)throw Error(`${this.t("No recorded value for")} ${id}.`);
-          const x=valid[valid.length-1];
-          return {value:x.value,time:x.time};
+            if(!date||date.getTime()>target.getTime())return null;
+            const value=x.state??x.s;
+            if(value===undefined||value===null||value===""||value==="unknown"||value==="unavailable")return null;
+            return {value,time:date.toISOString(),stamp:date.getTime()};
+          }).filter(Boolean).sort((a,b)=>a.stamp-b.stamp);
+          if(!valid.length)throw Error(this.t("No recorded value for")+" "+id);
+          return valid[valid.length-1];
         });
+        settings={};
+        for(let i=0;i<settingsIds.length;i++){
+          const id=settingsIds[i],v=vals[i].value;
+          if(id.startsWith("switch.")){
+            if(v!=="on"&&v!=="off")throw Error("Invalid historical switch: "+id);
+            settings[id]=v;
+          }else if(id.startsWith("select.")){
+            if(v!=="Water"&&v!=="Detergent + Water")throw Error("Invalid historical option: "+id);
+            settings[id]=v;
+          }else{
+            const number=Number(v);
+            if(!Number.isFinite(number))throw Error("Invalid historical number: "+id);
+            settings[id]=number;
+          }
+        }
+        preview=vals.slice(settingsIds.length).map(item=>({value:Number(item.value),time:item.time}));
+        if(preview.length!==7||preview.some(item=>!Number.isFinite(item.value)||item.value<0||item.value>1e8))
+          throw Error(this.t("Incomplete water counter history"));
+        stamp=target.toISOString();
       }catch(historyError){
-        // Recorder may have purged the requested date. Use the latest
-        // available durable 06:00 HA snapshot, never invent missing data.
-        const snapshots=await this._hass.callWS({type:"solar_panel_washing_dashboard/water_snapshots"});
-        const available=(snapshots||[]).filter(x=>
-          Array.isArray(x.values)&&x.values.length===7&&this.historyDate(x.time)&&this.historyDate(x.time).getTime()<=target.getTime()
-        );
-        if(!available.length)throw historyError;
-        const snap=available[available.length-1];
-        preview=snap.values.map(value=>({value:Number(value),time:snap.time}));
-        this._restoreError=this.t("Recorder history unavailable. Showing the last daily 06:00 backup; check its recorded time.");
+        const snap=await this._hass.callWS({
+          type:"solar_panel_washing_dashboard/controller_snapshot_at",
+          at:target.toISOString()
+        });
+        if(!snap||!snap.settings||!Array.isArray(snap.counters)||snap.counters.length!==7)
+          throw Error(this.t("No complete backup for the selected date. No settings were changed."));
+        settings=snap.settings;
+        preview=snap.counters.map(v=>({value:Number(v),time:snap.saved_at}));
+        stamp=snap.saved_at;
+        this._restoreError=this.t("Using the last complete HA backup available before the selected date.");
       }
+      if(!settings||settingsIds.length!==45||
+         Object.keys(settings).length!==45||
+         settingsIds.some(id=>!(id in settings))||
+         !preview||preview.length!==7||
+         preview.some(x=>!Number.isFinite(x.value)||x.value<0||x.value>1e8)||
+         !this.historyDate(stamp))
+        throw Error(this.t("No complete backup for the selected date. No settings were changed."));
       this._restorePreview=preview;
-    }catch(e){this._restoreError=e?.message||String(e);}
-    finally{this._restoreLoading=false;this.render();}
+      this._restoreSettings=settings;
+      this._restoreStamp=stamp;
+    }catch(e){
+      this._restorePreview=null;this._restoreSettings=null;this._restoreStamp=null;
+      this._restoreError=e?.message||String(e);
+    }finally{this._restoreLoading=false;this.render();}
   }
   async restoreWaterHistory(){
     const values=this._restorePreview;
