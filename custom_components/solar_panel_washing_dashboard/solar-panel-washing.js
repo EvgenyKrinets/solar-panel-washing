@@ -80,10 +80,20 @@ class SolarPanelWashingCard extends HTMLElement {
     }
     this._stateSignature = signature;
     this._hass = hass;
-    if(this.config?.section==="water-consumption" &&
-       this.querySelector?.("[data-restore-datetime]")===document.activeElement){
-      this._restoreAt=document.activeElement.value;
-      this._restoreRenderDeferred=true;
+    // Native date/time popovers may blur their input while the picker is
+    // open. Never destroy the restore panel on sensor updates.
+    if(this._restoreOpen && this.querySelector?.("[data-restore-datetime]")){
+      const field=this.querySelector("[data-restore-datetime]");
+      if(field?.value)this._restoreAt=field.value;
+      this.querySelectorAll(".spw-consumption .spw-history[data-history]").forEach(node=>{
+        const entity=node.getAttribute("data-history");
+        const suffix=entity=== "sensor.solar_panel_washing_water_flow"?" L/min":" L";
+        const unit=node.querySelector("small");
+        if(unit){
+          const textNode=Array.from(node.childNodes).find(n=>n.nodeType===3);
+          if(textNode)textNode.textContent=this.waterNumber(entity)+" ";
+        }else node.textContent=this.waterNumber(entity)+suffix;
+      });
       return;
     }
     this.scheduleRender();
@@ -98,7 +108,7 @@ class SolarPanelWashingCard extends HTMLElement {
   // One localization entry point for dynamic messages and controls.
   t(key,...args){
     const messages={
-      "Restore counters":["Восстановить счётчики","שחזור מונים"],
+      "Restore settings":["Восстановить настройки","שחזור הגדרות"],"Restore counters":["Восстановить счётчики","שחזור מונים"],
       "Date and time":["Дата и время","תאריך ושעה"],
       "Load history":["Загрузить историю","טעינת היסטוריה"],
       "Confirm restore":["Подтвердить восстановление","אישור שחזור"],
@@ -241,7 +251,7 @@ class SolarPanelWashingCard extends HTMLElement {
     </div>`:`<small>${this.t("History not loaded")}</small>`;
     return `<div class="spw-restore">
       <div class="spw-restore-actions">
-        <button type="button" data-restore-toggle style="width:100%;border-color:var(--primary-color,#1684d8);color:var(--primary-color,#1684d8);font-weight:600">${this.t("Restore counters")} ${open?"▴":"▾"}</button>
+        <button type="button" data-restore-toggle style="width:100%;border-color:var(--primary-color,#1684d8);color:var(--primary-color,#1684d8);font-weight:600">${this.t("Restore settings")} ${open?"▴":"▾"}</button>
       </div>
       ${open?`<div class="spw-restore-expanded">
         <label>${this.t("Date and time")} <input type="datetime-local" data-restore-datetime value="${this._restoreAt||this.restoreDefaultDate()}"></label>
