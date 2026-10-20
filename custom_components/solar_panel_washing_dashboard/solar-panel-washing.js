@@ -260,6 +260,18 @@ class SolarPanelWashingCard extends HTMLElement {
     const date=this.historyDate(value);
     return date?date.toLocaleString(this.language()==="ru"?"ru-RU":this.language()==="he"?"he-IL":"en-US"):"—";
   }
+  fullHistorySettings(){
+    const p="solar_panel_washing_";
+    const days=["monday","tuesday","wednesday","thursday","friday","saturday","sunday"];
+    const sw=[...Array.from({length:5},(_,i)=>"zone_"+(i+1)+"_enabled"),"flow_protection","automatic_wash_start",...days.map(d=>"auto_start_"+d)];
+    const sel=["wash_mode",...days.map(d=>"auto_mode_"+d)];
+    const num=[
+      ...["water","detergent","rinse"].flatMap(k=>Array.from({length:5},(_,i)=>k+"_time_zone_"+(i+1))),
+      "zone_overlap","source_change_delay","minimum_flow_setpoint","maximum_flow_setpoint",
+      "leak_flow_setpoint","flow_check_delay","auto_start_hour","auto_start_minute"
+    ];
+    return [...sw.map(x=>"switch."+p+x),...sel.map(x=>"select."+p+x),...num.map(x=>"number."+p+x)];
+  }
   restorePanel(){
     const open=!!this._restoreOpen;
     const mode="history";
