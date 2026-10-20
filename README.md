@@ -18,20 +18,22 @@
 
 ## v1.3.32 — HA-owned controller settings (migration required)
 
+**Do not use v1.3.31:** an automated workflow published that tag prematurely from the development branch. v1.3.32 replaces it with the completed changes.
+
 **Install in this exact order:** first update the Home Assistant integration and restart HA while the old v1.3.30 ESP32 firmware is still online. Wait for all **45 configuration entities and seven water counters** to load, call `solar_panel_washing_dashboard.save_settings`, and verify that `/config/.storage/solar_panel_washing_dashboard_controller_state` contains valid `settings` and `counters`. Make a separate backup of this file. **Only then flash v1.3.32 to the ESP32.**
 
 The new ESP firmware does not persist controller settings or counters to Flash. HA holds a periodic durable snapshot and attempts to restore all enabled zones, weekday modes, duration settings, flow protection thresholds, and seven water counters on every boot. All eight physical relays start OFF. Until the ESP32 confirms `Settings Synchronized = on`, both automatic and manual washing are inhibited. An interrupted wash or manual valve state is never resumed.
 
 New HA services are `solar_panel_washing_dashboard.save_settings` for manual snapshot creation and `solar_panel_washing_dashboard.restore_settings` for restoring the latest stored settings and counters while ESP32 is idle. The dated Water Consumption history restoration still only applies to the seven water counters. If HA is unavailable or no complete snapshot is available, the controller stays locked; do not bypass this protection.
 
-**Release validation still required:** ESPHome configuration/compile, HA runtime tests, and verification on real controller hardware before using on a connected water system.
+**Validation:** ESPHome configuration, firmware compilation, Python and JavaScript syntax checks are automated in GitHub Actions. On-device testing and HA restore confirmation are required before enabling automatic washing.
 
 
 ## What it does
 
 **Solar Panel Washing** controls five rooftop solar-panel washing zones using a Waveshare ESP32-S3-ETH-8DI-8RO, ESPHome, and Home Assistant. The ESP32 executes the washing programs, schedules, valve sequencing and safety logic locally; Home Assistant provides configuration, live readings, controls, history and a responsive dashboard. The automatic program does not require a permanently connected Home Assistant frontend.
 
-**Production release: v1.3.30; v1.3.32 is under validation.** The HACS integration and ESPHome firmware are separate parts of this repository. Updating the integration does **not** flash the ESP32.
+**Current release: v1.3.32.** The HACS integration and ESPHome firmware are separate parts of this repository. Updating the integration does **not** flash the ESP32.
 
 ## Features — in the order you use them
 
