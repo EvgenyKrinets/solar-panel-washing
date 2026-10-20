@@ -251,6 +251,7 @@ class SolarPanelWashingCard extends HTMLElement {
   }
   restorePanel(){
     const open=!!this._restoreOpen;
+    const mode=this._restoreMode||"latest";
     const preview=this._restorePreview;
     const msg=this._restoreError;
     const busy=!!this._restoreLoading;
@@ -259,20 +260,48 @@ class SolarPanelWashingCard extends HTMLElement {
       <div class="spw-restore-row"><b></b><b>${this.t("Current")}</b><b>${this.t("From HA")}</b></div>
       ${preview.map((item,i)=>`<div class="spw-restore-row"><span>${labels[i]}</span><span>${this.waterNumber(ids[i])} L</span><span><b>${item.value.toFixed(2)} L</b><small>${this.t("Recorded at")} ${this.historyTimeText(item.time)}</small></span></div>`).join("")}
     </div>`:`<small>${this.t("History not loaded")}</small>`;
+    const action=mode==="latest"?`
+      <p class="spw-restore-help">${this.t("The latest HA copy restores all settings and seven water counters.")}</p>
+      <button type="button" data-restore-confirm-latest ${busy?"disabled":""}>${this.t("Confirm restore")}</button>`:`
+      <p class="spw-restore-help">${this.t("Restore only seven water counters for the selected date. Washing settings will not change.")}</p>
+      <label>${this.t("Date and time")} <input type="datetime-local" data-restore-datetime value="${this._restoreAt||this.restoreDefaultDate()}"></label>
+      <button type="button" data-restore-load ${busy?"disabled":""}>${this.t("Load history")}</button>
+      ${table}
+      ${preview?`<button type="button" data-restore-confirm-history ${busy?"disabled":""}>${this.t("Confirm restore")}</button>`:""}`;
     return `<div class="spw-restore">
       <div class="spw-restore-actions">
         <button type="button" data-restore-toggle style="width:100%;border-color:var(--primary-color,#1684d8);color:var(--primary-color,#1684d8);font-weight:600">${this.t("Restore settings")} ${open?"▴":"▾"}</button>
       </div>
       ${open?`<div class="spw-restore-expanded">
-        <button type="button" data-restore-settings-now>${this.t("Restore saved settings now")}</button>
-        <label>${this.t("Date and time")} <input type="datetime-local" data-restore-datetime value="${this._restoreAt||this.restoreDefaultDate()}"></label>
-        <button type="button" data-restore-load ${busy?"disabled":""}>${this.t("Load history")}</button>
+        <label>${this.t("Restore method")}
+          <select data-restore-method style="display:block;width:100%;max-width:100%;margin-top:6px;padding:9px;border:1px solid var(--divider-color,#bbb);border-radius:8px;background:var(--card-background-color,#fff);color:var(--primary-text-color,#222)">
+            <option value="latest" ${mode==="latest"?"selected":""}>${this.t("Latest saved copy (settings and counters)")}</option>
+            <option value="history" ${mode==="history"?"selected":""}>${this.t("Choose date (water counters only)")}</option>
+          </select>
+        </label>
         ${busy?`<small>${this.t("Loading…")}</small>`:""}
         ${msg?`<p class="spw-restore-error">${String(msg).replace(/[&<>"]/g,x=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[x]))}</p>`:""}
-        ${table}
-        ${preview?`<button type="button" data-restore-confirm ${busy?"disabled":""}>${this.t("Confirm restore")}</button>`:""}
+        ${action}
       </div>`:""}
     </div>`;
+  }
+  async restoreLatestSettings(){
+    if(this._restoreLoading)return;
+    const ready=this.state("binary_sensor.solar_panel_washing_settings_synchronized");
+    if(ready!=="on"&&ready!=="off"){
+      this._restoreError=this.t("The ESP32 settings sync sensor is unavailable. Update the controller firmware.");this.render();return;
+    }
+    if(!window.confirm(this.t("Restore all saved settings and seven water counters from HA?")))return;
+    this._restoreError="";
+    this._restoreLoading=true;this.render();
+    try{
+      await this._hass.callService("solar_panel_washing_dashboard","restore_settings",{});
+      this._restoreOpen=false;
+      this._restoreMode="latest";
+      this._restorePreview=null;
+      this._restoreAt="";
+    }catch(e){this._restoreError=e?.message||String(e);}
+    finally{this._restoreLoading=false;this.render();}
   }
   async loadWaterHistory(){
     if(this._restoreLoading)return;
