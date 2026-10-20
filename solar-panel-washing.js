@@ -98,7 +98,8 @@ class SolarPanelWashingCard extends HTMLElement {
   // One localization entry point for dynamic messages and controls.
   t(key,...args){
     const messages={
-      "Restore settings":["Восстановить счётчики","שחזור מונים"],
+      "Restore settings":["Восстановить настройки","שחזור הגדרות"],
+      "Restore saved settings now":["Восстановить сохранённые настройки","שחזור הגדרות שמורות"],
       "Date and time":["Дата и время","תאריך ושעה"],
       "Load history":["Загрузить историю","טעינת היסטוריה"],
       "Confirm restore":["Подтвердить восстановление","אישור שחזור"],
@@ -244,6 +245,7 @@ class SolarPanelWashingCard extends HTMLElement {
         <button type="button" data-restore-toggle style="width:100%;border-color:var(--primary-color,#1684d8);color:var(--primary-color,#1684d8);font-weight:600">${this.t("Restore settings")} ${open?"▴":"▾"}</button>
       </div>
       ${open?`<div class="spw-restore-expanded">
+        <button type="button" data-restore-settings-now>${this.t("Restore saved settings now")}</button>
         <label>${this.t("Date and time")} <input type="datetime-local" data-restore-datetime value="${this._restoreAt||this.restoreDefaultDate()}"></label>
         <button type="button" data-restore-load ${busy?"disabled":""}>${this.t("Load history")}</button>
         ${busy?`<small>${this.t("Loading…")}</small>`:""}
@@ -502,6 +504,7 @@ class SolarPanelWashingCard extends HTMLElement {
       if(!this._restoreOpen){this._restorePreview=null;this._restoreError="";}
       this.render();
     });
+    this.querySelector("[data-restore-settings-now]")?.addEventListener("click",async()=>{try{await this._hass.callService("solar_panel_washing_dashboard","restore_settings",{});this._restoreError="";}catch(e){this._restoreError=e?.message||String(e);}this.render();});
     this.querySelector("[data-save-counters]")?.addEventListener("click",()=>this.saveWaterCounters());
     this.querySelector("[data-backup-ha]")?.addEventListener("click",()=>this.backupWaterInHA());
     const dateInput=this.querySelector("[data-restore-datetime]");
