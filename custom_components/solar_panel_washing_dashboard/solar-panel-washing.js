@@ -230,6 +230,25 @@ class SolarPanelWashingCard extends HTMLElement {
     const d=new Date(), pad=n=>String(n).padStart(2,"0");
     return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
   }
+  // ESPHome/HA Recorder compact history fields lu/lc are Unix seconds.
+  // ISO dates and millisecond timestamps remain supported.
+  historyDate(value){
+    if(value===null||value===undefined||value==="")return null;
+    let date;
+    if(typeof value==="number"||(typeof value==="string"&&/^\d+(?:\.\d+)?$/.test(value.trim()))){
+      const n=Number(value);
+      if(!Number.isFinite(n))return null;
+      date=new Date(Math.abs(n)<1e11?n*1000:n);
+    }else{
+      date=new Date(value);
+    }
+    const ms=date.getTime();
+    return Number.isFinite(ms)&&ms>=Date.UTC(2000,0,1)&&ms<=Date.now()+60000?date:null;
+  }
+  historyTimeText(value){
+    const date=this.historyDate(value);
+    return date?date.toLocaleString(this.language()==="ru"?"ru-RU":this.language()==="he"?"he-IL":"en-US"):"—";
+  }
   restorePanel(){
     const open=!!this._restoreOpen;
     const preview=this._restorePreview;
@@ -238,7 +257,7 @@ class SolarPanelWashingCard extends HTMLElement {
     const labels=this.waterLabels().map(x=>x.startsWith("Zone ")?this.t("Zone")+" "+x.slice(5):this.t(x)),ids=this.waterCounterIds();
     const table=preview?`<div class="spw-restore-table">
       <div class="spw-restore-row"><b></b><b>${this.t("Current")}</b><b>${this.t("From HA")}</b></div>
-      ${preview.map((item,i)=>`<div class="spw-restore-row"><span>${labels[i]}</span><span>${this.waterNumber(ids[i])} L</span><span><b>${item.value.toFixed(2)} L</b><small>${this.t("Recorded at")} ${new Date(item.time).toLocaleString(this.language()==="ru"?"ru-RU":this.language()==="he"?"he-IL":"en-US")}</small></span></div>`).join("")}
+      ${preview.map((item,i)=>`<div class="spw-restore-row"><span>${labels[i]}</span><span>${this.waterNumber(ids[i])} L</span><span><b>${item.value.toFixed(2)} L</b><small>${this.t("Recorded at")} ${this.historyTimeText(item.time)}</small></span></div>`).join("")}
     </div>`:`<small>${this.t("History not loaded")}</small>`;
     return `<div class="spw-restore">
       <div class="spw-restore-actions">
@@ -281,22 +300,22 @@ class SolarPanelWashingCard extends HTMLElement {
         const rows=Array.isArray(result)?result:Object.values(result||{});
         preview=ids.map((id,i)=>{
           const group=rows.find(a=>Array.isArray(a)&&a.some(x=>x.entity_id===id))||rows[i]||[];
-          const valid=group.filter(x=>{
-            const time=new Date(x.last_updated||x.last_changed||x.lu||x.lc);
+          const valid=group.map(x=>{
+            const date=this.historyDate(x.last_updated??x.last_changed??x.lu??x.lc);
             const v=Number(x.state??x.s);
-            return Number.isFinite(time.getTime())&&time.getTime()<=target.getTime()&&
-              Number.isFinite(v)&&v>=0;
-          });
+            if(!date||date.getTime()>target.getTime()||!Number.isFinite(v)||v<0)return null;
+            return {value:v,time:date.toISOString(),timestamp:date.getTime()};
+          }).filter(Boolean).sort((a,b)=>a.timestamp-b.timestamp);
           if(!valid.length)throw Error(`${this.t("No recorded value for")} ${id}.`);
           const x=valid[valid.length-1];
-          return {value:Number(x.state??x.s),time:x.last_updated||x.last_changed||x.lu||x.lc};
+          return {value:x.value,time:x.time};
         });
       }catch(historyError){
         // Recorder may have purged the requested date. Use the latest
         // available durable 06:00 HA snapshot, never invent missing data.
         const snapshots=await this._hass.callWS({type:"solar_panel_washing_dashboard/water_snapshots"});
         const available=(snapshots||[]).filter(x=>
-          Array.isArray(x.values)&&x.values.length===7&&new Date(x.time).getTime()<=target.getTime()
+          Array.isArray(x.values)&&x.values.length===7&&this.historyDate(x.time)&&this.historyDate(x.time).getTime()<=target.getTime()
         );
         if(!available.length)throw historyError;
         const snap=available[available.length-1];
@@ -325,7 +344,7 @@ class SolarPanelWashingCard extends HTMLElement {
       this._restoreError=this.t("ESPHome restore action not available. Update ESP32 firmware and reconnect Home Assistant.");this.render();return;
     }
     const valuesText=values.map((v,i)=>`${this.waterLabels()[i].startsWith("Zone ")?this.t("Zone")+" "+(i-1):this.t(this.waterLabels()[i])}: ${v.value.toFixed(2)} L`).join("\n");
-    if(!window.confirm(`${this.t("Restore settings from")} ${this._restoreAt}?\n\n${valuesText}\n\n${this.t("This replaces the current values in ESP32.")}`))return;
+    if(!window.confirm(`${this.t("Restore water counters from")} ${this._restoreAt}?\n\n${valuesText}\n\n${this.t("This replaces the current values in ESP32.")}`))return;
     this._restoreLoading=true;this.render();
     try{
       await this._hass.callService("esphome",service,{
