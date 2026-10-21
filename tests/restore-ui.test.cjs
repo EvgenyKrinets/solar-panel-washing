@@ -187,8 +187,10 @@ test("A counter reset is handled without negative usage",()=>{
     {state:"4",last_updated:"2026-10-19T01:00:00Z"},
     {state:"12",last_updated:"2026-10-19T08:00:00Z"}
   ]],start,end);
-  assert.equal(r.value,12);
+  assert.equal(r.value,0);
   assert.equal(r.resets,true);
+  assert.equal(r.unresolvedReset,true);
+  assert.equal(r.approx,true);
   assert.throws(()=>card.waterUsageFromHistory([[{state:"9",last_updated:"2026-10-19T08:00:00Z"}]],start,end),/начало периода/);
 });
 
@@ -257,4 +259,38 @@ test("Water totals for week and month invoke the expected HA history/statistics 
   assert.equal(calls[0].type,"history/history_during_period");
   assert.equal(calls[1].type,"recorder/statistics_during_period");
   assert.equal(card._usageResult.value,15);
+});
+
+test("Transient 808 L drop and recovery adds no phantom litres",()=>{
+  const card=loadCard();
+  const start=new Date("2026-10-20T00:00:00Z");
+  const end=new Date("2026-10-21T19:00:00Z");
+  const records=[[
+    {state:"690",last_updated:"2026-10-19T23:59:59Z"},
+    {state:"808",last_updated:"2026-10-20T05:00:00Z"},
+    {state:"0",last_updated:"2026-10-20T15:00:00Z"},
+    {state:"808",last_updated:"2026-10-20T15:00:06Z"},
+    {state:"924",last_updated:"2026-10-21T06:00:00Z"}
+  ]];
+  const result=card.waterUsageFromHistory(records,start,end);
+  assert.equal(result.value,234);
+  assert.equal(result.resets,true);
+  assert.equal(result.unresolvedReset,false);
+  assert.equal(result.approx,false);
+  assert.match(card.t("Temporary counter drop ignored"),/Временное падение/);
+});
+
+test("Restored older value followed by recovery counts only new lifetime highs",()=>{
+  const card=loadCard();
+  const start=new Date("2026-10-20T00:00:00Z");
+  const end=new Date("2026-10-21T19:00:00Z");
+  const records=[[
+    {s:"808",lu:Date.parse("2026-10-19T23:59:59Z")/1000},
+    {s:"2",lu:Date.parse("2026-10-20T15:00:00Z")/1000},
+    {s:"690",lu:Date.parse("2026-10-20T15:05:00Z")/1000},
+    {s:"923.91",lu:Date.parse("2026-10-21T06:00:00Z")/1000}
+  ]];
+  const result=card.waterUsageFromHistory(records,start,end);
+  assert.ok(Math.abs(result.value-115.91)<1e-8);
+  assert.equal(result.unresolvedReset,false);
 });
