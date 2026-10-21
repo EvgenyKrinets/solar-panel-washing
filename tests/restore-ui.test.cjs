@@ -121,8 +121,8 @@ test("Date picker stays mounted while HA reports new meter values and native pop
   const handlers=new Map();
   const input={
     value:"2026-10-20T17:30",
-    matches:selector=>selector==="[data-restore-datetime]",
-    closest:selector=>selector==="[data-restore-datetime]"?input:null
+    matches:selector=>selector.includes("[data-restore-datetime]"),
+    closest:selector=>selector.includes("[data-restore-datetime]")?input:null
   };
   card.addEventListener=(type,handler)=>{
     const listeners=handlers.get(type)||[];
@@ -189,7 +189,7 @@ test("A counter reset is handled without negative usage",()=>{
   ]],start,end);
   assert.equal(r.value,12);
   assert.equal(r.resets,true);
-  assert.throws(()=>card.waterUsageFromHistory([[{state:"9",last_updated:"2026-10-19T08:00:00Z"}]],start,end),/начала периода/);
+  assert.throws(()=>card.waterUsageFromHistory([[{state:"9",last_updated:"2026-10-19T08:00:00Z"}]],start,end),/начало периода/);
 });
 
 test("Long-term hourly statistics support a month when Recorder was purged",()=>{
