@@ -20,7 +20,7 @@ class SolarPanelWashingCard extends HTMLElement {
     // Keep the original input DOM alive until the user explicitly leaves it:
     // HA updates must never rebuild a live date picker.
     this.addEventListener("focusin", (event) => {
-      if (event.target?.matches?.("[data-restore-datetime]")) {
+      if (event.target?.matches?.("[data-restore-datetime], [data-water-range-start], [data-water-range-end]")) {
         this._restoreDatePickerEngaged = true;
         clearTimeout(this._renderTimer);
       } else if (this._restoreDatePickerEngaged) {
@@ -28,7 +28,7 @@ class SolarPanelWashingCard extends HTMLElement {
       }
     }, true);
     this.addEventListener("pointerdown", (event) => {
-      if (event.target?.closest?.("[data-restore-datetime]")) {
+      if (event.target?.closest?.("[data-restore-datetime], [data-water-range-start], [data-water-range-end]")) {
         this._restoreDatePickerEngaged = true;
       } else if (this._restoreDatePickerEngaged) {
         this.releaseRestoreDateEditor();
@@ -52,14 +52,18 @@ class SolarPanelWashingCard extends HTMLElement {
   }
   releaseRestoreDateEditor() {
     const dateInput = this.querySelector("[data-restore-datetime]");
+    const startInput = this.querySelector("[data-water-range-start]");
+    const endInput = this.querySelector("[data-water-range-end]");
     if (dateInput) this._restoreAt = dateInput.value;
+    if (startInput) this._usageStartAt = startInput.value;
+    if (endInput) this._usageEndAt = endInput.value;
     this._restoreDatePickerEngaged = false;
     this._restoreRenderDeferred = false;
   }
   isEditing() {
     return !!this._restoreDatePickerEngaged ||
       !!this.querySelector(".numinput:focus") ||
-      !!this.querySelector("[data-restore-datetime]:focus");
+      !!this.querySelector("[data-restore-datetime]:focus, [data-water-range-start]:focus, [data-water-range-end]:focus");
   }
   scheduleRender() {
     // On iOS HA, rebuilding a card during touch scrolling can reset the
@@ -106,12 +110,19 @@ class SolarPanelWashingCard extends HTMLElement {
     }
     this._stateSignature = signature;
     this._hass = hass;
+    const activeDate = typeof document !== "undefined"
+      ? document.activeElement : null;
     if (this._restoreDatePickerEngaged ||
         (this.config?.section === "water-consumption" &&
-         typeof document !== "undefined" &&
-         this.querySelector?.("[data-restore-datetime]") === document.activeElement)) {
+         activeDate && [
+           "[data-restore-datetime]", "[data-water-range-start]", "[data-water-range-end]"
+         ].some(sel=>this.querySelector?.(sel)===activeDate))) {
       const dateInput = this.querySelector("[data-restore-datetime]");
+      const startInput = this.querySelector("[data-water-range-start]");
+      const endInput = this.querySelector("[data-water-range-end]");
       if (dateInput) this._restoreAt = dateInput.value;
+      if (startInput) this._usageStartAt = startInput.value;
+      if (endInput) this._usageEndAt = endInput.value;
       this._restoreRenderDeferred = true;
       return;
     }
@@ -128,6 +139,23 @@ class SolarPanelWashingCard extends HTMLElement {
   t(key,...args){
     const messages={
       "Restore settings":["Восстановить настройки","שחזור הגדרות"],
+      "Water used during period":["Расход воды за период","צריכת מים בתקופה"],
+      "7 days":["7 дней","7 ימים"],
+      "30 days":["30 дней","30 ימים"],
+      "Custom period":["Свой период","תקופה מותאמת"],
+      "From":["С","מ-"],
+      "To":["По","עד"],
+      "Calculate water usage":["Показать расход","הצגת צריכת המים"],
+      "Loading water usage…":["Загрузка расхода воды…","טוען נתוני צריכת מים…"],
+      "Choose an interval to calculate water usage.":["Выберите период для расчёта расхода.","בחרו תקופה לחישוב צריכת מים."],
+      "Long-term hourly HA statistics":["Долгосрочная статистика HA (по часам)","סטטיסטיקה ארוכת טווח של HA (לפי שעה)"],
+      "Home Assistant recorded water counter":["История счётчика Home Assistant","היסטוריית מונה המים ב-Home Assistant"],
+      "Counter resets included":["Сбросы счётчика учтены","איפוסי מונה נכללו"],
+      "No water counter reading at the start of this period.":["Нет показания счётчика на начало периода.","אין קריאת מונה לתחילת התקופה."],
+      "Not enough long-term statistics for the full interval.":["Недостаточно долгосрочной статистики за весь период.","אין מספיק נתונים סטטיסטיים לכל התקופה."],
+      "Water statistics contain a discontinuity.":["В статистике воды обнаружен разрыв.","זוהה פער בסטטיסטיקת המים."],
+      "Choose a valid period of up to one year.":["Выберите корректный период продолжительностью до года.","בחרו תקופה תקינה עד שנה."],
+      "Unable to calculate water use for the whole period.":["Невозможно рассчитать расход за весь период.","לא ניתן לחשב את צריכת המים לכל התקופה."],
       "Using the last complete HA backup available before the selected date.":["Использована последняя полная копия HA до выбранной даты.","נעשה שימוש בגיבוי המלא האחרון של HA לפני התאריך שנבחר."],
       "Incomplete water counter history":["В истории найдены не все 7 счётчиков воды.","חסרה היסטוריה של חלק משבעת מוני המים."],
       "Restore service unavailable. Update and restart Home Assistant.":["Служба восстановления недоступна. Обновите и перезапустите Home Assistant.","שירות השחזור אינו זמין. עדכנו והפעילו מחדש את Home Assistant."],
@@ -293,6 +321,112 @@ class SolarPanelWashingCard extends HTMLElement {
   historyTimeText(value){
     const date=this.historyDate(value);
     return date?date.toLocaleString(this.language()==="ru"?"ru-RU":this.language()==="he"?"he-IL":"en-US"):"—";
+  }
+  localUsageTime(date){
+    const pad=n=>String(n).padStart(2,"0");
+    return `${date.getFullYear()}-${pad(date.getMonth()+1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+  }
+  waterUsagePanel(){
+    const mode=this._usageMode||"week",busy=!!this._usageLoading;
+    const dates=mode==="custom"?`<div class="spw-usage-dates">
+        <label>${this.t("From")}<input type="datetime-local" data-water-range-start value="${this._usageStartAt||this.localUsageTime(new Date(Date.now()-7*86400000))}"></label>
+        <label>${this.t("To")}<input type="datetime-local" data-water-range-end value="${this._usageEndAt||this.localUsageTime(new Date())}"></label>
+      </div><button type="button" class="spw-usage-load" data-water-usage-load ${busy?"disabled":""}>${this.t("Calculate water usage")}</button>`:"";
+    const select=label=>`<button type="button" data-water-period="${label}" class="${mode===label?"active":""}"
+       ${busy?"disabled":""}>${this.t(label==="week"?"7 days":label==="month"?"30 days":"Custom period")}</button>`;
+    const result=this._usageResult;
+    const range=result?`${this.historyTimeText(result.start)} — ${this.historyTimeText(result.end)}`:"";
+    const message=busy?`<span class="spw-usage-msg">${this.t("Loading water usage…")}</span>`:
+      this._usageError?`<span class="spw-usage-msg error">${this._usageError.replace(/[&<>"]/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[ch]))}</span>`:
+      result?`<div class="spw-usage-total"><b>${result.approx?"≈ ":""}${result.value.toFixed(2)} L</b><small>${range}</small>
+        <small>${this.t(result.source==="statistics"?"Long-term hourly HA statistics":"Home Assistant recorded water counter")}${result.resets?" · "+this.t("Counter resets included"):""}</small></div>`:
+      `<small>${this.t("Choose an interval to calculate water usage.")}</small>`;
+    return `<section class="spw-usage"><strong>${this.t("Water used during period")}</strong>
+      <div class="spw-usage-modes">${select("week")}${select("month")}${select("custom")}</div>
+      ${dates}${message}</section>`;
+  }
+  waterUsageFromHistory(raw,start,end){
+    const rows=Array.isArray(raw)?raw:Object.values(raw||{});
+    const id="sensor.solar_panel_washing_total_water";
+    const group=rows.find(group=>Array.isArray(group)&&group.some(x=>x.entity_id===id))||rows[0]||[];
+    const samples=group.map(item=>{
+      const date=this.historyDate(item.last_updated??item.last_changed??item.lu??item.lc);
+      const value=Number(item.state??item.s);
+      return date&&Number.isFinite(value)&&value>=0?{time:date.getTime(),value}:null;
+    }).filter(Boolean).filter(x=>x.time<=end.getTime()).sort((a,b)=>a.time-b.time);
+    const startTime=start.getTime(),baseline=samples.filter(x=>x.time<=startTime).at(-1);
+    if(!baseline)throw Error(this.t("No water counter reading at the start of this period."));
+    let previous=baseline.value,total=0,resets=false;
+    for(const item of samples){
+      if(item.time<=startTime)continue;
+      if(item.value>=previous)total+=item.value-previous;
+      else {total+=item.value;resets=true;}
+      previous=item.value;
+    }
+    return {value:total,approx:false,source:"history",resets};
+  }
+  waterUsageFromStatistics(raw,start,end){
+    const id="sensor.solar_panel_washing_total_water";
+    const rows=raw?.[id]||[];
+    const points=rows.map(x=>{
+      const time=this.historyDate(x.end)?.getTime();
+      const value=Number(x.sum);
+      return time&&Number.isFinite(value)?{time,value}:null;
+    }).filter(Boolean).sort((a,b)=>a.time-b.time);
+    const begin=points.filter(x=>x.time<=start.getTime()).at(-1);
+    const finish=points.filter(x=>x.time<=end.getTime()).at(-1);
+    // Long-term statistics have hour-level resolution. Do not silently
+    // report totals across large unrecorded gaps as complete consumption.
+    if(!begin||!finish||finish.time<=begin.time||
+       start.getTime()-begin.time>3*3600000||end.getTime()-finish.time>3*3600000)
+      throw Error(this.t("Not enough long-term statistics for the full interval."));
+    const diff=finish.value-begin.value;
+    if(!Number.isFinite(diff)||diff<0)throw Error(this.t("Water statistics contain a discontinuity."));
+    return {value:diff,approx:true,source:"statistics",resets:false};
+  }
+  async loadWaterUsage(mode=this._usageMode||"week"){
+    if(this._usageLoading)return;
+    this._usageMode=mode;
+    this._usageError="";this._usageResult=null;
+    const now=new Date(),end=mode==="custom"?new Date(this._usageEndAt||this.localUsageTime(now)):now;
+    const start=mode==="custom"?new Date(this._usageStartAt||this.localUsageTime(new Date(now.getTime()-7*86400000))):
+      new Date(now.getTime()-(mode==="month"?30:7)*86400000);
+    if(!Number.isFinite(start.getTime())||!Number.isFinite(end.getTime())||
+       start>=end||end.getTime()>Date.now()+60000||end-start>366*86400000){
+      this._usageError=this.t("Choose a valid period of up to one year.");this.render();return;
+    }
+    this._usageLoading=true;this.render();
+    try{
+      const id="sensor.solar_panel_washing_total_water";
+      let total=null,firstError=null;
+      // Raw Recorder history gives exact boundaries while it is retained.
+      // Avoid multi-week raw queries; HA usually purges them after 10 days.
+      if(end-start<=9*86400000){
+        try{
+          const raw=await this._hass.callWS({
+            type:"history/history_during_period",start_time:start.toISOString(),
+            end_time:end.toISOString(),entity_ids:[id],minimal_response:false,no_attributes:true
+          });
+          total=this.waterUsageFromHistory(raw,start,end);
+        }catch(e){firstError=e;}
+      }
+      if(!total){
+        try{
+          const raw=await this._hass.callWS({
+            type:"recorder/statistics_during_period",
+            start_time:new Date(start.getTime()-3*3600000).toISOString(),
+            end_time:end.toISOString(),
+            statistic_ids:[id],period:"hour",types:["sum"]
+          });
+          total=this.waterUsageFromStatistics(raw,start,end);
+        }catch(e){
+          throw Error(this.t("Unable to calculate water use for the whole period.")+" "+
+            (e?.message||firstError?.message||""));
+        }
+      }
+      this._usageResult={...total,start:start.toISOString(),end:end.toISOString()};
+    }catch(e){this._usageError=e?.message||String(e);}
+    finally{this._usageLoading=false;this.render();}
   }
   fullHistorySettings(){
     const p="solar_panel_washing_";
@@ -526,12 +660,13 @@ class SolarPanelWashingCard extends HTMLElement {
         @media(max-width:600px){.wrap{padding:12px}.hero h1{font-size:22px}.actions{grid-template-columns:1fr}.manual{grid-template-columns:repeat(2,minmax(0,1fr))}}
       .spw-history{cursor:pointer;text-decoration:underline;text-decoration-style:dotted;text-underline-offset:3px}.spw-history:hover{color:var(--primary-color)}.spw-history:focus-visible{outline:2px solid var(--primary-color);border-radius:3px}
         .spw-consumption-summary{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin:10px 0 14px}.spw-consumption-summary>div{display:flex;flex-direction:column;gap:5px;padding:12px 9px;border-radius:10px;background:var(--secondary-background-color,#f1f5f9);min-width:0}.spw-consumption-summary small{font-size:11px;color:var(--secondary-text-color)}.spw-consumption-summary strong{font-size:19px;color:var(--primary-text-color);overflow-wrap:anywhere}.spw-consumption-line{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 2px;border-bottom:1px solid var(--divider-color,rgba(127,127,127,.15));font-size:13px}.spw-consumption-line b{font-variant-numeric:tabular-nums}.spw-consumption-total{font-weight:700}.spw-consumption-note{display:block;margin-top:10px;font-size:11px;line-height:1.4;color:var(--secondary-text-color)}
+        .spw-usage{margin-top:14px;padding:12px 0;border-top:1px solid var(--divider-color,rgba(127,127,127,.2));display:flex;flex-direction:column;gap:9px;min-width:0}.spw-usage>strong{font-size:14px}.spw-usage-modes{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:5px}.spw-usage-modes button,.spw-usage-load{min-width:0;padding:9px 4px;border:1px solid var(--divider-color,#bbb);border-radius:8px;background:var(--secondary-background-color,#eee);color:var(--primary-text-color);cursor:pointer;font-size:12px}.spw-usage-modes button.active{background:var(--primary-color,#1684d8);color:white;border-color:var(--primary-color,#1684d8);font-weight:700}.spw-usage-dates{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;min-width:0}.spw-usage-dates label{display:flex;flex-direction:column;gap:5px;min-width:0;font-size:12px}.spw-usage-dates input{box-sizing:border-box;min-width:0;width:100%;max-width:100%;padding:9px 6px;border-radius:8px;border:1px solid var(--divider-color,#bbb);background:var(--card-background-color,#fff);color:var(--primary-text-color);font-size:12px}.spw-usage-load{width:100%;padding:11px;font-size:13px;font-weight:700}.spw-usage-total{display:flex;flex-direction:column;gap:4px;border-radius:9px;background:var(--secondary-background-color,#eef4f8);padding:11px}.spw-usage-total b{font-size:22px;font-variant-numeric:tabular-nums;color:var(--primary-text-color)}.spw-usage-total small{font-size:11px;color:var(--secondary-text-color);overflow-wrap:anywhere}.spw-usage-msg{font-size:12px;color:var(--secondary-text-color);overflow-wrap:anywhere}.spw-usage-msg.error{color:var(--error-color,#c62828);font-weight:600}
         .spw-stage-count{display:block;text-align:end;color:var(--spw-blue);font-weight:700;font-size:12px;margin:0 4px 8px}.spw-fault{color:var(--spw-red)}.spw-fault-reason{display:block;color:var(--spw-red);font-size:12px;font-weight:700;padding:4px}.spw-fault-highlight{outline:2px solid var(--spw-red);border-radius:8px;animation:spw-flash 1s infinite alternate}@keyframes spw-flash{from{background:transparent}to{background:rgba(239,62,62,.17)}}.spw-flow-progress{margin-top:8px;color:var(--spw-blue);font-size:12px;font-weight:700}
         .spw-restore{margin-top:12px;padding-top:12px;border-top:1px solid var(--divider-color,#ddd)}.spw-restore-actions{display:flex;flex-wrap:wrap;gap:8px}.spw-restore button{padding:9px 12px;border:1px solid var(--divider-color,#ccc);border-radius:9px;background:var(--secondary-background-color,#eee);color:var(--primary-text-color);cursor:pointer}.spw-restore-expanded{margin-top:12px;display:flex;flex-direction:column;gap:10px}.spw-restore-expanded label{display:flex;flex-direction:column;gap:6px}.spw-restore-expanded input{max-width:100%;width:100%;padding:9px;color:var(--primary-text-color);background:var(--card-background-color);border:1px solid var(--divider-color);border-radius:8px}.spw-restore-table{display:grid;gap:6px}.spw-restore-row{display:grid;grid-template-columns:1fr 1fr 1.5fr;gap:5px;align-items:start;font-size:12px;border-bottom:1px solid var(--divider-color);padding:5px 0}.spw-restore-row small{display:block;opacity:.7}.spw-restore-error{color:var(--error-color,#c62828);font-weight:600;overflow-wrap:anywhere}
         .spw-system .spw-status-row{display:flex;justify-content:space-between;align-items:baseline;gap:12px;padding:7px 0;border-bottom:1px solid var(--divider-color,rgba(127,127,127,.12));font-size:13px}.spw-system .spw-status-row:last-child{border-bottom:0}.spw-system .spw-status-label{color:var(--secondary-text-color);white-space:nowrap}.spw-system .spw-status-row strong{font-weight:600;overflow-wrap:anywhere;text-align:end;min-width:0}
 </style>
       <div class="wrap">
-        <div class="hero"><ha-icon icon="mdi:solar-panel"></ha-icon><div><h1>Solar Panel Washing</h1><p>Automatic multi-zone washing controller</p></div><div class="language-control"><div class="spw-version" aria-label="Dashboard version">v1.3.35</div><button type="button" class="language-trigger" data-language-toggle aria-haspopup="true" aria-expanded="false">🌐 ${({"auto":"Auto","en":"English","ru":"Русский","he":"עברית"})[this.config?.language||"auto"]||"Auto"} ▾</button><div class="language-menu" data-language-menu hidden><button type="button" data-language-choice="auto">🌐 Auto</button><button type="button" data-language-choice="en">🇺🇸 English</button><button type="button" data-language-choice="ru">🇷🇺 Русский</button><button type="button" data-language-choice="he">🇮🇱 עברית</button></div></div></div>
+        <div class="hero"><ha-icon icon="mdi:solar-panel"></ha-icon><div><h1>Solar Panel Washing</h1><p>Automatic multi-zone washing controller</p></div><div class="language-control"><div class="spw-version" aria-label="Dashboard version">v1.3.36</div><button type="button" class="language-trigger" data-language-toggle aria-haspopup="true" aria-expanded="false">🌐 ${({"auto":"Auto","en":"English","ru":"Русский","he":"עברית"})[this.config?.language||"auto"]||"Auto"} ▾</button><div class="language-menu" data-language-menu hidden><button type="button" data-language-choice="auto">🌐 Auto</button><button type="button" data-language-choice="en">🇺🇸 English</button><button type="button" data-language-choice="ru">🇷🇺 Русский</button><button type="button" data-language-choice="he">🇮🇱 עברית</button></div></div></div>
         <div class="stats">
           <div class="stat"><small>Status</small><b class="${this.state(E.alarm)==="on"?"alarm":"ok"}">${this.state(E.status)}</b></div>
           <div class="stat"><small>Zone</small><b>${this.state(E.zone)}</b></div>
@@ -602,6 +737,7 @@ class SolarPanelWashingCard extends HTMLElement {
             </div>
             <div class="spw-consumption-line spw-consumption-total"><span>Total Water</span><b><span class="spw-history" tabindex="0" role="button" title="Open Home Assistant history" data-history="${E.total}">${this.waterNumber(E.total)} L</span></b></div>
             <small class="spw-consumption-note">During valve overlap, measured water is divided equally between open zones. Values remain visible until the next wash.</small>
+            ${this.waterUsagePanel()}
             ${this.restorePanel()}
           </div>
           <div class="box wide"><h3>🔧 Manual Valve Control</h3>${this.helpLine("Direct relay controls for testing and maintenance. These bypass the normal washing sequence: use carefully and never open detergent and water sources together.")}<div class="manual">
@@ -611,6 +747,36 @@ class SolarPanelWashingCard extends HTMLElement {
         </div>
       </div>
     </ha-card>`;
+    this.querySelectorAll("[data-water-period]").forEach(button=>
+      button.addEventListener("click",()=>{
+        const mode=button.dataset.waterPeriod;
+        this._usageMode=mode;
+        this._usageResult=null;this._usageError="";
+        if(mode==="custom")this.render();
+        else this.loadWaterUsage(mode);
+      })
+    );
+    for(const [selector,field] of [
+      ["[data-water-range-start]","_usageStartAt"],
+      ["[data-water-range-end]","_usageEndAt"]
+    ]){
+      const input=this.querySelector(selector);
+      input?.addEventListener("focus",()=>{
+        this._restoreDatePickerEngaged=true;
+        clearTimeout(this._renderTimer);
+      });
+      for(const eventName of ["input","change","blur"]){
+        input?.addEventListener(eventName,()=>{
+          this[field]=input.value;
+          if(eventName!=="blur"){this._usageResult=null;this._usageError="";}
+          // Do not rebuild the DOM while a native calendar is open.
+        });
+      }
+    }
+    this.querySelector("[data-water-usage-load]")?.addEventListener("click",()=>{
+      this.releaseRestoreDateEditor();
+      this.loadWaterUsage("custom");
+    });
     this.querySelector("[data-restore-toggle]")?.addEventListener("click",()=>{
       this._restoreOpen=!this._restoreOpen;
       if(!this._restoreOpen){this._restorePreview=null;this._restoreError="";}
@@ -694,7 +860,7 @@ class SolarPanelWashingSectionCard extends SolarPanelWashingCard {
       const host=grid.querySelector(".box");
       const bar=document.createElement("div");
       bar.style.cssText="display:flex;gap:8px;justify-content:flex-end;margin-bottom:10px;align-items:center";
-      const version=document.createElement("small");version.textContent="v1.3.35";
+      const version=document.createElement("small");version.textContent="v1.3.36";
       const picker=document.createElement("div");
       picker.style.cssText="position:relative";
       const trigger=document.createElement("button");
@@ -787,7 +953,7 @@ class SolarPanelWashingOverviewCard extends HTMLElement {
       .spw-head small{margin-left:0}
       @container (max-width:1050px){.spw-layout{grid-template-columns:repeat(2,minmax(0,1fr))}.spw-column{display:contents}.spw-cell{order:var(--tablet-order)}}
       @container (max-width:620px){.spw-layout{grid-template-columns:minmax(0,1fr)}.spw-column{display:contents}.spw-cell{order:var(--mobile-order)}.spw-head{font-size:18px;padding:10px 12px}}
-    </style><div class="spw-overview"><div class="spw-head">☀️ Solar Panel Washing <div class="spw-language"><small>v1.3.35</small><select aria-label="Language" class="spw-language-select"><option value="auto">🌐 Auto</option><option value="en">🇺🇸 English</option><option value="ru">🇷🇺 Русский</option><option value="he">🇮🇱 עברית</option></select></div></div><div class="spw-layout"></div></div>`;
+    </style><div class="spw-overview"><div class="spw-head">☀️ Solar Panel Washing <div class="spw-language"><small>v1.3.36</small><select aria-label="Language" class="spw-language-select"><option value="auto">🌐 Auto</option><option value="en">🇺🇸 English</option><option value="ru">🇷🇺 Русский</option><option value="he">🇮🇱 עברית</option></select></div></div><div class="spw-layout"></div></div>`;
     const langSelect=this.querySelector(".spw-language-select");
     let savedLanguage="auto";
     try { savedLanguage=localStorage.getItem("solar_panel_washing_language") || "auto"; } catch (_) {}
@@ -828,4 +994,4 @@ class SolarPanelWashingOverviewCard extends HTMLElement {
 if(!customElements.get("solar-panel-washing-overview-card"))customElements.define("solar-panel-washing-overview-card",SolarPanelWashingOverviewCard);
 window.customCards.push({type:"solar-panel-washing-overview-card",name:"Solar Washing — Responsive Overview",description:"Desktop 4-column and mobile stacked washing dashboard",preview:true});
 
-console.info("%c SOLAR-PANEL-WASHING-CARD %c v1.3.35 ","color:white;background:#1684d8;font-weight:700","color:#1684d8;background:white");
+console.info("%c SOLAR-PANEL-WASHING-CARD %c v1.3.36 ","color:white;background:#1684d8;font-weight:700","color:#1684d8;background:white");
