@@ -351,7 +351,9 @@ class SolarPanelWashingCard extends HTMLElement {
     const group=rows.find(group=>Array.isArray(group)&&group.some(x=>x.entity_id===id))||rows[0]||[];
     const samples=group.map(item=>{
       const date=this.historyDate(item.last_updated??item.last_changed??item.lu??item.lc);
-      const value=Number(item.state??item.s);
+      const rawValue=item.state??item.s;
+      if(rawValue===undefined||rawValue===null||rawValue==="")return null;
+      const value=Number(rawValue);
       return date&&Number.isFinite(value)&&value>=0?{time:date.getTime(),value}:null;
     }).filter(Boolean).filter(x=>x.time<=end.getTime()).sort((a,b)=>a.time-b.time);
     const startTime=start.getTime(),baseline=samples.filter(x=>x.time<=startTime).at(-1);
@@ -370,6 +372,7 @@ class SolarPanelWashingCard extends HTMLElement {
     const rows=raw?.[id]||[];
     const points=rows.map(x=>{
       const time=this.historyDate(x.end)?.getTime();
+      if(x.sum===null||x.sum===undefined||x.sum==="")return null;
       const value=Number(x.sum);
       return time&&Number.isFinite(value)?{time,value}:null;
     }).filter(Boolean).sort((a,b)=>a.time-b.time);
