@@ -121,8 +121,8 @@ test("Date picker stays mounted while HA reports new meter values and native pop
   const handlers=new Map();
   const input={
     value:"2026-10-20T17:30",
-    matches:selector=>selector==="[data-restore-datetime]",
-    closest:selector=>selector==="[data-restore-datetime]"?input:null
+    matches:selector=>selector.includes("[data-restore-datetime]"),
+    closest:selector=>selector.includes("[data-restore-datetime]")?input:null
   };
   card.addEventListener=(type,handler)=>{
     const listeners=handlers.get(type)||[];
@@ -149,4 +149,112 @@ test("Date picker stays mounted while HA reports new meter values and native pop
   assert.equal(card._restoreDatePickerEngaged,false);
   assert.equal(card._restoreAt,"2026-10-20T17:30");
   assert.equal(card.isEditing(),false);
+});
+
+test("Water Consumption offers week, month and custom dates without duplicate restore controls",()=>{
+  const card=loadCard();
+  const week=card.waterUsagePanel();
+  assert.match(week,/data-water-period="week"/);
+  assert.match(week,/data-water-period="month"/);
+  assert.match(week,/data-water-period="custom"/);
+  card._usageMode="custom";
+  const custom=card.waterUsagePanel();
+  assert.match(custom,/data-water-range-start/);
+  assert.match(custom,/data-water-range-end/);
+  assert.match(custom,/data-water-usage-load/);
+  assert.doesNotMatch(custom,/data-restore-confirm/);
+});
+
+test("Meter usage is a positive difference, not the absolute cumulative total",()=>{
+  const card=loadCard();
+  const start=new Date("2026-10-19T00:00:00Z"),end=new Date("2026-10-19T10:00:00Z");
+  const rows=[[
+    {s:"808.20",lu:Date.parse("2026-10-18T23:59:59Z")/1000},
+    {s:"820.40",lu:Date.parse("2026-10-19T02:00:00Z")/1000},
+    {s:"823.91",lu:Date.parse("2026-10-19T08:00:00Z")/1000}
+  ]];
+  const r=card.waterUsageFromHistory(rows,start,end);
+  assert.ok(Math.abs(r.value-15.71)<1e-9);
+  assert.equal(r.approx,false);
+  assert.equal(r.source,"history");
+});
+
+test("A counter reset is handled without negative usage",()=>{
+  const card=loadCard();
+  const start=new Date("2026-10-19T00:00:00Z"),end=new Date("2026-10-19T10:00:00Z");
+  const r=card.waterUsageFromHistory([[
+    {state:"1000",last_updated:"2026-10-18T23:59:00Z"},
+    {state:"4",last_updated:"2026-10-19T01:00:00Z"},
+    {state:"12",last_updated:"2026-10-19T08:00:00Z"}
+  ]],start,end);
+  assert.equal(r.value,12);
+  assert.equal(r.resets,true);
+  assert.throws(()=>card.waterUsageFromHistory([[{state:"9",last_updated:"2026-10-19T08:00:00Z"}]],start,end),/начало периода/);
+});
+
+test("Long-term hourly statistics support a month when Recorder was purged",()=>{
+  const card=loadCard();
+  const start=new Date("2026-09-20T00:00:00Z"),end=new Date("2026-10-20T00:00:00Z");
+  const stats={"sensor.solar_panel_washing_total_water":[
+    {end:Date.parse("2026-09-19T23:00:00Z"),sum:200},
+    {end:Date.parse("2026-09-20T00:00:00Z"),sum:210},
+    {end:Date.parse("2026-09-28T00:00:00Z"),sum:245},
+    {end:Date.parse("2026-10-20T00:00:00Z"),sum:290}
+  ]};
+  const r=card.waterUsageFromStatistics(stats,start,end);
+  assert.equal(r.value,80);
+  assert.equal(r.approx,true);
+  assert.throws(()=>card.waterUsageFromStatistics({"sensor.solar_panel_washing_total_water":[]},start,end));
+});
+
+test("Custom calendar and chosen times persist while new HA sensor states arrive",()=>{
+  const card=loadCard();
+  const handlers=new Map();
+  const from={value:"2026-10-18T10:30",matches:x=>x.includes("[data-water-range-start]"),closest:x=>x.includes("[data-water-range-start]")?from:null};
+  const to={value:"2026-10-20T13:45",matches:x=>x.includes("[data-water-range-end]"),closest:x=>x.includes("[data-water-range-end]")?to:null};
+  card.addEventListener=(event,fn)=>handlers.set(event,[...(handlers.get(event)||[]),fn]);
+  card.querySelector=selector=>selector==="[data-water-range-start]"?from:selector==="[data-water-range-end]"?to:null;
+  card.contains=()=>true;
+  card.innerHTML="calendar remains mounted";
+  card.connectedCallback();
+  handlers.get("pointerdown")[0]({target:from});
+  card.hass={states:{"sensor.solar_panel_washing_total_water":{state:"999.99",attributes:{}}},language:"ru"};
+  card.render();
+  assert.equal(card._restoreDatePickerEngaged,true);
+  assert.equal(card.innerHTML,"calendar remains mounted");
+  assert.equal(card._usageStartAt,from.value);
+  assert.equal(card._usageEndAt,to.value);
+  handlers.get("pointerdown")[0]({target:to});
+  card.render();
+  assert.equal(card.innerHTML,"calendar remains mounted");
+  handlers.get("pointerdown")[0]({target:{closest:()=>null}});
+  assert.equal(card._restoreDatePickerEngaged,false);
+  assert.equal(card._usageStartAt,from.value);
+  assert.equal(card._usageEndAt,to.value);
+});
+
+test("Water totals for week and month invoke the expected HA history/statistics queries",async()=>{
+  const card=loadCard();
+  card.render=()=>{};
+  let calls=[];
+  card._hass.callWS=async args=>{
+    calls.push(args);
+    if(args.type==="recorder/statistics_during_period"){
+      const start=Date.parse(args.start_time),end=Date.parse(args.end_time);
+      return {"sensor.solar_panel_washing_total_water":[
+        {end:start+3600000,sum:400},{end:start+2*3600000,sum:405},
+        {end:end-3600000,sum:420}
+      ]};
+    }
+    return [[]];
+  };
+  await card.loadWaterUsage("month");
+  assert.equal(calls.length,1);
+  assert.equal(calls[0].type,"recorder/statistics_during_period");
+  assert.equal(card._usageResult.value,15);
+  calls=[];
+  await card.loadWaterUsage("week");
+  assert.equal(calls[0].type,"history/history_during_period");
+  assert.equal(calls[1].type,"recorder/statistics_during_period");
+  assert.equal(card._usageResult.value,15);
 });
