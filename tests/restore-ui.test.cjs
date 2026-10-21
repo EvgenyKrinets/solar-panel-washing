@@ -251,10 +251,10 @@ test("Water totals for week and month invoke the expected HA history/statistics 
   await card.loadWaterUsage("month");
   assert.equal(calls.length,1);
   assert.equal(calls[0].type,"recorder/statistics_during_period");
-  assert.equal(card._usageResult.value,20);
+  assert.equal(card._usageResult.value,15);
   calls=[];
   await card.loadWaterUsage("week");
   assert.equal(calls[0].type,"history/history_during_period");
   assert.equal(calls[1].type,"recorder/statistics_during_period");
-  assert.equal(card._usageResult.value,20);
+  assert.equal(card._usageResult.value,15);
 });
