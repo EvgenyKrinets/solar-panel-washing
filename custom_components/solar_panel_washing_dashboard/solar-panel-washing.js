@@ -660,6 +660,7 @@ class SolarPanelWashingCard extends HTMLElement {
         @media(max-width:600px){.wrap{padding:12px}.hero h1{font-size:22px}.actions{grid-template-columns:1fr}.manual{grid-template-columns:repeat(2,minmax(0,1fr))}}
       .spw-history{cursor:pointer;text-decoration:underline;text-decoration-style:dotted;text-underline-offset:3px}.spw-history:hover{color:var(--primary-color)}.spw-history:focus-visible{outline:2px solid var(--primary-color);border-radius:3px}
         .spw-consumption-summary{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin:10px 0 14px}.spw-consumption-summary>div{display:flex;flex-direction:column;gap:5px;padding:12px 9px;border-radius:10px;background:var(--secondary-background-color,#f1f5f9);min-width:0}.spw-consumption-summary small{font-size:11px;color:var(--secondary-text-color)}.spw-consumption-summary strong{font-size:19px;color:var(--primary-text-color);overflow-wrap:anywhere}.spw-consumption-line{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 2px;border-bottom:1px solid var(--divider-color,rgba(127,127,127,.15));font-size:13px}.spw-consumption-line b{font-variant-numeric:tabular-nums}.spw-consumption-total{font-weight:700}.spw-consumption-note{display:block;margin-top:10px;font-size:11px;line-height:1.4;color:var(--secondary-text-color)}
+        .spw-usage{margin-top:14px;padding:12px 0;border-top:1px solid var(--divider-color,rgba(127,127,127,.2));display:flex;flex-direction:column;gap:9px;min-width:0}.spw-usage>strong{font-size:14px}.spw-usage-modes{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:5px}.spw-usage-modes button,.spw-usage-load{min-width:0;padding:9px 4px;border:1px solid var(--divider-color,#bbb);border-radius:8px;background:var(--secondary-background-color,#eee);color:var(--primary-text-color);cursor:pointer;font-size:12px}.spw-usage-modes button.active{background:var(--primary-color,#1684d8);color:white;border-color:var(--primary-color,#1684d8);font-weight:700}.spw-usage-dates{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;min-width:0}.spw-usage-dates label{display:flex;flex-direction:column;gap:5px;min-width:0;font-size:12px}.spw-usage-dates input{box-sizing:border-box;min-width:0;width:100%;max-width:100%;padding:9px 6px;border-radius:8px;border:1px solid var(--divider-color,#bbb);background:var(--card-background-color,#fff);color:var(--primary-text-color);font-size:12px}.spw-usage-load{width:100%;padding:11px;font-size:13px;font-weight:700}.spw-usage-total{display:flex;flex-direction:column;gap:4px;border-radius:9px;background:var(--secondary-background-color,#eef4f8);padding:11px}.spw-usage-total b{font-size:22px;font-variant-numeric:tabular-nums;color:var(--primary-text-color)}.spw-usage-total small{font-size:11px;color:var(--secondary-text-color);overflow-wrap:anywhere}.spw-usage-msg{font-size:12px;color:var(--secondary-text-color);overflow-wrap:anywhere}.spw-usage-msg.error{color:var(--error-color,#c62828);font-weight:600}
         .spw-stage-count{display:block;text-align:end;color:var(--spw-blue);font-weight:700;font-size:12px;margin:0 4px 8px}.spw-fault{color:var(--spw-red)}.spw-fault-reason{display:block;color:var(--spw-red);font-size:12px;font-weight:700;padding:4px}.spw-fault-highlight{outline:2px solid var(--spw-red);border-radius:8px;animation:spw-flash 1s infinite alternate}@keyframes spw-flash{from{background:transparent}to{background:rgba(239,62,62,.17)}}.spw-flow-progress{margin-top:8px;color:var(--spw-blue);font-size:12px;font-weight:700}
         .spw-restore{margin-top:12px;padding-top:12px;border-top:1px solid var(--divider-color,#ddd)}.spw-restore-actions{display:flex;flex-wrap:wrap;gap:8px}.spw-restore button{padding:9px 12px;border:1px solid var(--divider-color,#ccc);border-radius:9px;background:var(--secondary-background-color,#eee);color:var(--primary-text-color);cursor:pointer}.spw-restore-expanded{margin-top:12px;display:flex;flex-direction:column;gap:10px}.spw-restore-expanded label{display:flex;flex-direction:column;gap:6px}.spw-restore-expanded input{max-width:100%;width:100%;padding:9px;color:var(--primary-text-color);background:var(--card-background-color);border:1px solid var(--divider-color);border-radius:8px}.spw-restore-table{display:grid;gap:6px}.spw-restore-row{display:grid;grid-template-columns:1fr 1fr 1.5fr;gap:5px;align-items:start;font-size:12px;border-bottom:1px solid var(--divider-color);padding:5px 0}.spw-restore-row small{display:block;opacity:.7}.spw-restore-error{color:var(--error-color,#c62828);font-weight:600;overflow-wrap:anywhere}
         .spw-system .spw-status-row{display:flex;justify-content:space-between;align-items:baseline;gap:12px;padding:7px 0;border-bottom:1px solid var(--divider-color,rgba(127,127,127,.12));font-size:13px}.spw-system .spw-status-row:last-child{border-bottom:0}.spw-system .spw-status-label{color:var(--secondary-text-color);white-space:nowrap}.spw-system .spw-status-row strong{font-weight:600;overflow-wrap:anywhere;text-align:end;min-width:0}
@@ -736,6 +737,7 @@ class SolarPanelWashingCard extends HTMLElement {
             </div>
             <div class="spw-consumption-line spw-consumption-total"><span>Total Water</span><b><span class="spw-history" tabindex="0" role="button" title="Open Home Assistant history" data-history="${E.total}">${this.waterNumber(E.total)} L</span></b></div>
             <small class="spw-consumption-note">During valve overlap, measured water is divided equally between open zones. Values remain visible until the next wash.</small>
+            ${this.waterUsagePanel()}
             ${this.restorePanel()}
           </div>
           <div class="box wide"><h3>🔧 Manual Valve Control</h3>${this.helpLine("Direct relay controls for testing and maintenance. These bypass the normal washing sequence: use carefully and never open detergent and water sources together.")}<div class="manual">
@@ -745,6 +747,36 @@ class SolarPanelWashingCard extends HTMLElement {
         </div>
       </div>
     </ha-card>`;
+    this.querySelectorAll("[data-water-period]").forEach(button=>
+      button.addEventListener("click",()=>{
+        const mode=button.dataset.waterPeriod;
+        this._usageMode=mode;
+        this._usageResult=null;this._usageError="";
+        if(mode==="custom")this.render();
+        else this.loadWaterUsage(mode);
+      })
+    );
+    for(const [selector,field] of [
+      ["[data-water-range-start]","_usageStartAt"],
+      ["[data-water-range-end]","_usageEndAt"]
+    ]){
+      const input=this.querySelector(selector);
+      input?.addEventListener("focus",()=>{
+        this._restoreDatePickerEngaged=true;
+        clearTimeout(this._renderTimer);
+      });
+      for(const eventName of ["input","change","blur"]){
+        input?.addEventListener(eventName,()=>{
+          this[field]=input.value;
+          if(eventName!=="blur"){this._usageResult=null;this._usageError="";}
+          // Do not rebuild the DOM while a native calendar is open.
+        });
+      }
+    }
+    this.querySelector("[data-water-usage-load]")?.addEventListener("click",()=>{
+      this.releaseRestoreDateEditor();
+      this.loadWaterUsage("custom");
+    });
     this.querySelector("[data-restore-toggle]")?.addEventListener("click",()=>{
       this._restoreOpen=!this._restoreOpen;
       if(!this._restoreOpen){this._restorePreview=null;this._restoreError="";}
