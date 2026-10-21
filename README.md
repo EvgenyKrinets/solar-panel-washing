@@ -4,7 +4,7 @@
 
 ### ESP32 / ESPHome automatic five-zone solar-panel washing with Home Assistant
 
-[![Release](https://img.shields.io/badge/Version-1.3.36-blue)](VERSION)
+[![Release](https://img.shields.io/badge/Version-1.3.37-blue)](VERSION)
 [![ESPHome](https://img.shields.io/badge/ESPHome-ESP32--S3-000000?logo=esphome)](https://esphome.io/)
 [![Home Assistant](https://img.shields.io/badge/Home%20Assistant-HACS%20Integration-18BCF2?logo=homeassistant)](https://www.home-assistant.io/)
 [![Languages](https://img.shields.io/badge/Languages-EN%20%7C%20RU%20%7C%20HE-1684d8)](#languages)
@@ -15,6 +15,14 @@
 *Illustration of the Solar Panel Washing dashboard.*
 
 </div>
+
+## v1.3.37 — Ignore transient counter drops when calculating water usage
+
+Fixed over-counting after an ESP32 backup restore. The old usage algorithm treated any drop in the cumulative Total Water sensor as a genuine meter reset and immediately added the subsequent reading to the measured consumption. This could inflate a two-day total by hundreds of litres (808 → 0 → 808 mistakenly counted 808 L again).
+
+Short-term Recorder calculations now measure only new historical high-water readings relative to the start of the interval, ignoring transient drops and restored older values. For example, a series 690 → 808 → 0 → 808 → 924 results in 234 L, not 1,042 L. If a true reset remains unrecovered at the end of the interval, the result is marked approximate and explicitly identified as a **lower bound**, since the exact amount cannot be inferred from cumulative readings alone. Long-term hourly statistics remain a separate source where available.
+
+All three dashboard JavaScript bundles and RU/EN/HE labels were updated; no ESP32 firmware changes are required.
 
 ## v1.3.36 — Water consumption by 7 days, 30 days or custom interval
 
@@ -63,7 +71,7 @@ New HA services are `solar_panel_washing_dashboard.save_settings` for manual sna
 
 **Solar Panel Washing** controls five rooftop solar-panel washing zones using a Waveshare ESP32-S3-ETH-8DI-8RO, ESPHome, and Home Assistant. The ESP32 executes the washing programs, schedules, valve sequencing and safety logic locally; Home Assistant provides configuration, live readings, controls, history and a responsive dashboard. The automatic program does not require a permanently connected Home Assistant frontend.
 
-**Current release: v1.3.36.** The HACS integration and ESPHome firmware are separate parts of this repository. Updating the integration does **not** flash the ESP32.
+**Current release: v1.3.37.** The HACS integration and ESPHome firmware are separate parts of this repository. Updating the integration does **not** flash the ESP32.
 
 ## Features — in the order you use them
 
