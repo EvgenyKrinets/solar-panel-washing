@@ -139,6 +139,23 @@ class SolarPanelWashingCard extends HTMLElement {
   t(key,...args){
     const messages={
       "Restore settings":["Восстановить настройки","שחזור הגדרות"],
+      "Water used during period":["Расход воды за период","צריכת מים בתקופה"],
+      "7 days":["7 дней","7 ימים"],
+      "30 days":["30 дней","30 ימים"],
+      "Custom period":["Свой период","תקופה מותאמת"],
+      "From":["С","מ-"],
+      "To":["По","עד"],
+      "Calculate water usage":["Показать расход","הצגת צריכת המים"],
+      "Loading water usage…":["Загрузка расхода воды…","טוען נתוני צריכת מים…"],
+      "Choose an interval to calculate water usage.":["Выберите период для расчёта расхода.","בחרו תקופה לחישוב צריכת מים."],
+      "Long-term hourly HA statistics":["Долгосрочная статистика HA (по часам)","סטטיסטיקה ארוכת טווח של HA (לפי שעה)"],
+      "Home Assistant recorded water counter":["История счётчика Home Assistant","היסטוריית מונה המים ב-Home Assistant"],
+      "Counter resets included":["Сбросы счётчика учтены","איפוסי מונה נכללו"],
+      "No water counter reading at the start of this period.":["Нет показания счётчика на начало периода.","אין קריאת מונה לתחילת התקופה."],
+      "Not enough long-term statistics for the full interval.":["Недостаточно долгосрочной статистики за весь период.","אין מספיק נתונים סטטיסטיים לכל התקופה."],
+      "Water statistics contain a discontinuity.":["В статистике воды обнаружен разрыв.","זוהה פער בסטטיסטיקת המים."],
+      "Choose a valid period of up to one year.":["Выберите корректный период продолжительностью до года.","בחרו תקופה תקינה עד שנה."],
+      "Unable to calculate water use for the whole period.":["Невозможно рассчитать расход за весь период.","לא ניתן לחשב את צריכת המים לכל התקופה."],
       "Using the last complete HA backup available before the selected date.":["Использована последняя полная копия HA до выбранной даты.","נעשה שימוש בגיבוי המלא האחרון של HA לפני התאריך שנבחר."],
       "Incomplete water counter history":["В истории найдены не все 7 счётчиков воды.","חסרה היסטוריה של חלק משבעת מוני המים."],
       "Restore service unavailable. Update and restart Home Assistant.":["Служба восстановления недоступна. Обновите и перезапустите Home Assistant.","שירות השחזור אינו זמין. עדכנו והפעילו מחדש את Home Assistant."],
@@ -304,6 +321,112 @@ class SolarPanelWashingCard extends HTMLElement {
   historyTimeText(value){
     const date=this.historyDate(value);
     return date?date.toLocaleString(this.language()==="ru"?"ru-RU":this.language()==="he"?"he-IL":"en-US"):"—";
+  }
+  localUsageTime(date){
+    const pad=n=>String(n).padStart(2,"0");
+    return `${date.getFullYear()}-${pad(date.getMonth()+1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+  }
+  waterUsagePanel(){
+    const mode=this._usageMode||"week",busy=!!this._usageLoading;
+    const dates=mode==="custom"?`<div class="spw-usage-dates">
+        <label>${this.t("From")}<input type="datetime-local" data-water-range-start value="${this._usageStartAt||this.localUsageTime(new Date(Date.now()-7*86400000))}"></label>
+        <label>${this.t("To")}<input type="datetime-local" data-water-range-end value="${this._usageEndAt||this.localUsageTime(new Date())}"></label>
+      </div><button type="button" class="spw-usage-load" data-water-usage-load ${busy?"disabled":""}>${this.t("Calculate water usage")}</button>`:"";
+    const select=label=>`<button type="button" data-water-period="${label}" class="${mode===label?"active":""}"
+       ${busy?"disabled":""}>${this.t(label==="week"?"7 days":label==="month"?"30 days":"Custom period")}</button>`;
+    const result=this._usageResult;
+    const range=result?`${this.historyTimeText(result.start)} — ${this.historyTimeText(result.end)}`:"";
+    const message=busy?`<span class="spw-usage-msg">${this.t("Loading water usage…")}</span>`:
+      this._usageError?`<span class="spw-usage-msg error">${this._usageError.replace(/[&<>"]/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[ch]))}</span>`:
+      result?`<div class="spw-usage-total"><b>${result.approx?"≈ ":""}${result.value.toFixed(2)} L</b><small>${range}</small>
+        <small>${this.t(result.source==="statistics"?"Long-term hourly HA statistics":"Home Assistant recorded water counter")}${result.resets?" · "+this.t("Counter resets included"):""}</small></div>`:
+      `<small>${this.t("Choose an interval to calculate water usage.")}</small>`;
+    return `<section class="spw-usage"><strong>${this.t("Water used during period")}</strong>
+      <div class="spw-usage-modes">${select("week")}${select("month")}${select("custom")}</div>
+      ${dates}${message}</section>`;
+  }
+  waterUsageFromHistory(raw,start,end){
+    const rows=Array.isArray(raw)?raw:Object.values(raw||{});
+    const id="sensor.solar_panel_washing_total_water";
+    const group=rows.find(group=>Array.isArray(group)&&group.some(x=>x.entity_id===id))||rows[0]||[];
+    const samples=group.map(item=>{
+      const date=this.historyDate(item.last_updated??item.last_changed??item.lu??item.lc);
+      const value=Number(item.state??item.s);
+      return date&&Number.isFinite(value)&&value>=0?{time:date.getTime(),value}:null;
+    }).filter(Boolean).filter(x=>x.time<=end.getTime()).sort((a,b)=>a.time-b.time);
+    const startTime=start.getTime(),baseline=samples.filter(x=>x.time<=startTime).at(-1);
+    if(!baseline)throw Error(this.t("No water counter reading at the start of this period."));
+    let previous=baseline.value,total=0,resets=false;
+    for(const item of samples){
+      if(item.time<=startTime)continue;
+      if(item.value>=previous)total+=item.value-previous;
+      else {total+=item.value;resets=true;}
+      previous=item.value;
+    }
+    return {value:total,approx:false,source:"history",resets};
+  }
+  waterUsageFromStatistics(raw,start,end){
+    const id="sensor.solar_panel_washing_total_water";
+    const rows=raw?.[id]||[];
+    const points=rows.map(x=>{
+      const time=this.historyDate(x.end)?.getTime();
+      const value=Number(x.sum);
+      return time&&Number.isFinite(value)?{time,value}:null;
+    }).filter(Boolean).sort((a,b)=>a.time-b.time);
+    const begin=points.filter(x=>x.time<=start.getTime()).at(-1);
+    const finish=points.filter(x=>x.time<=end.getTime()).at(-1);
+    // Long-term statistics have hour-level resolution. Do not silently
+    // report totals across large unrecorded gaps as complete consumption.
+    if(!begin||!finish||finish.time<=begin.time||
+       start.getTime()-begin.time>3*3600000||end.getTime()-finish.time>3*3600000)
+      throw Error(this.t("Not enough long-term statistics for the full interval."));
+    const diff=finish.value-begin.value;
+    if(!Number.isFinite(diff)||diff<0)throw Error(this.t("Water statistics contain a discontinuity."));
+    return {value:diff,approx:true,source:"statistics",resets:false};
+  }
+  async loadWaterUsage(mode=this._usageMode||"week"){
+    if(this._usageLoading)return;
+    this._usageMode=mode;
+    this._usageError="";this._usageResult=null;
+    const now=new Date(),end=mode==="custom"?new Date(this._usageEndAt||this.localUsageTime(now)):now;
+    const start=mode==="custom"?new Date(this._usageStartAt||this.localUsageTime(new Date(now.getTime()-7*86400000))):
+      new Date(now.getTime()-(mode==="month"?30:7)*86400000);
+    if(!Number.isFinite(start.getTime())||!Number.isFinite(end.getTime())||
+       start>=end||end.getTime()>Date.now()+60000||end-start>366*86400000){
+      this._usageError=this.t("Choose a valid period of up to one year.");this.render();return;
+    }
+    this._usageLoading=true;this.render();
+    try{
+      const id="sensor.solar_panel_washing_total_water";
+      let total=null,firstError=null;
+      // Raw Recorder history gives exact boundaries while it is retained.
+      // Avoid multi-week raw queries; HA usually purges them after 10 days.
+      if(end-start<=9*86400000){
+        try{
+          const raw=await this._hass.callWS({
+            type:"history/history_during_period",start_time:start.toISOString(),
+            end_time:end.toISOString(),entity_ids:[id],minimal_response:false,no_attributes:true
+          });
+          total=this.waterUsageFromHistory(raw,start,end);
+        }catch(e){firstError=e;}
+      }
+      if(!total){
+        try{
+          const raw=await this._hass.callWS({
+            type:"recorder/statistics_during_period",
+            start_time:new Date(start.getTime()-3*3600000).toISOString(),
+            end_time:end.toISOString(),
+            statistic_ids:[id],period:"hour",types:["sum"]
+          });
+          total=this.waterUsageFromStatistics(raw,start,end);
+        }catch(e){
+          throw Error(this.t("Unable to calculate water use for the whole period.")+" "+
+            (e?.message||firstError?.message||""));
+        }
+      }
+      this._usageResult={...total,start:start.toISOString(),end:end.toISOString()};
+    }catch(e){this._usageError=e?.message||String(e);}
+    finally{this._usageLoading=false;this.render();}
   }
   fullHistorySettings(){
     const p="solar_panel_washing_";
