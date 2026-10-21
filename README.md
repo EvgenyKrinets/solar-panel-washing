@@ -4,7 +4,7 @@
 
 ### ESP32 / ESPHome automatic five-zone solar-panel washing with Home Assistant
 
-[![Release](https://img.shields.io/badge/Version-1.3.35-blue)](VERSION)
+[![Release](https://img.shields.io/badge/Version-1.3.36-blue)](VERSION)
 [![ESPHome](https://img.shields.io/badge/ESPHome-ESP32--S3-000000?logo=esphome)](https://esphome.io/)
 [![Home Assistant](https://img.shields.io/badge/Home%20Assistant-HACS%20Integration-18BCF2?logo=homeassistant)](https://www.home-assistant.io/)
 [![Languages](https://img.shields.io/badge/Languages-EN%20%7C%20RU%20%7C%20HE-1684d8)](#languages)
@@ -15,6 +15,14 @@
 *Illustration of the Solar Panel Washing dashboard.*
 
 </div>
+
+## v1.3.36 — Water consumption by 7 days, 30 days or custom interval
+
+**Water Consumption** now contains a compact **Water used during period** panel, with **7 days**, **30 days** and **Custom period** tabs. The preset tabs measure the latest rolling 7 or 30 days. Custom period opens two native date-and-time selectors for start and end and a **Calculate water usage** button. The result is shown in **litres**, together with the precise selected time boundaries and data source. It does **not** replace or reset the existing Total Water sensor.
+
+For short intervals, the dashboard calculates consumption as positive deltas between readings of `sensor.solar_panel_washing_total_water` in HA Recorder history; decreases are handled as counter resets. For longer intervals, or when retained raw history is insufficient, it uses Home Assistant's long-term **hourly** sum statistics. This fallback is marked **≈** to clarify that the result has hour-level granularity. If HA lacks a starting sample, complete statistics or sufficient coverage, the card displays a localized error rather than an invented total. A custom period can be up to one year.
+
+**Calendar stability:** Native date selectors remain mounted while open (for both Restore settings and the water-usage custom interval). Changes to other HA entities never close the calendar or overwrite its selected dates. Three dashboard JavaScript bundles, README, version label and RU/EN/HE translations are updated. **No ESP32 firmware changes.** Update the HACS integration and restart Home Assistant.
 
 ## v1.3.35 — Keep the date picker open during HA updates
 
@@ -55,7 +63,7 @@ New HA services are `solar_panel_washing_dashboard.save_settings` for manual sna
 
 **Solar Panel Washing** controls five rooftop solar-panel washing zones using a Waveshare ESP32-S3-ETH-8DI-8RO, ESPHome, and Home Assistant. The ESP32 executes the washing programs, schedules, valve sequencing and safety logic locally; Home Assistant provides configuration, live readings, controls, history and a responsive dashboard. The automatic program does not require a permanently connected Home Assistant frontend.
 
-**Current release: v1.3.35.** The HACS integration and ESPHome firmware are separate parts of this repository. Updating the integration does **not** flash the ESP32.
+**Current release: v1.3.36.** The HACS integration and ESPHome firmware are separate parts of this repository. Updating the integration does **not** flash the ESP32.
 
 ## Features — in the order you use them
 
