@@ -151,6 +151,7 @@ class SolarPanelWashingCard extends HTMLElement {
       "Long-term hourly HA statistics":["Долгосрочная статистика HA (по часам)","סטטיסטיקה ארוכת טווח של HA (לפי שעה)"],
       "Home Assistant recorded water counter":["История счётчика Home Assistant","היסטוריית מונה המים ב-Home Assistant"],
       "Counter resets included":["Сбросы счётчика учтены","איפוסי מונה נכללו"],
+      "Incomplete Recorder history: showing recorded minimum":["Неполная история HA: показан минимум по имеющимся данным","היסטוריה חלקית: מוצג מינימום על סמך נתונים זמינים"],
       "Temporary counter drop ignored":["Временное падение счётчика исключено","ירידה זמנית במונה לא נכללה"],
       "Meter reset: total is a lower bound":["Возможный сброс: показан минимальный расход","איפוס אפשרי: מוצגת צריכה מינימלית"],
       "No water counter reading at the start of this period.":["Нет показания счётчика на начало периода.","אין קריאת מונה לתחילת התקופה."],
@@ -341,7 +342,7 @@ class SolarPanelWashingCard extends HTMLElement {
     const message=busy?`<span class="spw-usage-msg">${this.t("Loading water usage…")}</span>`:
       this._usageError?`<span class="spw-usage-msg error">${this._usageError.replace(/[&<>"]/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[ch]))}</span>`:
       result?`<div class="spw-usage-total"><b>${result.approx?"≈ ":""}${result.value.toFixed(2)} L</b><small>${range}</small>
-        <small>${this.t(result.source==="statistics"?"Long-term hourly HA statistics":"Home Assistant recorded water counter")}${result.resets?" · "+this.t(result.unresolvedReset?"Meter reset: total is a lower bound":"Temporary counter drop ignored"):""}</small></div>`:
+        <small>${this.t(result.source==="statistics"?"Long-term hourly HA statistics":"Home Assistant recorded water counter")}${result.partial?" · "+this.t("Incomplete Recorder history: showing recorded minimum"):""}${result.resets?" · "+this.t(result.unresolvedReset?"Meter reset: total is a lower bound":"Temporary counter drop ignored"):""}</small></div>`:
       `<small>${this.t("Choose an interval to calculate water usage.")}</small>`;
     return `<section class="spw-usage"><strong>${this.t("Water used during period")}</strong>
       <div class="spw-usage-modes">${select("week")}${select("month")}${select("custom")}</div>
@@ -358,30 +359,25 @@ class SolarPanelWashingCard extends HTMLElement {
       const value=Number(rawValue);
       return date&&Number.isFinite(value)&&value>=0?{time:date.getTime(),value}:null;
     }).filter(Boolean).filter(x=>x.time<=end.getTime()).sort((a,b)=>a.time-b.time);
-    const startTime=start.getTime(),baseline=samples.filter(x=>x.time<=startTime).at(-1);
+    if(!samples.length)throw Error(this.t("No water counter reading at the start of this period."));
+    const startTime=start.getTime();
+    let baseline=samples.filter(x=>x.time<=startTime).at(-1);
+    // HA Recorder may omit the first state when there are gaps in the
+    // history or the initial entry has an 'unavailable' state. Use the
+    // first valid later reading but prominently mark the result partial.
+    const partial=!baseline;
+    if(!baseline)baseline=samples.find(x=>x.time>startTime);
     if(!baseline)throw Error(this.t("No water counter reading at the start of this period."));
-    // The total-water counter is a lifetime reading, not a daily meter.
-    // Restoring ESPHome settings can temporarily publish zero or an older
-    // value. Treating each decrease as a genuine reset would add the full
-    // restored reading again (e.g. 808 -> 0 -> 808 = phantom 808 L).
-    // Track only new all-time highs inside the requested interval.
     let highWater=baseline.value,total=0,hadDecrease=false;
     for(const item of samples){
-      if(item.time<=startTime)continue;
-      if(item.value<highWater){
-        hadDecrease=true;
-        continue;
-      }
-      total+=item.value-highWater;
-      highWater=item.value;
+      if(item.time<=Math.max(startTime,baseline.time))continue;
+      if(item.value<highWater){hadDecrease=true;continue;}
+      total+=item.value-highWater;highWater=item.value;
     }
     const last=samples.at(-1);
-    // If the meter never regained its previous value, a real reset cannot
-    // be distinguished from an interrupted restore. Mark the total as a
-    // minimum, not as an exact total.
-    const unresolvedReset=hadDecrease && last && last.value<highWater;
-    return {value:total,approx:!!unresolvedReset,source:"history",
-            resets:hadDecrease,unresolvedReset:!!unresolvedReset};
+    const unresolvedReset=hadDecrease&&last&&last.value<highWater;
+    return {value:total,approx:!!unresolvedReset||partial,source:"history",
+            partial,resets:hadDecrease,unresolvedReset:!!unresolvedReset};
   }
   waterUsageFromStatistics(raw,start,end){
     const id="sensor.solar_panel_washing_total_water";
@@ -418,30 +414,43 @@ class SolarPanelWashingCard extends HTMLElement {
     try{
       const id="sensor.solar_panel_washing_total_water";
       let total=null,firstError=null;
-      // Raw Recorder history gives exact boundaries while it is retained.
-      // Avoid multi-week raw queries; HA usually purges them after 10 days.
-      if(end-start<=9*86400000){
+      const history=async()=>{
+        const raw=await this._hass.callWS({
+          type:"history/history_during_period",
+          // Include the most recent baseline before the selected start.
+          start_time:new Date(start.getTime()-86400000).toISOString(),
+          end_time:end.toISOString(),entity_ids:[id],
+          minimal_response:false,no_attributes:true
+        });
+        return this.waterUsageFromHistory(raw,start,end);
+      };
+      const statistics=async()=>{
+        const raw=await this._hass.callWS({
+          type:"recorder/statistics_during_period",
+          start_time:new Date(start.getTime()-3*3600000).toISOString(),
+          end_time:end.toISOString(),
+          statistic_ids:[id],period:"hour",types:["sum"]
+        });
+        return this.waterUsageFromStatistics(raw,start,end);
+      };
+      // Short intervals: Recorder is the primary source. For longer
+      // intervals prefer HA long-term statistics, but fall back to raw
+      // Recorder history when the sensor has no sum statistics.
+      const strategies=end-start<=9*86400000?[history,statistics]:[statistics,history];
+      for(const strategy of strategies){
         try{
-          const raw=await this._hass.callWS({
-            type:"history/history_during_period",start_time:start.toISOString(),
-            end_time:end.toISOString(),entity_ids:[id],minimal_response:false,no_attributes:true
-          });
-          total=this.waterUsageFromHistory(raw,start,end);
+          total=await strategy();
+          if(total)break;
         }catch(e){firstError=e;}
       }
-      if(!total){
-        try{
-          const raw=await this._hass.callWS({
-            type:"recorder/statistics_during_period",
-            start_time:new Date(start.getTime()-3*3600000).toISOString(),
-            end_time:end.toISOString(),
-            statistic_ids:[id],period:"hour",types:["sum"]
-          });
-          total=this.waterUsageFromStatistics(raw,start,end);
-        }catch(e){
-          throw Error(this.t("Unable to calculate water use for the whole period.")+" "+
-            (e?.message||firstError?.message||""));
-        }
+      if(!total)throw Error(this.t("Unable to calculate water use for the whole period.")+" "+
+        (firstError?.message||""));
+      // Always prefer a current live reading when Recorder has not
+      // recorded the last update, but never count counter regressions.
+      const live=this._hass.states?.[id];
+      if(total.source==="history" && live){
+        // The history response is authoritative for the measured interval.
+        // Do not attach a reading taken after the requested end.
       }
       this._usageResult={...total,start:start.toISOString(),end:end.toISOString()};
     }catch(e){this._usageError=e?.message||String(e);}
@@ -685,7 +694,7 @@ class SolarPanelWashingCard extends HTMLElement {
         .spw-system .spw-status-row{display:flex;justify-content:space-between;align-items:baseline;gap:12px;padding:7px 0;border-bottom:1px solid var(--divider-color,rgba(127,127,127,.12));font-size:13px}.spw-system .spw-status-row:last-child{border-bottom:0}.spw-system .spw-status-label{color:var(--secondary-text-color);white-space:nowrap}.spw-system .spw-status-row strong{font-weight:600;overflow-wrap:anywhere;text-align:end;min-width:0}
 </style>
       <div class="wrap">
-        <div class="hero"><ha-icon icon="mdi:solar-panel"></ha-icon><div><h1>Solar Panel Washing</h1><p>Automatic multi-zone washing controller</p></div><div class="language-control"><div class="spw-version" aria-label="Dashboard version">v1.3.37</div><button type="button" class="language-trigger" data-language-toggle aria-haspopup="true" aria-expanded="false">🌐 ${({"auto":"Auto","en":"English","ru":"Русский","he":"עברית"})[this.config?.language||"auto"]||"Auto"} ▾</button><div class="language-menu" data-language-menu hidden><button type="button" data-language-choice="auto">🌐 Auto</button><button type="button" data-language-choice="en">🇺🇸 English</button><button type="button" data-language-choice="ru">🇷🇺 Русский</button><button type="button" data-language-choice="he">🇮🇱 עברית</button></div></div></div>
+        <div class="hero"><ha-icon icon="mdi:solar-panel"></ha-icon><div><h1>Solar Panel Washing</h1><p>Automatic multi-zone washing controller</p></div><div class="language-control"><div class="spw-version" aria-label="Dashboard version">v1.3.38</div><button type="button" class="language-trigger" data-language-toggle aria-haspopup="true" aria-expanded="false">🌐 ${({"auto":"Auto","en":"English","ru":"Русский","he":"עברית"})[this.config?.language||"auto"]||"Auto"} ▾</button><div class="language-menu" data-language-menu hidden><button type="button" data-language-choice="auto">🌐 Auto</button><button type="button" data-language-choice="en">🇺🇸 English</button><button type="button" data-language-choice="ru">🇷🇺 Русский</button><button type="button" data-language-choice="he">🇮🇱 עברית</button></div></div></div>
         <div class="stats">
           <div class="stat"><small>Status</small><b class="${this.state(E.alarm)==="on"?"alarm":"ok"}">${this.state(E.status)}</b></div>
           <div class="stat"><small>Zone</small><b>${this.state(E.zone)}</b></div>
@@ -879,7 +888,7 @@ class SolarPanelWashingSectionCard extends SolarPanelWashingCard {
       const host=grid.querySelector(".box");
       const bar=document.createElement("div");
       bar.style.cssText="display:flex;gap:8px;justify-content:flex-end;margin-bottom:10px;align-items:center";
-      const version=document.createElement("small");version.textContent="v1.3.37";
+      const version=document.createElement("small");version.textContent="v1.3.38";
       const picker=document.createElement("div");
       picker.style.cssText="position:relative";
       const trigger=document.createElement("button");
@@ -972,7 +981,7 @@ class SolarPanelWashingOverviewCard extends HTMLElement {
       .spw-head small{margin-left:0}
       @container (max-width:1050px){.spw-layout{grid-template-columns:repeat(2,minmax(0,1fr))}.spw-column{display:contents}.spw-cell{order:var(--tablet-order)}}
       @container (max-width:620px){.spw-layout{grid-template-columns:minmax(0,1fr)}.spw-column{display:contents}.spw-cell{order:var(--mobile-order)}.spw-head{font-size:18px;padding:10px 12px}}
-    </style><div class="spw-overview"><div class="spw-head">☀️ Solar Panel Washing <div class="spw-language"><small>v1.3.37</small><select aria-label="Language" class="spw-language-select"><option value="auto">🌐 Auto</option><option value="en">🇺🇸 English</option><option value="ru">🇷🇺 Русский</option><option value="he">🇮🇱 עברית</option></select></div></div><div class="spw-layout"></div></div>`;
+    </style><div class="spw-overview"><div class="spw-head">☀️ Solar Panel Washing <div class="spw-language"><small>v1.3.38</small><select aria-label="Language" class="spw-language-select"><option value="auto">🌐 Auto</option><option value="en">🇺🇸 English</option><option value="ru">🇷🇺 Русский</option><option value="he">🇮🇱 עברית</option></select></div></div><div class="spw-layout"></div></div>`;
     const langSelect=this.querySelector(".spw-language-select");
     let savedLanguage="auto";
     try { savedLanguage=localStorage.getItem("solar_panel_washing_language") || "auto"; } catch (_) {}
@@ -1013,4 +1022,4 @@ class SolarPanelWashingOverviewCard extends HTMLElement {
 if(!customElements.get("solar-panel-washing-overview-card"))customElements.define("solar-panel-washing-overview-card",SolarPanelWashingOverviewCard);
 window.customCards.push({type:"solar-panel-washing-overview-card",name:"Solar Washing — Responsive Overview",description:"Desktop 4-column and mobile stacked washing dashboard",preview:true});
 
-console.info("%c SOLAR-PANEL-WASHING-CARD %c v1.3.37 ","color:white;background:#1684d8;font-weight:700","color:#1684d8;background:white");
+console.info("%c SOLAR-PANEL-WASHING-CARD %c v1.3.38 ","color:white;background:#1684d8;font-weight:700","color:#1684d8;background:white");
