@@ -413,38 +413,18 @@ class SolarPanelWashingCard extends HTMLElement {
     this._usageLoading=true;this.render();
     try{
       const id="sensor.solar_panel_washing_total_water";
-      let total=null,firstError=null;
-      const history=async()=>{
-        const raw=await this._hass.callWS({
-          type:"history/history_during_period",
-          // Include the most recent baseline before the selected start.
-          start_time:new Date(start.getTime()-86400000).toISOString(),
-          end_time:end.toISOString(),entity_ids:[id],
-          minimal_response:false,no_attributes:true
-        });
-        return this.waterUsageFromHistory(raw,start,end);
-      };
-      const statistics=async()=>{
-        const raw=await this._hass.callWS({
-          type:"recorder/statistics_during_period",
-          start_time:new Date(start.getTime()-3*3600000).toISOString(),
-          end_time:end.toISOString(),
-          statistic_ids:[id],period:"hour",types:["sum"]
-        });
-        return this.waterUsageFromStatistics(raw,start,end);
-      };
-      // Short intervals: Recorder is the primary source. For longer
-      // intervals prefer HA long-term statistics, but fall back to raw
-      // Recorder history when the sensor has no sum statistics.
-      const strategies=end-start<=9*86400000?[history,statistics]:[statistics,history];
-      for(const strategy of strategies){
-        try{
-          total=await strategy();
-          if(total)break;
-        }catch(e){firstError=e;}
-      }
-      if(!total)throw Error(this.t("Unable to calculate water use for the whole period.")+" "+
-        (firstError?.message||""));
+      // The HA long-term 'sum' for total_increasing sensors interprets
+      // transient zeros after controller restore as *real meter resets*.
+      // It can report 2436 L even when the lifetime meter reads 1606 L.
+      // Never use this polluted sum as a water-consumption source.
+      // Always calculate from actual recorded counter readings.
+      const raw=await this._hass.callWS({
+        type:"history/history_during_period",
+        start_time:new Date(start.getTime()-86400000).toISOString(),
+        end_time:end.toISOString(),entity_ids:[id],
+        minimal_response:false,no_attributes:true
+      });
+      const total=this.waterUsageFromHistory(raw,start,end);
       this._usageResult={...total,start:start.toISOString(),end:end.toISOString()};
     }catch(e){this._usageError=e?.message||String(e);}
     finally{this._usageLoading=false;this.render();}
@@ -687,7 +667,7 @@ class SolarPanelWashingCard extends HTMLElement {
         .spw-system .spw-status-row{display:flex;justify-content:space-between;align-items:baseline;gap:12px;padding:7px 0;border-bottom:1px solid var(--divider-color,rgba(127,127,127,.12));font-size:13px}.spw-system .spw-status-row:last-child{border-bottom:0}.spw-system .spw-status-label{color:var(--secondary-text-color);white-space:nowrap}.spw-system .spw-status-row strong{font-weight:600;overflow-wrap:anywhere;text-align:end;min-width:0}
 </style>
       <div class="wrap">
-        <div class="hero"><ha-icon icon="mdi:solar-panel"></ha-icon><div><h1>Solar Panel Washing</h1><p>Automatic multi-zone washing controller</p></div><div class="language-control"><div class="spw-version" aria-label="Dashboard version">v1.3.38</div><button type="button" class="language-trigger" data-language-toggle aria-haspopup="true" aria-expanded="false">🌐 ${({"auto":"Auto","en":"English","ru":"Русский","he":"עברית"})[this.config?.language||"auto"]||"Auto"} ▾</button><div class="language-menu" data-language-menu hidden><button type="button" data-language-choice="auto">🌐 Auto</button><button type="button" data-language-choice="en">🇺🇸 English</button><button type="button" data-language-choice="ru">🇷🇺 Русский</button><button type="button" data-language-choice="he">🇮🇱 עברית</button></div></div></div>
+        <div class="hero"><ha-icon icon="mdi:solar-panel"></ha-icon><div><h1>Solar Panel Washing</h1><p>Automatic multi-zone washing controller</p></div><div class="language-control"><div class="spw-version" aria-label="Dashboard version">v1.3.39</div><button type="button" class="language-trigger" data-language-toggle aria-haspopup="true" aria-expanded="false">🌐 ${({"auto":"Auto","en":"English","ru":"Русский","he":"עברית"})[this.config?.language||"auto"]||"Auto"} ▾</button><div class="language-menu" data-language-menu hidden><button type="button" data-language-choice="auto">🌐 Auto</button><button type="button" data-language-choice="en">🇺🇸 English</button><button type="button" data-language-choice="ru">🇷🇺 Русский</button><button type="button" data-language-choice="he">🇮🇱 עברית</button></div></div></div>
         <div class="stats">
           <div class="stat"><small>Status</small><b class="${this.state(E.alarm)==="on"?"alarm":"ok"}">${this.state(E.status)}</b></div>
           <div class="stat"><small>Zone</small><b>${this.state(E.zone)}</b></div>
@@ -881,7 +861,7 @@ class SolarPanelWashingSectionCard extends SolarPanelWashingCard {
       const host=grid.querySelector(".box");
       const bar=document.createElement("div");
       bar.style.cssText="display:flex;gap:8px;justify-content:flex-end;margin-bottom:10px;align-items:center";
-      const version=document.createElement("small");version.textContent="v1.3.38";
+      const version=document.createElement("small");version.textContent="v1.3.39";
       const picker=document.createElement("div");
       picker.style.cssText="position:relative";
       const trigger=document.createElement("button");
@@ -974,7 +954,7 @@ class SolarPanelWashingOverviewCard extends HTMLElement {
       .spw-head small{margin-left:0}
       @container (max-width:1050px){.spw-layout{grid-template-columns:repeat(2,minmax(0,1fr))}.spw-column{display:contents}.spw-cell{order:var(--tablet-order)}}
       @container (max-width:620px){.spw-layout{grid-template-columns:minmax(0,1fr)}.spw-column{display:contents}.spw-cell{order:var(--mobile-order)}.spw-head{font-size:18px;padding:10px 12px}}
-    </style><div class="spw-overview"><div class="spw-head">☀️ Solar Panel Washing <div class="spw-language"><small>v1.3.38</small><select aria-label="Language" class="spw-language-select"><option value="auto">🌐 Auto</option><option value="en">🇺🇸 English</option><option value="ru">🇷🇺 Русский</option><option value="he">🇮🇱 עברית</option></select></div></div><div class="spw-layout"></div></div>`;
+    </style><div class="spw-overview"><div class="spw-head">☀️ Solar Panel Washing <div class="spw-language"><small>v1.3.39</small><select aria-label="Language" class="spw-language-select"><option value="auto">🌐 Auto</option><option value="en">🇺🇸 English</option><option value="ru">🇷🇺 Русский</option><option value="he">🇮🇱 עברית</option></select></div></div><div class="spw-layout"></div></div>`;
     const langSelect=this.querySelector(".spw-language-select");
     let savedLanguage="auto";
     try { savedLanguage=localStorage.getItem("solar_panel_washing_language") || "auto"; } catch (_) {}
@@ -1015,4 +995,4 @@ class SolarPanelWashingOverviewCard extends HTMLElement {
 if(!customElements.get("solar-panel-washing-overview-card"))customElements.define("solar-panel-washing-overview-card",SolarPanelWashingOverviewCard);
 window.customCards.push({type:"solar-panel-washing-overview-card",name:"Solar Washing — Responsive Overview",description:"Desktop 4-column and mobile stacked washing dashboard",preview:true});
 
-console.info("%c SOLAR-PANEL-WASHING-CARD %c v1.3.38 ","color:white;background:#1684d8;font-weight:700","color:#1684d8;background:white");
+console.info("%c SOLAR-PANEL-WASHING-CARD %c v1.3.39 ","color:white;background:#1684d8;font-weight:700","color:#1684d8;background:white");

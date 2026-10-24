@@ -238,30 +238,33 @@ test("Custom calendar and chosen times persist while new HA sensor states arrive
   assert.equal(card._usageEndAt,to.value);
 });
 
-test("Water totals for week and month invoke the expected HA history/statistics queries",async()=>{
-  const card=loadCard();
-  card.render=()=>{};
-  let calls=[];
-  card._hass.callWS=async args=>{
-    calls.push(args);
-    if(args.type==="recorder/statistics_during_period"){
-      const start=Date.parse(args.start_time),end=Date.parse(args.end_time);
-      return {"sensor.solar_panel_washing_total_water":[
-        {end:start+3600000,sum:400},{end:start+2*3600000,sum:405},
-        {end:end-3600000,sum:420}
-      ]};
-    }
-    return [[]];
+test("Water usage never trusts corrupt hourly statistics after phantom meter reset",async()=>{
+  const card=loadCard();card.render=()=>{};
+  const calls=[];
+  card._hass.callWS=async msg=>{
+    calls.push(msg.type);
+    if(msg.type==="recorder/statistics_during_period")
+      throw Error("Hourly sum must not be requested");
+    const before=new Date(Date.now()-11*86400000).toISOString();
+    const after=new Date(Date.now()-30000).toISOString();
+    const dip=new Date(Date.now()-4*86400000).toISOString();
+    const restore=new Date(Date.now()-4*86400000+10000).toISOString();
+    return [[
+      {state:"0",last_updated:before},
+      {state:"950",last_updated:new Date(Date.now()-8*86400000).toISOString()},
+      {state:"0",last_updated:dip},
+      {state:"950",last_updated:restore},
+      {state:"1606.09",last_updated:after}
+    ]];
   };
   await card.loadWaterUsage("month");
-  assert.equal(calls.length,1);
-  assert.equal(calls[0].type,"recorder/statistics_during_period");
-  assert.equal(card._usageResult.value,15);
-  calls=[];
+  assert.deepEqual(calls,["history/history_during_period"]);
+  assert.equal(card._usageResult.value,1606.09);
+  assert.equal(card._usageResult.resets,true);
+  calls.length=0;
   await card.loadWaterUsage("week");
-  assert.equal(calls[0].type,"history/history_during_period");
-  assert.equal(calls[1].type,"recorder/statistics_during_period");
-  assert.equal(card._usageResult.value,15);
+  assert.deepEqual(calls,["history/history_during_period"]);
+  assert.ok(card._usageResult.value<=1606.09);
 });
 
 test("Transient 808 L drop and recovery adds no phantom litres",()=>{
@@ -321,25 +324,25 @@ test("Missing start baseline is displayed as partial, not replaced by absent sta
   assert.deepEqual(seen,["history/history_during_period"]);
 });
 
-test("Month falls back to raw recorded counter if long-term statistics unavailable",async()=>{
-  const card=loadCard();
-  card.render=()=>{};
+test("A 23-day range reports available Recorder data instead of inflated HA sums",async()=>{
+  const card=loadCard();card.render=()=>{};
   const seen=[];
+  card._usageStartAt=card.localUsageTime(new Date(Date.now()-23*86400000));
+  card._usageEndAt=card.localUsageTime(new Date(Date.now()-60000));
   card._hass.callWS=async msg=>{
     seen.push(msg.type);
-    if(msg.type==="recorder/statistics_during_period")return {};
     return [[
-      {state:"0",last_updated:new Date(Date.now()-8*86400000).toISOString()},
-      {state:"100",last_updated:new Date(Date.now()-7*86400000).toISOString()},
-      {state:"0",last_updated:new Date(Date.now()-6*86400000).toISOString()},
-      {state:"100",last_updated:new Date(Date.now()-6*86400000+5000).toISOString()},
-      {state:"180",last_updated:new Date(Date.now()-86400000).toISOString()}
+      {state:"0",last_updated:new Date(Date.now()-9*86400000).toISOString()},
+      {state:"808",last_updated:new Date(Date.now()-6*86400000).toISOString()},
+      {state:"0",last_updated:new Date(Date.now()-4*86400000).toISOString()},
+      {state:"808",last_updated:new Date(Date.now()-4*86400000+5000).toISOString()},
+      {state:"1606.09",last_updated:new Date(Date.now()-120000).toISOString()}
     ]];
   };
-  await card.loadWaterUsage("month");
+  await card.loadWaterUsage("custom");
   assert.equal(card._usageError,"");
-  assert.equal(card._usageResult.value,180);
+  assert.equal(card._usageResult.value,1606.09);
   assert.equal(card._usageResult.partial,true);
-  assert.equal(card._usageResult.resets,true);
-  assert.deepEqual(seen,["recorder/statistics_during_period","history/history_during_period"]);
+  assert.deepEqual(seen,["history/history_during_period"]);
 });
+

@@ -4,7 +4,7 @@
 
 ### ESP32 / ESPHome automatic five-zone solar-panel washing with Home Assistant
 
-[![Release](https://img.shields.io/badge/Version-1.3.38-blue)](VERSION)
+[![Release](https://img.shields.io/badge/Version-1.3.39-blue)](VERSION)
 [![ESPHome](https://img.shields.io/badge/ESPHome-ESP32--S3-000000?logo=esphome)](https://esphome.io/)
 [![Home Assistant](https://img.shields.io/badge/Home%20Assistant-HACS%20Integration-18BCF2?logo=homeassistant)](https://www.home-assistant.io/)
 [![Languages](https://img.shields.io/badge/Languages-EN%20%7C%20RU%20%7C%20HE-1684d8)](#languages)
@@ -15,6 +15,12 @@
 *Illustration of the Solar Panel Washing dashboard.*
 
 </div>
+
+## v1.3.39 — Prevent overcount from corrupted long-term water statistics
+
+Fixed the inconsistent water report where a 10-day interval displayed 2436.89 L while the cumulative meter had only reached 1606.09 L. Home Assistant's long-term hourly sum for a total_increasing sensor can count transient sensor-zero glitches as genuine resets and add a second copy of the water total.
+
+All water usage periods now calculate from raw Home Assistant Recorder counter states, applying the high-water algorithm that ignores transient counter drops. If old raw readings are unavailable, the result remains visibly marked as a partial lower bound instead of presenting an inflated statistic as accurate. No changes to ESP32 firmware or its persisted counters.
 
 ## v1.3.38 — Recorder history coverage and missing statistics
 
