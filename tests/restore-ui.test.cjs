@@ -191,7 +191,10 @@ test("A counter reset is handled without negative usage",()=>{
   assert.equal(r.resets,true);
   assert.equal(r.unresolvedReset,true);
   assert.equal(r.approx,true);
-  assert.throws(()=>card.waterUsageFromHistory([[{state:"9",last_updated:"2026-10-19T08:00:00Z"}]],start,end),/начало периода/);
+  const partial=card.waterUsageFromHistory([[{state:"9",last_updated:"2026-10-19T08:00:00Z"}]],start,end);
+  assert.equal(partial.value,0);
+  assert.equal(partial.partial,true);
+  assert.equal(partial.approx,true);
 });
 
 test("Long-term hourly statistics support a month when Recorder was purged",()=>{
@@ -293,4 +296,50 @@ test("Restored older value followed by recovery counts only new lifetime highs",
   const result=card.waterUsageFromHistory(records,start,end);
   assert.ok(Math.abs(result.value-115.91)<1e-8);
   assert.equal(result.unresolvedReset,false);
+});
+
+test("Missing start baseline is displayed as partial, not replaced by absent statistics",async()=>{
+  const card=loadCard();
+  card.render=()=>{};
+  const seen=[];
+  card._hass.callWS=async msg=>{
+    seen.push(msg.type);
+    if(msg.type==="history/history_during_period"){
+      return [[
+        {state:"1250",last_updated:new Date(Date.now()-5*86400000).toISOString()},
+        {state:"1390",last_updated:new Date(Date.now()-4*86400000).toISOString()},
+        {state:"1606.09",last_updated:new Date(Date.now()-60000).toISOString()}
+      ]];
+    }
+    throw Error("No long-term statistics");
+  };
+  await card.loadWaterUsage("week");
+  assert.equal(card._usageError,"");
+  assert.equal(card._usageResult.partial,true);
+  assert.equal(card._usageResult.approx,true);
+  assert.ok(Math.abs(card._usageResult.value-356.09)<1e-7);
+  assert.deepEqual(seen,["history/history_during_period"]);
+});
+
+test("Month falls back to raw recorded counter if long-term statistics unavailable",async()=>{
+  const card=loadCard();
+  card.render=()=>{};
+  const seen=[];
+  card._hass.callWS=async msg=>{
+    seen.push(msg.type);
+    if(msg.type==="recorder/statistics_during_period")return {};
+    return [[
+      {state:"0",last_updated:new Date(Date.now()-8*86400000).toISOString()},
+      {state:"100",last_updated:new Date(Date.now()-7*86400000).toISOString()},
+      {state:"0",last_updated:new Date(Date.now()-6*86400000).toISOString()},
+      {state:"100",last_updated:new Date(Date.now()-6*86400000+5000).toISOString()},
+      {state:"180",last_updated:new Date(Date.now()-86400000).toISOString()}
+    ]];
+  };
+  await card.loadWaterUsage("month");
+  assert.equal(card._usageError,"");
+  assert.equal(card._usageResult.value,180);
+  assert.equal(card._usageResult.partial,true);
+  assert.equal(card._usageResult.resets,true);
+  assert.deepEqual(seen,["recorder/statistics_during_period","history/history_during_period"]);
 });

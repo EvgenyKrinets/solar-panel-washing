@@ -4,7 +4,7 @@
 
 ### ESP32 / ESPHome automatic five-zone solar-panel washing with Home Assistant
 
-[![Release](https://img.shields.io/badge/Version-1.3.37-blue)](VERSION)
+[![Release](https://img.shields.io/badge/Version-1.3.38-blue)](VERSION)
 [![ESPHome](https://img.shields.io/badge/ESPHome-ESP32--S3-000000?logo=esphome)](https://esphome.io/)
 [![Home Assistant](https://img.shields.io/badge/Home%20Assistant-HACS%20Integration-18BCF2?logo=homeassistant)](https://www.home-assistant.io/)
 [![Languages](https://img.shields.io/badge/Languages-EN%20%7C%20RU%20%7C%20HE-1684d8)](#languages)
@@ -15,6 +15,12 @@
 *Illustration of the Solar Panel Washing dashboard.*
 
 </div>
+
+## v1.3.38 — Recorder history coverage and missing statistics
+
+Fixed water consumption ranges reporting "insufficient long-term statistics" even when Home Assistant shows recorded Total Water readings. If a complete first reading is unavailable, the dashboard now uses the earliest valid Recorder sample and labels the result an **approximate, partial lower bound**, not a complete total. For 30-day/custom longer periods, long-term statistics remain preferred, with raw Recorder fallback when hourly sums are unavailable. An extra day is queried to find the starting baseline. Previously fixed temporary counter zero dips continue to be ignored.
+
+This is a dashboard/HA-only release. ESP32 firmware remains unchanged. Gaps in Home Assistant graph can represent unavailable or missing state history and do not necessarily indicate the controller was offline.
 
 ## v1.3.37 — Ignore transient counter drops when calculating water usage
 
@@ -71,7 +77,7 @@ New HA services are `solar_panel_washing_dashboard.save_settings` for manual sna
 
 **Solar Panel Washing** controls five rooftop solar-panel washing zones using a Waveshare ESP32-S3-ETH-8DI-8RO, ESPHome, and Home Assistant. The ESP32 executes the washing programs, schedules, valve sequencing and safety logic locally; Home Assistant provides configuration, live readings, controls, history and a responsive dashboard. The automatic program does not require a permanently connected Home Assistant frontend.
 
-**Current release: v1.3.37.** The HACS integration and ESPHome firmware are separate parts of this repository. Updating the integration does **not** flash the ESP32.
+**Current release: v1.3.38.** The HACS integration and ESPHome firmware are separate parts of this repository. Updating the integration does **not** flash the ESP32.
 
 ## Features — in the order you use them
 
