@@ -445,13 +445,6 @@ class SolarPanelWashingCard extends HTMLElement {
       }
       if(!total)throw Error(this.t("Unable to calculate water use for the whole period.")+" "+
         (firstError?.message||""));
-      // Always prefer a current live reading when Recorder has not
-      // recorded the last update, but never count counter regressions.
-      const live=this._hass.states?.[id];
-      if(total.source==="history" && live){
-        // The history response is authoritative for the measured interval.
-        // Do not attach a reading taken after the requested end.
-      }
       this._usageResult={...total,start:start.toISOString(),end:end.toISOString()};
     }catch(e){this._usageError=e?.message||String(e);}
     finally{this._usageLoading=false;this.render();}
